@@ -4,9 +4,11 @@ import React from 'react';
 import { useDashboard } from '../../contexts/DashboardContext';
 import { ShieldAlert, Target, Calendar, Clock, Activity, ArrowRight, Zap } from 'lucide-react';
 import Link from 'next/link';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function DashboardPage() {
   const { data, isLoading, error } = useDashboard();
+  const { user } = useAuth();
 
   if (isLoading) {
     return (
@@ -42,7 +44,7 @@ export default function DashboardPage() {
       <div className="flex items-end justify-between border-b border-vintage-ink/10 pb-6 relative">
         <div>
           <h4 className="font-accent text-3xl text-vintage-crimsonLight mb-[-10px] transform -rotate-2 relative z-10">
-            welcome back!
+            welcome back, {user?.full_name?.split(' ')[0].toLowerCase() || 'student'}!
           </h4>
           <h1 className="text-6xl font-display font-black text-vintage-crimson tracking-tighter">Overview</h1>
         </div>

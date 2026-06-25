@@ -64,7 +64,7 @@ export default function ProfilePage() {
             </div>
 
             <h2 className="text-3xl font-display font-black text-vintage-crimson mb-2 tracking-tight break-words w-full">{user?.full_name || 'Demo User'}</h2>
-            <p className="text-vintage-ink/60 font-mono font-bold text-sm uppercase tracking-widest mb-8 pb-8 border-b border-vintage-ink/10 w-full">Computer Science, B.S.</p>
+            <p className="text-vintage-ink/60 font-mono font-bold text-sm uppercase tracking-widest mb-8 pb-8 border-b border-vintage-ink/10 w-full">Undergraduate Student</p>
             
             {isEditingAvatar && (
               <div className="mb-8 w-full text-left bg-vintage-babyBlue/10 p-5 rounded-xl border border-vintage-ink/5">
@@ -90,11 +90,11 @@ export default function ProfilePage() {
             <div className="w-full space-y-6 text-left pt-2">
               <div className="flex flex-col gap-2">
                 <span className="text-xs font-mono font-bold text-vintage-ink/50 uppercase tracking-widest">Email Designation</span>
-                <span className="text-base font-mono font-bold text-vintage-ink break-all tracking-tight">{user?.email || 'demo@campusflow.edu'}</span>
+                <span className="text-base font-mono font-bold text-vintage-ink break-all tracking-tight">{user?.email || 'Not configured'}</span>
               </div>
               <div className="flex flex-col gap-2">
-                <span className="text-xs font-mono font-bold text-vintage-ink/50 uppercase tracking-widest">Academic Year</span>
-                <span className="text-base font-mono font-bold text-vintage-ink tracking-tight">Junior Year</span>
+                <span className="text-xs font-mono font-bold text-vintage-ink/50 uppercase tracking-widest">WhatsApp Contact</span>
+                <span className="text-base font-mono font-bold text-vintage-ink tracking-tight">{user?.whatsapp_number || 'Not configured'}</span>
               </div>
             </div>
           </div>
@@ -107,8 +107,8 @@ export default function ProfilePage() {
             <div className="vintage-panel p-8 flex items-center justify-between group overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-vintage-babyBlue/20 rounded-bl-full -z-0 group-hover:scale-110 transition-transform"></div>
               <div className="relative z-10">
-                <p className="text-xs font-mono font-bold text-vintage-ink/60 uppercase tracking-widest mb-2">Current GPA</p>
-                <p className="text-6xl font-display font-black text-vintage-crimson">3.84</p>
+                <p className="text-xs font-mono font-bold text-vintage-ink/60 uppercase tracking-widest mb-2">Calendar Sync</p>
+                <p className="text-4xl font-display font-black text-vintage-crimson">{user?.google_calendar_connected ? 'Active' : 'Inactive'}</p>
               </div>
               <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-sm relative z-10 text-vintage-crimson border border-vintage-ink/5">
                 <Star className="w-8 h-8" />
@@ -118,8 +118,8 @@ export default function ProfilePage() {
             <div className="vintage-panel p-8 flex items-center justify-between group overflow-hidden bg-vintage-crimson">
               <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-bl-full -z-0 group-hover:scale-110 transition-transform"></div>
               <div className="relative z-10">
-                <p className="text-xs font-mono font-bold text-white/80 uppercase tracking-widest mb-2">Study Hours</p>
-                <p className="text-6xl font-display font-black text-white">42.5h</p>
+                <p className="text-xs font-mono font-bold text-white/80 uppercase tracking-widest mb-2">Notifications</p>
+                <p className="text-4xl font-display font-black text-white">{user?.whatsapp_number ? 'Enabled' : 'Disabled'}</p>
               </div>
               <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center shadow-sm relative z-10 text-white border border-white/20 backdrop-blur-sm">
                 <Clock className="w-8 h-8" />
@@ -139,7 +139,7 @@ export default function ProfilePage() {
                   Primary Objective
                 </label>
                 <p className="text-xl font-mono font-bold text-vintage-ink leading-relaxed">
-                  Maintain Dean's List while securing a Summer 2027 SWE Internship.
+                  Focus on immediate coursework and maintain steady academic progress.
                 </p>
                 <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity">
                   <p className="font-accent text-2xl text-vintage-crimsonLight transform -rotate-3">you got this!</p>
@@ -151,9 +151,9 @@ export default function ProfilePage() {
                   Learning Protocols
                 </label>
                 <div className="flex flex-wrap gap-4">
-                  <span className="px-5 py-3 bg-vintage-babyBlue/20 text-vintage-crimson text-sm font-mono font-bold rounded-md">Visual Learner</span>
-                  <span className="px-5 py-3 bg-vintage-babyBlue/20 text-vintage-crimson text-sm font-mono font-bold rounded-md">Pomodoro (50/10)</span>
-                  <span className="px-5 py-3 bg-vintage-babyBlue/20 text-vintage-crimson text-sm font-mono font-bold rounded-md">Evening Peak</span>
+                  <span className="px-5 py-3 bg-vintage-babyBlue/20 text-vintage-crimson text-sm font-mono font-bold rounded-md">Smart Tracking</span>
+                  <span className="px-5 py-3 bg-vintage-babyBlue/20 text-vintage-crimson text-sm font-mono font-bold rounded-md">AI Insights</span>
+                  <span className="px-5 py-3 bg-vintage-babyBlue/20 text-vintage-crimson text-sm font-mono font-bold rounded-md">Automated Sync</span>
                 </div>
               </div>
 

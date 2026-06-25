@@ -8,20 +8,40 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
-// Mock Data Initial State
-const INITIAL_TASKS = [
-  { id: '1', title: 'Algorithms Midterm', subject: 'CS 301', type: 'Exam', date: 'Oct 15', priority: 'High', status: 'pending', comments: [] },
-  { id: '2', title: 'Project Proposal Due', subject: 'CS 301', type: 'Assignment', date: 'Oct 10', priority: 'Medium', status: 'pending', comments: [] },
-  { id: '3', title: 'Calculus Worksheet', subject: 'MATH 201', type: 'Assignment', date: 'Oct 12', priority: 'Low', status: 'pending', comments: [] },
-  { id: '4', title: 'Physics Lab Report', subject: 'PHYS 101', type: 'Assignment', date: 'Oct 14', priority: 'High', status: 'pending', comments: [] },
-];
+import { TaskService } from '../../services/task.service';
+import { useEffect } from 'react';
+
+// Fallback empty state
+const INITIAL_TASKS: any[] = [];
 
 export default function WorkspacePage() {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const [activeTab, setActiveTab] = useState<'tasks' | 'inbox' | 'completed'>('tasks');
-  const [tasks, setTasks] = useState(INITIAL_TASKS);
-  const [selectedItem, setSelectedItem] = useState<any>(INITIAL_TASKS[0]);
+  const [tasks, setTasks] = useState<any[]>(INITIAL_TASKS);
+  const [selectedItem, setSelectedItem] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  
+  useEffect(() => {
+    if (!token) return;
+    TaskService.getTasks(token).then(res => {
+      if (res.success && res.data?.items) {
+        const fetchedTasks = res.data.items.map(t => ({
+          id: t.id,
+          title: t.title,
+          subject: t.description ? t.description.split(' - ')[0] : 'General',
+          type: 'Task',
+          date: t.due_date ? new Date(t.due_date).toLocaleDateString() : 'No date',
+          priority: t.priority,
+          status: t.status,
+          comments: []
+        }));
+        setTasks(fetchedTasks);
+        if (fetchedTasks.length > 0) {
+          setSelectedItem(fetchedTasks[0]);
+        }
+      }
+    }).catch(console.error);
+  }, [token]);
   
   // Quick Capture State
   const [showQuickCapture, setShowQuickCapture] = useState(false);
@@ -49,20 +69,37 @@ export default function WorkspacePage() {
     setNewComment('');
   };
 
-  const handleQuickCapture = () => {
-    if (!newTaskSubject || !newTaskTitle) return;
-    const newTask = {
-      id: Date.now().toString(),
-      subject: newTaskSubject,
+  const handleQuickCapture = async () => {
+    if (!newTaskSubject || !newTaskTitle || !token) return;
+    
+    const data = {
       title: newTaskTitle,
-      type: newTaskType,
-      priority: newTaskPriority,
-      date: newTaskDate || 'Soon',
-      status: 'pending',
-      comments: []
+      description: `${newTaskSubject} - ${newTaskType}`,
+      due_date: newTaskDate || new Date().toISOString(),
+      priority: newTaskPriority.toLowerCase() as any,
+      status: 'pending' as any
     };
-    setTasks([newTask, ...tasks]);
-    setSelectedItem(newTask);
+
+    try {
+      const res = await TaskService.createTask(data, token);
+      if (res.success && res.data) {
+        const newTask = {
+          id: res.data.id,
+          title: res.data.title,
+          subject: newTaskSubject,
+          type: newTaskType,
+          date: res.data.due_date ? new Date(res.data.due_date).toLocaleDateString() : 'No date',
+          priority: res.data.priority,
+          status: res.data.status,
+          comments: []
+        };
+        setTasks([newTask, ...tasks]);
+        setSelectedItem(newTask);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+
     setShowQuickCapture(false);
     setNewTaskSubject('');
     setNewTaskTitle('');
