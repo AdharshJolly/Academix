@@ -14,10 +14,10 @@ export const AuthService = {
     register: (data: UserRegisterRequest): Promise<APIResponse<AuthResponse>> =>
         apiClient.post(API_ENDPOINTS.AUTH_REGISTER, data),
 
-    connectGoogleCalendar: (): Promise<APIResponse<{authorization_url: string}>> =>
-        apiClient.get('/auth/google/connect'),
+    connectGoogleCalendar: (token: string): Promise<APIResponse<{authorization_url: string}>> =>
+        apiClient.get('/auth/google/connect', token),
 
-    verifyGoogleCallback: (code: string, state: string): Promise<APIResponse<any>> =>
-        apiClient.get(`/auth/google/callback?code=${code}&state=${state}`),
+    verifyGoogleCallback: (code: string, state: string, token: string): Promise<APIResponse<any>> =>
+        apiClient.get(`/auth/google/callback?code=${code}&state=${state}`, token),
 };
 

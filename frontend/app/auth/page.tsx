@@ -19,8 +19,10 @@ export default function AuthPage() {
   const [syncLoading, setSyncLoading] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
   
-  const { login, register, isLoading } = useAuth();
+  const { login, register, isLoading, token } = useAuth();
   const router = useRouter();
+  // Store token locally after login so it's available immediately for Google connect
+  const [authToken, setAuthToken] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,9 +36,13 @@ export default function AuthPage() {
         user = await register({ email, password, full_name: fullName, whatsapp_number: whatsappNumber });
       }
       
+      // Grab the token that was just saved to localStorage
+      const freshToken = localStorage.getItem('campusflow_token');
+      setAuthToken(freshToken);
+      
       if (!user?.google_calendar_connected) {
         setShowSyncModal(true);
-        return; // wait for modal action
+        return;
       }
       
       router.push('/dashboard');
@@ -49,7 +55,9 @@ export default function AuthPage() {
     setSyncLoading(true);
     setSyncError(null);
     try {
-      const res = await AuthService.connectGoogleCalendar();
+      const t = authToken || token || localStorage.getItem('campusflow_token') || '';
+      if (!t) throw new Error('Not authenticated. Please log in again.');
+      const res = await AuthService.connectGoogleCalendar(t);
       if (res.data?.authorization_url) {
         window.location.href = res.data.authorization_url;
       } else {

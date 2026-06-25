@@ -7,7 +7,7 @@ import { AuthService } from '../../services/auth.service';
 import { useSearchParams, useRouter } from 'next/navigation';
 
 function SettingsContent() {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const searchParams = useSearchParams();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('account');
@@ -19,7 +19,8 @@ function SettingsContent() {
     const state = searchParams.get('state');
     if (code && state) {
       setGoogleConnecting(true);
-      AuthService.verifyGoogleCallback(code, state)
+      const t = token || localStorage.getItem('campusflow_token') || '';
+      AuthService.verifyGoogleCallback(code, state, t)
         .then(() => {
           alert('Google Calendar successfully connected!');
           router.replace('/settings');
@@ -30,12 +31,14 @@ function SettingsContent() {
         })
         .finally(() => setGoogleConnecting(false));
     }
-  }, [searchParams, router]);
+  }, [searchParams, router, token]);
 
   const handleConnectGoogle = async () => {
     try {
       setGoogleConnecting(true);
-      const res = await AuthService.connectGoogleCalendar();
+      const t = token || localStorage.getItem('campusflow_token') || '';
+      if (!t) { alert('Please log in again.'); return; }
+      const res = await AuthService.connectGoogleCalendar(t);
       if (res.data?.authorization_url) {
         window.location.href = res.data.authorization_url;
       }
