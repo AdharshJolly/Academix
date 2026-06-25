@@ -7,7 +7,11 @@
 import { APIResponse, PaginatedResponse } from '../types';
 import { API_ENDPOINTS } from '../constants/api';
 
-const BASE_URL = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1`;
+let apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+if (apiUrl.includes('railway.app') && apiUrl.startsWith('http://')) {
+    apiUrl = apiUrl.replace('http://', 'https://');
+}
+const BASE_URL = `${apiUrl}/api/v1`;
 
 // === MOCK ENGINE ===
 const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
