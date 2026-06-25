@@ -33,11 +33,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const storedToken = localStorage.getItem('campusflow_token');
             const storedUser = localStorage.getItem('campusflow_user');
             if (storedToken && storedUser) {
-                setToken(storedToken);
-                setUser(JSON.parse(storedUser));
+                // Validate it's our own JWT (3 dot-separated segments)
+                // Old Supabase tokens have a different format and will cause 401s
+                const segments = storedToken.split('.');
+                if (segments.length !== 3) {
+                    // Stale token from old Supabase Auth — clear and force re-login
+                    localStorage.removeItem('campusflow_token');
+                    localStorage.removeItem('campusflow_user');
+                } else {
+                    setToken(storedToken);
+                    setUser(JSON.parse(storedUser));
+                }
             }
         } catch (e) {
-            // ignore parse errors
+            localStorage.removeItem('campusflow_token');
+            localStorage.removeItem('campusflow_user');
         }
     }, []);
 
