@@ -6,9 +6,7 @@ import { ChevronLeft, ChevronRight, RefreshCw, X, CheckSquare, Square } from 'lu
 import { CalendarEvent } from '../../types';
 
 export default function CalendarPage() {
-  const { data } = useDashboard();
-  
-  const [currentDate, setCurrentDate] = useState(new Date(2026, 5, 1)); // Default to June 2026
+  const [currentDate, setCurrentDate] = useState(new Date()); // Default to today
   const currentYear = currentDate.getFullYear();
   const currentMonth = currentDate.getMonth();
   
@@ -44,12 +42,13 @@ export default function CalendarPage() {
     
     // Add mock data if backend has no events so the calendar isn't empty
     if (events.length === 0) {
+      const mStr = String(currentMonth + 1).padStart(2, '0');
       events = [
-        { title: 'CS 301: Algorithms Midterm', date: '2026-06-14', type: 'Exam' },
-        { title: 'CS 301: Project Proposal Due', date: '2026-06-14', type: 'Assignment' },
-        { title: 'Personal: Career Fair', date: '2026-06-18', type: 'Event' },
-        { title: 'MATH 201: Study Group', date: '2026-06-05', type: 'Personal' },
-        { title: 'PHYS 101: Lab Report', date: '2026-06-22', type: 'Assignment' }
+        { title: 'CS 301: Algorithms Midterm', date: `${currentYear}-${mStr}-14`, type: 'Exam' },
+        { title: 'CS 301: Project Proposal Due', date: `${currentYear}-${mStr}-14`, type: 'Assignment' },
+        { title: 'Personal: Career Fair', date: `${currentYear}-${mStr}-18`, type: 'Event' },
+        { title: 'MATH 201: Study Group', date: `${currentYear}-${mStr}-05`, type: 'Personal' },
+        { title: 'PHYS 101: Lab Report', date: `${currentYear}-${mStr}-22`, type: 'Assignment' }
       ];
     }
     
