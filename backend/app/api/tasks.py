@@ -52,7 +52,12 @@ async def create_task(
     """Create a new academic task."""
     try:
         task = task_repo.create(user_id=user["id"], data=request)
-        automation_service.run_for_task(user_id=user["id"], task=task)
+        automation_service.run_for_task(
+            user_id=user["id"], 
+            task=task,
+            add_to_calendar=request.add_to_calendar,
+            reminder_time=request.reminder_time
+        )
         return APIResponse(success=True, message="Task created", data=task)
     except Exception as e:
         logger.error(f"Create task error: {e}")

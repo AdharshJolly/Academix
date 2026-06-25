@@ -23,20 +23,28 @@ class AutomationService:
         self._calendar = GoogleCalendarClient()
         self._make = MakeClient()
 
-    def run_for_task(self, user_id: str, task: TaskResponse) -> None:
+    def run_for_task(
+        self, 
+        user_id: str, 
+        task: TaskResponse, 
+        add_to_calendar: bool = True, 
+        reminder_time: str | None = "24h"
+    ) -> None:
         message = self._task_message(task)
         base_payload = {
             "task_id": task.id,
             "title": task.title,
             "due_date": str(task.due_date) if task.due_date else None,
             "priority": task.priority,
+            "reminder_time": reminder_time,
         }
         self._run(
             user_id=user_id,
             workflow_type="task",
             base_payload=base_payload,
             message=message,
-            calendar_callback=lambda refresh_token: self._create_task_event(refresh_token, task),
+            calendar_callback=lambda refresh_token: self._create_task_event(refresh_token, task) if add_to_calendar else {"calendar_status": "skipped", "reason": "user_opt_out"},
+            skip_whatsapp=(reminder_time == "none"),
         )
 
     def run_for_intelligence(self, user_id: str, report: IntelligenceResponse) -> None:
@@ -85,6 +93,7 @@ class AutomationService:
         message: str,
         calendar_callback,
         intelligence_report_id: str | None = None,
+        skip_whatsapp: bool = False,
     ) -> None:
         profile = self._user_repo.get_automation_profile(user_id)
         if not profile:
@@ -121,6 +130,11 @@ class AutomationService:
                 return
         else:
             payload["calendar_status"] = "not_connected"
+
+        if skip_whatsapp:
+            payload["whatsapp_status"] = "skipped"
+            self._automation_repo.update_status(log_id, "success", payload)
+            return
 
         whatsapp_number = profile.get("whatsapp_number")
         if not whatsapp_number:

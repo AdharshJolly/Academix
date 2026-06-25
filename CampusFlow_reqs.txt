@@ -1,0 +1,306 @@
+
+🚀  CAMPUSAI HACKATHON 2025
+
+CampusFlow
+AI × WhatsApp × Google Calendar — Student Productivity Platform
+
+📲 WhatsApp reminders     📅 Auto-calendar events     🤖 AI-powered insights
+
+Build the app your college life actually needs — powered by real automation.
+
+
+Target Audience
+B.Tech Undergraduate Students (All Years, Moderate Level)
+Duration
+3 Hours — Sprint Format
+Team Size
+2–3 Members
+Tech Focus
+Web Stack + AI API + n8n (WhatsApp + Google Calendar)
+Deliverable
+Live web app + n8n workflow screenshot/demo + 2-min pitch
+Theme
+Student Ecosystem — Real Problems, Real Automation
+
+1.  The Problem
+
+The Scenario
+
+Every B.Tech student drowns in WhatsApp messages trying to remember deadlines shared in group chats. Exam schedules are announced on notice boards, deadlines get buried in 500-message groups, and nobody adds anything to their calendar — because it's too much effort.
+
+Your mission: Build CampusFlow — a smart student hub where AI processes information and n8n automatically sends WhatsApp reminders and creates Google Calendar events, so students never miss a deadline again.
+
+2.  What You Will Build
+
+CampusFlow is a modular web app. Teams build the Core Platform (mandatory) and at least two Feature Modules. Every module must connect to n8n — and every n8n workflow must trigger at least one WhatsApp message or Google Calendar event.
+
+2.1  Core Platform — Mandatory
+
+Student onboarding: name, branch, year, subjects, phone number (for WhatsApp), Google account link.
+Central dashboard showing today's schedule, pending tasks, and AI tip of the day.
+Task/Deadline CRUD with a field for 'WhatsApp reminder time' and 'Add to Calendar' toggle.
+Every task creation triggers a webhook to n8n — which sends a WhatsApp confirmation and creates a Google Calendar event automatically.
+
+2.2  Feature Modules — Choose Any Two
+
+Module
+What it does
+n8n Automation Triggered
+🧠  AI Study Buddy
+Paste lecture notes → AI generates flashcards + MCQ quiz.
+📲 WhatsApp: 'Your quiz for OS is ready!' + 📅 Calendar: Study session block created
+📅  Smart Deadline Manager
+Add deadline → AI suggests study schedule across remaining days.
+📲 WhatsApp reminder 24 hr & 1 hr before + 📅 Calendar event with deadline details
+📊  Attendance Risk Alerter
+Enter attendance % → AI flags at-risk subjects + minimum classes needed.
+📲 WhatsApp alert: 'You need 8 more classes in DBMS!' sent weekly
+📣  Notice Summarizer
+Paste college notice text → AI gives 3-bullet TL;DR.
+📅 Calendar event created from notice date + 📲 WhatsApp broadcast summary to study group
+💼  Placement Prep Tracker
+Log companies applied, rounds cleared → AI gives weekly prep plan.
+📅 Calendar: Interview prep blocks + 📲 WhatsApp daily motivational tip & task reminder
+🤝  Study Group Scheduler
+Post a study session → AI matches students by subject + availability.
+📲 WhatsApp invite sent to matched students + 📅 Group calendar event created for all
+
+3.  Tech Stack
+
+🌐  Frontend
+
+React.js / Next.js (Recommended)
+Tailwind CSS + ShadcnUI / Chakra UI
+Axios for API calls
+React Hook Form for inputs
+
+⚙️  Backend
+
+Node.js + Express (Recommended)
+Python + FastAPI as alternative
+Supabase / Firebase for DB + Auth
+REST API with JSON — POST to n8n webhooks
+🤖  AI Integration
+
+OpenAI GPT-4o / GPT-3.5 Turbo
+Gemini 1.5 Flash (free tier)
+Groq API — fastest, no credit card needed
+Claude API (Anthropic)
+
+🔁  n8n Automation
+
+n8n Cloud — free tier at n8n.cloud
+WhatsApp via Twilio / 360dialog / WABA
+Google Calendar via OAuth2 node in n8n
+Webhook → Logic → WhatsApp + Calendar
+
+📲  WhatsApp via n8n
+
+Use Twilio Sandbox (free) for WhatsApp Business API
+n8n has a native 'WhatsApp Business Cloud' node
+Alternative: use Twilio node → sends to any number
+Trigger: webhook from your backend POST → n8n sends WA message
+
+Free setup: twilio.com/console → WhatsApp Sandbox — takes 5 min!
+📅  Google Calendar via n8n
+
+n8n has a native 'Google Calendar' node (OAuth2 based)
+Connect once via n8n credentials → create events programmatically
+Fields: title, description, start time, end time, attendees
+Trigger: same webhook → n8n creates calendar event + sends WA
+
+Tip: Use a shared team Google account to demo calendar creation live!
+
+4.  n8n Workflow Blueprints
+
+Below are the two core n8n workflows your app must implement. You can use n8n's visual editor to drag-and-drop these nodes — no extra coding required inside n8n.
+
+Workflow 1  —  Deadline Reminder (WhatsApp + Calendar)
+
+➊  Webhook Node  →  Your backend sends: { studentName, phone, subject, deadline, taskTitle }
+➋  Set Node  →  Format deadline to ISO 8601, compute reminder time = deadline minus 24h
+➌  Google Calendar Node  →  Create event: title=taskTitle, start=deadline, description='CampusFlow reminder'
+➍  Wait Node  →  Wait until reminderTime (24 hours before deadline)
+➎  Twilio / WhatsApp Node  →  Send: "⏰ Hi {{studentName}}! Your {{subject}} assignment '{{taskTitle}}' is due tomorrow! Check your Google Calendar. — CampusFlow 🎓"
+➏  (Bonus) Wait Node x2  →  Send a second WA message 1 hour before deadline as final nudge
+
+Workflow 2  —  Notice Summarizer Broadcast
+
+➊  Webhook Node  →  Receives: { noticeText, eventDate, eventTitle, phoneList[] }
+➋  HTTP Request Node (AI Call)  →  POST to OpenAI/Groq: 'Summarize this notice in 3 bullet points: {{noticeText}}'
+➌  Set Node  →  Extract AI summary text from response JSON
+➍  Google Calendar Node  →  Create event: eventTitle, eventDate, description = AI summary
+➎  Loop + WhatsApp Node  →  For each phone in phoneList[], send: '📣 Notice Alert:\n{{aiSummary}}\n\nAdded to your calendar! — CampusFlow'
+
+💡  n8n Quick Setup Guide
+
+Go to n8n.cloud → Sign up free → Click 'New Workflow'
+Add a Webhook node → Copy the Test URL → paste it in your backend .env as N8N_WEBHOOK_URL
+Add Google Calendar node → Connect via OAuth2 (use a Gmail account) → Set action to 'Create Event'
+Add Twilio node → Enter your Twilio Account SID + Auth Token (from twilio.com) → Set WhatsApp sandbox number
+Add a Wait node between Calendar and WhatsApp → set to a relative time (e.g., 'date at {{reminderTime}}')
+Click 'Execute Workflow' in test mode → from your app, POST to the webhook → verify all nodes turn green
+Switch webhook to Production URL → update .env → your full automation is live!
+
+5.  System Architecture
+
+The three-layer architecture below shows how your app, AI, and n8n connect end-to-end:
+
+Layer 1  —  Frontend
+Layer 2  —  Backend + AI
+Layer 3  —  n8n + Channels
+React / Next.js
+
+Dashboard UI
+Task + notice forms
+WhatsApp number input
+'Add to Calendar' toggle
+n8n status indicator
+Node.js + Express
+
+REST endpoints
+AI API calls (GPT/Groq)
+Supabase DB writes
+POST to n8n webhook
+Returns AI response to UI
+n8n Cloud Workflow
+
+Webhook receiver
+Google Calendar node → create event
+Wait node → schedule
+Twilio node → WhatsApp message
+(Optional) Loop for group broadcasts
+Student Browser  🖥️
+Your Server / Supabase  ⚙️
+📲 WhatsApp + 📅 Calendar
+
+6.  Step-by-Step Build Plan  (3 Hours)
+
+  Phase 1  —  Setup & n8n Configuration
+0:00 – 0:30  (30 min)  
+Create project repo (frontend/ + backend/ folders). Initialize Node.js + React projects.
+Set up .env: AI_API_KEY, SUPABASE_URL, SUPABASE_KEY, N8N_WEBHOOK_URL, TWILIO_SID, TWILIO_TOKEN.
+Sign up at n8n.cloud → create two blank workflows named 'Deadline Reminder' and 'Notice Broadcast'.
+In n8n Workflow 1: Add Webhook node → copy test URL → paste in .env as N8N_DEADLINE_WEBHOOK.
+Connect Google Calendar to n8n (OAuth2) and Twilio WhatsApp Sandbox — test with a dummy POST.
+
+  Phase 2  —  Core Platform
+0:30 – 1:00  (30 min)  
+Build student onboarding form: name, branch, year, subjects, phone number (WhatsApp), email (for Calendar).
+Create /register and /login endpoints. Store student data in Supabase with phone and email fields.
+Build the dashboard UI: today's tasks, upcoming deadlines, and an AI tip placeholder.
+Implement task CRUD API. Task model must include: title, subject, deadline, reminderTime, addToCalendar (boolean).
+On task creation (POST /tasks), immediately POST to N8N_DEADLINE_WEBHOOK — verify n8n receives the data.
+
+  Phase 3  —  AI Integration
+1:00 – 1:45  (45 min)  
+Build POST /ai/summarize endpoint: takes text → sends to AI API → returns summary JSON.
+Build POST /ai/flashcards endpoint: takes notes → returns array of { question, answer } objects.
+Connect one AI feature fully to the UI: e.g., paste lecture notes → flashcards appear as flip cards.
+Build the Notice Summarizer UI: text area + 'Summarize & Broadcast' button → calls /ai/summarize → shows result.
+On 'Broadcast' click, POST to N8N_NOTICE_WEBHOOK with { noticeText, aiSummary, eventDate, phoneList }.
+
+  Phase 4  —  Complete n8n Workflows
+1:45 – 2:15  (30 min)  
+In n8n Workflow 1 (Deadline): Add Set node → Google Calendar node (create event) → Wait node → Twilio WhatsApp node.
+Configure Google Calendar node: title={{taskTitle}}, start={{deadline}}, description='Deadline tracked by CampusFlow'.
+Configure Twilio node: to=whatsapp:+{{phone}}, body='⏰ Hi {{studentName}}, your {{subject}} task is due tomorrow! Check your calendar.'
+In n8n Workflow 2 (Notice): Add HTTP Request node (call AI) → Set node → Calendar node → Loop → WhatsApp node.
+Test BOTH workflows end-to-end: trigger from your UI → verify WhatsApp message received + Calendar event visible.
+
+  Phase 5  —  Polish & Demo Prep
+2:15 – 3:00  (45 min)  
+Add a second AI module (e.g., Attendance Alerter or Placement Tracker) for bonus scoring.
+Add a 'My Automations' page showing recent n8n workflow triggers and their status (success/pending).
+Seed 3–5 realistic sample entries (real subject names, real deadlines) so the demo looks live and convincing.
+Test the full user journey: register → add deadline → receive WhatsApp → check Google Calendar event created.
+Prepare 2-minute pitch: Problem → Solution → Live Demo (show WA on phone) → Tech Architecture → What's next.
+
+7.  Judging Criteria & Scoring
+
+Feature / Module
+Points
+Bonus
+Core Platform (Login + Dashboard + Task CRUD)
+20 pts
+—
+n8n Workflow 1 — WhatsApp reminder fires successfully
+15 pts
++5 if 2nd WA (1-hr nudge) also works
+n8n Workflow 1 — Google Calendar event created automatically
+15 pts
++5 if attendees added
+AI Feature — First module (quality of AI output)
+20 pts
++5 for accuracy & formatting
+n8n Workflow 2 — Notice broadcast with AI summary via WA
+—
++15 pts Bonus
+UI / UX Design & Mobile Responsiveness
+10 pts
++5 for dark mode / polish
+Code Quality, Architecture & README
+10 pts
+—
+Live Demo & 2-min Pitch
+10 pts
++5 if phone shows live WA message
+Innovation / Unique module choice
+—
++5 Judge's Choice Award
+TOTAL
+100 pts
++45 pts Bonus Available
+
+8.  Rules & Starter Resources
+
+✅  Allowed
+
+Any open-source npm/pip package.
+Free-tier APIs: OpenAI, Gemini, Groq, Claude, Twilio Sandbox.
+n8n Cloud free tier or self-hosted Docker instance.
+Supabase / Firebase for backend-as-a-service.
+One shared team Google account for Calendar demo.
+Boilerplate code (not a pre-built complete project).
+
+❌  Not Allowed
+
+Pre-built projects submitted as-is.
+Hardcoded fake WhatsApp or Calendar responses.
+Paid Twilio plans beyond the free sandbox.
+Sharing API keys in public GitHub repos.
+🛠  Quick-Start Resources
+
+n8n Cloud:  n8n.cloud (free, no credit card)
+Twilio WhatsApp Sandbox:  twilio.com/console → Messaging → Try it out → WhatsApp
+Groq API (fast + free):  console.groq.com
+Supabase (DB + Auth):  supabase.com — free tier
+n8n Google Calendar Node docs:  docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.googlecalendar
+n8n Twilio Node docs:  docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.twilio
+
+👨‍🏫  Mentor Support
+
+Mentor desk open throughout — Room 204.
+Each team gets 1 'Hint Coupon' — use wisely!
+n8n setup mentor available in first 45 minutes.
+
+9.  Live Demo Checklist
+
+Judges will ask each team to perform these actions live during the 2-minute demo:
+
+Register a new student with a real phone number and Gmail address.
+Add a deadline → show the WhatsApp message arrive on a real phone within 30 seconds.
+Open Google Calendar → show the newly created event with the correct title and time.
+Paste a college notice → show the AI 3-bullet summary appear → broadcast sent.
+Show the n8n dashboard: both workflows with green 'Success' execution logs.
+Explain: 'If we had more time, we would add ____' — judges reward forward thinking.
+
+"The best student tools were built by students."
+
+Today you build something real — a WhatsApp message sent, a calendar event created,
+a student deadline never missed. That is automation that matters. 🚀
+
+Ship it. Demo it. Own it. 🎓
+
+
+CampusAI Hackathon 2025  |  WhatsApp + Google Calendar Edition  |  Dept. of CSE

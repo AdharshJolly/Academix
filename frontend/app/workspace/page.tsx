@@ -9,6 +9,7 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 
 import { TaskService } from '../../services/task.service';
+import { IntelligenceService } from '../../services/intelligence.service';
 import { useEffect } from 'react';
 
 // Fallback empty state
@@ -50,7 +51,13 @@ export default function WorkspacePage() {
   const [newTaskType, setNewTaskType] = useState('Assignment');
   const [newTaskPriority, setNewTaskPriority] = useState('Medium');
   const [newTaskDate, setNewTaskDate] = useState('');
+  const [newTaskSyncCalendar, setNewTaskSyncCalendar] = useState(true);
+  const [newTaskReminderTime, setNewTaskReminderTime] = useState('24h');
 
+  // AI Inbox State
+  const [noticeText, setNoticeText] = useState('');
+  const [isProcessingNotice, setIsProcessingNotice] = useState(false);
+  const [noticeResult, setNoticeResult] = useState<any>(null);
   const filteredTasks = tasks.filter(task => 
     task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     task.subject.toLowerCase().includes(searchQuery.toLowerCase())
@@ -77,7 +84,9 @@ export default function WorkspacePage() {
       description: `${newTaskSubject} - ${newTaskType}`,
       due_date: newTaskDate || new Date().toISOString(),
       priority: newTaskPriority.toLowerCase() as any,
-      status: 'pending' as any
+      status: 'pending' as any,
+      add_to_calendar: newTaskSyncCalendar,
+      reminder_time: newTaskReminderTime
     };
 
     try {
@@ -104,6 +113,26 @@ export default function WorkspacePage() {
     setNewTaskSubject('');
     setNewTaskTitle('');
     setNewTaskDate('');
+    setNewTaskSyncCalendar(true);
+  };
+
+  const handleProcessNotice = async () => {
+    if (!noticeText.trim() || !token) return;
+    setIsProcessingNotice(true);
+    try {
+      const res = await IntelligenceService.process({
+        input_type: 'notice',
+        data: { text: noticeText }
+      }, token);
+      if (res.success && res.data) {
+        setNoticeResult(res.data);
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Failed to process notice');
+    } finally {
+      setIsProcessingNotice(false);
+    }
   };
 
   return (
@@ -205,14 +234,38 @@ export default function WorkspacePage() {
                   <div className="bg-white rounded-xl border border-vintage-ink/10 p-4 shadow-sm">
                     <textarea 
                       placeholder="Paste your syllabus, notice, or email here..."
+                      value={noticeText}
+                      onChange={(e) => setNoticeText(e.target.value)}
                       className="w-full h-40 bg-transparent border-none resize-none focus:outline-none font-mono text-sm text-vintage-ink placeholder:text-vintage-ink/30"
                     ></textarea>
+                    
+                    {noticeResult && (
+                      <div className="mt-4 p-4 bg-vintage-paper rounded border border-vintage-ink/10">
+                        <h4 className="font-bold text-sm font-mono mb-2">Notice Details</h4>
+                        {noticeResult.extracted_events?.length > 0 ? (
+                           <ul className="text-xs font-mono text-vintage-ink/80 space-y-1">
+                             {noticeResult.extracted_events.map((ev: any, idx: number) => (
+                                <li key={idx}>• {ev.title} ({ev.date}) - {ev.subject}</li>
+                             ))}
+                           </ul>
+                        ) : (
+                          <p className="text-xs font-mono">No specific dates extracted.</p>
+                        )}
+                        <h4 className="font-bold text-sm font-mono mt-3 mb-2">Recommendations</h4>
+                        <p className="text-xs font-mono text-vintage-ink/80">{noticeResult.recommendations?.join(', ')}</p>
+                      </div>
+                    )}
+
                     <div className="flex justify-between items-center mt-4 pt-4 border-t border-vintage-ink/10">
                       <div className="text-xs font-mono text-vintage-ink/40 flex items-center gap-2">
-                        <Sparkles className="w-3 h-3" /> AI is ready to extract tasks
+                        <Sparkles className="w-3 h-3" /> {isProcessingNotice ? 'AI is processing...' : 'AI is ready to extract tasks'}
                       </div>
-                      <button className="bg-vintage-crimson text-white px-4 py-2 rounded-md text-sm font-bold font-mono hover:bg-vintage-crimsonDark flex items-center gap-2">
-                        Process Notice <ArrowRight className="w-4 h-4" />
+                      <button 
+                        onClick={handleProcessNotice}
+                        disabled={isProcessingNotice || !noticeText}
+                        className="bg-vintage-crimson text-white px-4 py-2 rounded-md text-sm font-bold font-mono hover:bg-vintage-crimsonDark flex items-center gap-2 disabled:opacity-50"
+                      >
+                        {isProcessingNotice ? 'Processing...' : 'Process Notice'} <ArrowRight className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
@@ -385,6 +438,32 @@ export default function WorkspacePage() {
                       <option>High</option>
                       <option>Medium</option>
                       <option>Low</option>
+                    </select>
+                  </div>
+                </div>
+                
+                <div className="flex items-center justify-between pt-2">
+                  <label className="flex items-center gap-2 text-sm font-mono text-vintage-ink">
+                    <input 
+                      type="checkbox" 
+                      checked={newTaskSyncCalendar}
+                      onChange={(e) => setNewTaskSyncCalendar(e.target.checked)}
+                      className="rounded border-vintage-ink/20 text-vintage-crimson focus:ring-vintage-crimson"
+                    />
+                    Sync to Google Calendar
+                  </label>
+                  
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs font-bold font-mono text-vintage-ink/60">WhatsApp Reminder</label>
+                    <select 
+                      value={newTaskReminderTime}
+                      onChange={(e) => setNewTaskReminderTime(e.target.value)}
+                      className="bg-vintage-paper border border-vintage-ink/10 rounded p-1 text-xs font-mono outline-none"
+                    >
+                      <option value="none">None</option>
+                      <option value="1h">1 hour before</option>
+                      <option value="24h">24 hours before</option>
+                      <option value="48h">48 hours before</option>
                     </select>
                   </div>
                 </div>

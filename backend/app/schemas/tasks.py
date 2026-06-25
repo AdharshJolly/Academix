@@ -11,6 +11,8 @@ class TaskCreate(BaseModel):
     description: Optional[str] = None
     due_date: Optional[date] = None
     priority: Optional[str] = "medium"  # low | medium | high | urgent
+    add_to_calendar: bool = True
+    reminder_time: Optional[str] = "24h"
 
 
 class TaskUpdate(BaseModel):
