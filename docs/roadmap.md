@@ -1,433 +1,182 @@
-# ROADMAP.md
+# CampusFlow — Project Roadmap
 
-# CampusFlow Development Roadmap
-
-**Project:** CampusFlow - Autonomous Academic Copilot
-
-**Version:** 1.0
-
-**Status:** Development Sprint
-
-**Hackathon Duration:** 24 Hours
+> **Last updated:** June 2026  
+> **Status:** Deployed & Active — Railway (backend) · Vercel (frontend)  
+> **Pivot note:** WhatsApp automation is handled via Make.com (not n8n). n8n folder removed.
 
 ---
 
-# Sprint Goal
+## What CampusFlow Is
 
-Build a production-quality MVP that demonstrates:
-
-- AI-powered academic intelligence
-- Autonomous workflow automation
-- Modern full-stack architecture
-- Excellent UI/UX
-- Reliable end-to-end demo
+An autonomous academic copilot for B.Tech students. Students register once, connect Google Calendar and WhatsApp, paste college notices → AI extracts events, assesses risk, recommends study actions, and automatically creates calendar events and sends WhatsApp reminders.
 
 ---
 
-# Team Structure
+## ✅ Done
 
-| Member      | Role                        | Ownership                               |
-| ----------- | --------------------------- | --------------------------------------- |
-| Team Lead   | AI + Architecture + Backend | Intelligence Engine, APIs, Code Reviews |
-| Developer 2 | Frontend Lead               | Next.js, Dashboard, Workspace, UI       |
-| Developer 3 | Backend Lead                | Database, CRUD APIs, Dashboard API      |
-| Developer 4 | Automation Engineer         | Make.com, Calendar, WhatsApp, Deployment |
+### Infrastructure & Deployment
+- [x] Next.js 14 frontend on Vercel
+- [x] FastAPI backend on Railway
+- [x] Supabase Postgres database (custom tables, not Supabase Auth)
+- [x] Custom JWT auth (bcrypt + SHA-256, no Supabase auth dependency)
+- [x] CORS configured for production URLs
+- [x] `backend/app/prompts/` packaged inside backend so Railway deploys the prompt files
+- [x] Dynamic prompt path resolution (no longer hardcoded `parents[4]`)
 
----
+### Authentication
+- [x] `POST /auth/register` — email, password, full_name, whatsapp_number
+- [x] `POST /auth/login` — bcrypt verify → custom JWT
+- [x] `PUT /auth/profile` — update any profile field
+- [x] `GET /auth/google/connect` — returns Google OAuth URL
+- [x] `GET /auth/google/callback` — exchanges OAuth code, saves refresh_token, redirects to frontend
+- [x] `AuthContext` with `updateUser()` so UI state stays in sync after profile edits
 
-# Ground Rules
+### Student Profile
+- [x] Avatar picker — selection saved to backend, synced across all UI
+- [x] Profile fields: full_name, whatsapp_number, academic_year, major, gpa, study_hours, primary_objective, learning_protocols
+- [x] Calendar sync status shown dynamically from user data
 
-- [ ] Never commit directly to `main`
-- [ ] Every feature must use a feature branch
-- [ ] Follow API contracts exactly
-- [ ] No hardcoded URLs
-- [ ] No breaking changes without informing the team
-- [ ] Every completed task must be tested before merge
-- [ ] Merge only after successful local testing
-- [ ] Update documentation if architecture changes
-- [ ] Keep commits small and descriptive
+### Task Management (CRUD)
+- [x] `POST /tasks` — create task with title, description, due_date, priority, subject
+- [x] `GET /tasks` — list tasks with pagination and filters
+- [x] `PUT /tasks/{id}` — update task (backend ready)
+- [x] `DELETE /tasks/{id}` — delete task (backend ready)
+- [x] Task creation triggers automation based on user preferences (calendar toggle, WhatsApp toggle)
 
----
+### AI Intelligence Engine
+- [x] `POST /intelligence/process` — full AI pipeline endpoint
+- [x] GroqClient with primary model (kimi-k2) + fallback (llama-3.3-70b-versatile)
+- [x] Notice extraction — pulls events, dates, subject from raw notice text
+- [x] Risk Engine — calculates academic risk score + risk factors
+- [x] Scheduler Engine — generates study schedule
+- [x] Recommendation Engine — produces ranked action recommendations
+- [x] JSON Parser — multi-strategy extraction for raw AI output
+- [x] Response Validator — ensures fields are present
+- [x] Prompt Manager — loads `.md` templates, injects variables
+- [x] Intelligence Repository — persists reports to `intelligence_reports` table
+- [x] Frontend AI Inbox UI — textarea, process button, extracted events, recommendations list
 
-# Phase 0 - Environment Setup
-
-**Goal:** Everyone has a working development environment.
-
-## Team Lead
-
-- [ ] Clone repository
-- [ ] Configure backend environment
-- [ ] Configure frontend environment
-- [ ] Configure Groq API
-- [ ] Configure Supabase
-- [ ] Verify backend starts
-
----
-
-## Frontend Lead
-
-- [ ] Install Node dependencies
-- [ ] Verify Next.js runs
-- [ ] Configure Tailwind
-- [ ] Configure ShadCN
-- [ ] Verify routing
-
----
-
-## Backend Lead
-
-- [ ] Install Python dependencies
-- [ ] Configure virtual environment
-- [ ] Configure Supabase connection
-- [ ] Verify FastAPI runs
-- [ ] Verify Swagger UI
-
----
-
-## Automation Engineer
-
-- [ ] Install Docker
-- [ ] Setup Make.com WhatsApp scenario
-- [ ] Configure Google Calendar OAuth credentials in backend
-- [ ] Configure Twilio
-- [ ] Verify webhook endpoint
-
----
-
-# Phase 1 - Foundation
-
-## Team Lead
-
-### AI Infrastructure
-
-- [ ] Implement Groq Client
-- [ ] Implement Prompt Manager
-- [ ] Implement JSON Parser
-- [ ] Implement Response Validator
-- [ ] Implement Risk Engine
-- [ ] Implement Scheduler Engine
-- [ ] Implement Recommendation Engine
-- [ ] Build Academic Intelligence Engine
-- [ ] Test AI pipeline
-
----
-
-## Frontend Lead
-
-### Layout & UI
-
-- [ ] Global Layout
-- [ ] Sidebar
-- [ ] Navigation
-- [ ] Header
-- [ ] Authentication Page
-- [ ] Dashboard Skeleton
-- [ ] Workspace Skeleton
-- [ ] Calendar Skeleton
-- [ ] Automation Center Skeleton
-- [ ] Profile
-- [ ] Settings
-
----
-
-## Backend Lead
-
-### Database & API
-
-- [ ] Setup Supabase tables
-- [ ] Configure repositories
-- [ ] Implement Auth endpoints
-- [ ] Implement Task CRUD
-- [ ] Implement Dashboard endpoint
-- [ ] Implement Repository Layer
-- [ ] Implement Service Layer
-- [ ] Test all CRUD APIs
-
----
-
-## Automation Engineer
-
-### Integrations
-
-- [ ] Configure Make.com
-- [ ] Task Workflow
-- [ ] Notice Workflow
-- [ ] Schedule Workflow
-- [ ] Google Calendar integration
-- [ ] WhatsApp integration
-- [ ] Automation logging
-- [ ] Test all workflows
-
----
-
-# Phase 2 - Core Features
-
-## Team Lead
-
-- [ ] Notice Processing
-- [ ] Event Extraction
-- [ ] Risk Analysis
-- [ ] Recommendation Generation
-- [ ] Schedule Generation
-- [ ] AI Response Validation
-- [ ] AI Error Handling
-
----
-
-## Frontend Lead
+### Automation
+- [x] `AutomationService` — orchestrates calendar + WhatsApp on task create / notice process
+- [x] Automation repository — logs each workflow run with status and payload
+- [x] `GET /automations` — lists automation history
+- [x] `POST /automations/trigger/{type}` — manual trigger endpoint (backend)
+- [x] Google Calendar Integration — `create_all_day_event()`, `create_timed_event()` via OAuth refresh token
+- [x] Make.com Integration — sends WhatsApp payloads with retry logic
 
 ### Dashboard
+- [x] `GET /dashboard` — aggregated academic health, upcoming deadlines, today schedule, calendar preview, recent automations
+- [x] Dashboard page reads from live API with mock fallback
+- [x] Academic health card, recommendations, deadlines, automation feed
 
-- [ ] Academic Health Card
-- [ ] Recommendation Card
-- [ ] Deadline Card
-- [ ] Calendar Preview
-- [ ] Automation Feed
-- [ ] Quick Actions
+### Calendar Page
+- [x] Monthly calendar view with prev/next navigation
+- [x] Events from `dashboard.calendar_preview` rendered on correct days
+- [x] Day click modal with event list + add local task form
+- [x] Search filter across events
+- [x] Mark tasks complete / important
 
----
+### Settings Page
+- [x] Google Calendar connect → OAuth flow → redirect back with success/error flag
+- [x] WhatsApp setup info modal (Twilio Sandbox — join code shown)
+- [x] Save profile fields (academic year, major, GPA, etc.)
 
-### Workspace
-
-- [ ] Tasks Tab
-- [ ] Notices Tab
-- [ ] Planner Tab
-- [ ] Search
-- [ ] Filters
-- [ ] Context Panel
-
----
-
-### Calendar
-
-- [ ] Weekly View
-- [ ] Monthly View
-- [ ] Event Cards
+### Design / UX
+- [x] Vintage theme — cream paper, crimson accents, handwritten fonts
+- [x] Custom fonts: Playfair Display, Space Mono, Caveat
+- [x] All alert dialogs are custom modals/banners (no native `alert()`)
+- [x] WhatsApp activation popup showing "join effect-height" + "+14155238886"
+- [x] Responsive layout with sidebar nav + smooth page animations
+- [x] Professional README with badges and architecture diagram
 
 ---
 
-### Automation Center
+## ⚠️ Partially Done / Needs Fixing
 
-- [ ] Timeline
-- [ ] Status Indicators
-- [ ] Workflow Logs
+### Calendar — Not Reading Real Data
+- [ ] Calendar uses `dashboard.calendar_preview` (a small preview) — it does **not** pull events from the user's actual Google Calendar. Events created by automation are not visible here.
+- **Fix:** Add `GET /calendar/events` endpoint that reads from Google Calendar via saved refresh token.
 
----
+### Automation Center — Trigger Buttons Are Fake
+- [ ] "Trigger Sync" / "Trigger Notice" buttons in Automation Center only simulate a delay in local state. They do not call any backend endpoint.
+- **Fix:** Wire to `POST /automations/trigger/{type}`.
 
-## Backend Lead
+### AI Notice Processor — No Error UI
+- [ ] If the backend returns a 500, the error is logged to console but nothing visible shows in the UI.
+- **Fix:** Add error banner/toast inside the AI Inbox section.
 
-- [ ] Dashboard Aggregation
-- [ ] Pagination
-- [ ] Filtering
-- [ ] User Profile API
-- [ ] Settings API
-- [ ] Error Handling
-- [ ] Validation
-- [ ] Authentication Middleware
+### Profile Page — Static Content
+- [ ] "Primary Objective" and "Learning Protocols" sections show hardcoded strings, not values from `user.primary_objective` and `user.learning_protocols`.
+- **Fix:** Render the real user fields; make them editable and saveable via `PUT /auth/profile`.
 
----
-
-## Automation Engineer
-
-- [ ] Calendar Event Creation
-- [ ] Reminder Workflow
-- [ ] WhatsApp Messages
-- [ ] Automation Retry Logic
-- [ ] Logging
-- [ ] Error Notifications
+### Task Edit / Delete — No Frontend UI
+- [ ] `PUT /tasks/{id}` and `DELETE /tasks/{id}` exist on the backend but are not wired to any frontend button. Users cannot edit or delete tasks from the UI.
+- **Fix:** Add Edit (modal) and Delete (confirm) buttons to the task list.
 
 ---
 
-# Phase 3 - Integration
+## ❌ Not Yet Implemented
 
-## Team Lead
+### Automation Center — Full History View
+- [ ] The automation center page shows only the last 5 entries from dashboard context. Does not call `GET /automations` for full history.
 
-- [ ] Connect AI to Backend
-- [ ] Connect AI to Database
-- [ ] Store Reports
-- [ ] API Review
+### 401 / Session Expiry Handling
+- [ ] When a JWT expires, API calls fail silently. No automatic redirect to `/auth` on 401.
 
----
+### Mobile Optimization
+- [ ] Sidebar collapses on mobile but inner pages (calendar grid, workspace) are not optimized for small screens.
 
-## Frontend Lead
+### Demo Seed Data
+- [ ] No seed script or fixture to quickly populate realistic demo data (tasks, notices, events) for a live demo.
 
-- [ ] Replace Mock Data
-- [ ] Connect Dashboard APIs
-- [ ] Connect Workspace APIs
-- [ ] Connect Calendar APIs
-- [ ] Connect Automation APIs
+### Attendance Risk Alerter
+- [ ] Not implemented. Was listed in hackathon requirements as a chooseable module. Deprioritized in favour of the AI Notice Summarizer.
 
 ---
 
-## Backend Lead
+## Priority Order for Remaining Work
 
-- [ ] API Testing
-- [ ] Authentication Testing
-- [ ] Repository Testing
-- [ ] Database Validation
+Ranked by demo impact:
 
----
-
-## Automation Engineer
-
-- [ ] Backend → Google Calendar API
-- [ ] Backend → Make.com
-- [ ] Make.com → WhatsApp
-- [ ] Workflow Validation
+1. **Fix AI Inbox error feedback** — user must see something if the AI call fails
+2. **Wire Task Edit / Delete UI to backend** — judges will test CRUD
+3. **Fix Profile page static content** — render real `primary_objective` + `learning_protocols`
+4. **Wire Automation Center trigger buttons** — currently fake, should call backend
+5. **Add full automation log view** — call `GET /automations` directly
+6. **401 redirect handling** — auto-redirect to `/auth` on token expiry
+7. **Calendar events read-back** — show events from user's Google Calendar
+8. **Demo seed data** — insert realistic sample tasks/notices before demo
 
 ---
 
-# Phase 4 - Polish
+## Architecture
 
-## Everyone
-
-### User Experience
-
-- [ ] Loading States
-- [ ] Skeleton Screens
-- [ ] Toast Notifications
-- [ ] Error Pages
-- [ ] Empty States
-- [ ] Animations
-- [ ] Responsive Design
-
----
-
-### Testing
-
-- [ ] End-to-End Testing
-- [ ] Manual Testing
-- [ ] Fix Critical Bugs
-- [ ] Performance Check
+```
+Frontend (Vercel — Next.js 14)
+  ↓ HTTPS REST
+Backend (Railway — FastAPI + Python)
+  ├── Supabase Postgres
+  │     users · tasks · intelligence_reports · automation_logs
+  ├── Groq API
+  │     Primary: moonshotai/kimi-k2-instruct
+  │     Fallback: llama-3.3-70b-versatile
+  ├── Google Calendar API (OAuth2 — write events)
+  └── Make.com Webhook → Twilio → WhatsApp Sandbox
+```
 
 ---
 
-### Deployment
+## Key Files Reference
 
-- [ ] Deploy Backend
-- [ ] Deploy Frontend
-- [ ] Configure Environment Variables
-- [ ] Verify Production APIs
-- [ ] Verify AI
-- [ ] Verify Automations
-
----
-
-# Integration Schedule
-
-## Every 2 Hours
-
-- [ ] Pull latest changes
-- [ ] Resolve conflicts
-- [ ] Run local tests
-- [ ] Merge feature branches
-- [ ] Verify application builds
-
----
-
-# Definition of Done
-
-A feature is complete only if:
-
-- [ ] Code implemented
-- [ ] Local testing completed
-- [ ] No console errors
-- [ ] API integrated
-- [ ] Loading state implemented
-- [ ] Error handling implemented
-- [ ] Responsive on desktop
-- [ ] Responsive on mobile
-- [ ] Code committed
-- [ ] Pull request merged
-
----
-
-# Demo Checklist
-
-## Authentication
-
-- [ ] Login
-- [ ] Dashboard loads
-
----
-
-## Tasks
-
-- [ ] Create Task
-- [ ] Edit Task
-- [ ] Delete Task
-
----
-
-## AI
-
-- [ ] Process Notice
-- [ ] Extract Events
-- [ ] Generate Recommendations
-- [ ] Generate Study Plan
-
----
-
-## Automation
-
-- [ ] Google Calendar Event Created
-- [ ] WhatsApp Reminder Sent
-- [ ] Automation Logged
-
----
-
-## Dashboard
-
-- [ ] Academic Health Updates
-- [ ] Recommendations Refresh
-- [ ] Calendar Preview Updates
-- [ ] Automation Feed Updates
-
----
-
-# Stretch Goals
-
-- [ ] Analytics Dashboard
-- [ ] Dark Mode
-- [ ] Voice Input
-- [ ] OCR Notice Upload
-- [ ] PDF Notice Parsing
-- [ ] Multi-language Support
-- [ ] Faculty Portal
-- [ ] Push Notifications
-
----
-
-# Final Submission Checklist
-
-- [ ] Frontend deployed
-- [ ] Backend deployed
-- [ ] Database configured
-- [ ] AI functioning
-- [ ] Make.com scenario active
-- [ ] Google Calendar working
-- [ ] WhatsApp working
-- [ ] README updated
-- [ ] Demo script rehearsed
-- [ ] Pitch deck finalized
-- [ ] Repository cleaned
-- [ ] Environment variables secured
-- [ ] No TODOs in production code
-- [ ] All critical bugs resolved
-
----
-
-# Success Criteria
-
-The project is considered successful if a judge can:
-
-1. Log in.
-2. Create an academic task.
-3. Submit a notice for AI processing.
-4. See structured event extraction.
-5. Receive actionable recommendations.
-6. Generate a study schedule.
-7. Trigger an automation.
-8. Observe a Google Calendar event and WhatsApp reminder.
-9. View all automation activity in the Automation Center.
-10. Complete the full demo without any manual intervention or application crashes.
+| File | Purpose |
+|---|---|
+| `backend/app/services/intelligence_engine.py` | Full AI pipeline orchestrator |
+| `backend/app/services/ai/prompt_manager.py` | Loads and formats prompt templates |
+| `backend/app/services/automation_service.py` | Triggers calendar + WhatsApp |
+| `backend/app/integrations/calendar.py` | Google Calendar OAuth + event creation |
+| `backend/app/integrations/make.py` | Make.com webhook client |
+| `backend/app/api/auth.py` | Register, login, profile, Google OAuth |
+| `frontend/app/workspace/page.tsx` | Task quick-capture + AI Notice Inbox |
+| `frontend/app/dashboard/page.tsx` | Main dashboard |
+| `frontend/contexts/AuthContext.tsx` | Global auth state |
+| `frontend/services/api.ts` | Core HTTP client 
