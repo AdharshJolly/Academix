@@ -103,15 +103,16 @@ async function request<T>(
             body: data ? JSON.stringify(data) : undefined,
         });
         
+        const responseData = await response.json();
+        
         if (!response.ok) {
-            throw new Error(`HTTP Error: ${response.status}`);
+            throw new Error(responseData.detail || responseData.message || `HTTP Error: ${response.status}`);
         }
         
-        return await response.json();
-    } catch (error) {
-        console.warn(`[API Client] Failed to fetch real backend: ${url}. Falling back to Mock Engine...`);
-        await delay(800); // Simulate network delay
-        return getMockData(endpoint, method, data) as unknown as T;
+        return responseData;
+    } catch (error: any) {
+        console.error(`[API Client] Request failed: ${url}`, error);
+        throw error;
     }
 }
 
