@@ -34,6 +34,9 @@ export interface UserOut {
     email: string;
     full_name: string;
     avatar_url?: string;
+    google_calendar_connected?: boolean;
+    whatsapp_number?: string;
+    created_at?: string;
 }
 
 export interface AuthResponse {
@@ -49,7 +52,8 @@ export interface UserLoginRequest {
 export interface UserRegisterRequest {
     email: string;
     password: string;
-    full_name: string;
+    full_name?: string;
+    whatsapp_number?: string;
 }
 
 // ── Tasks ─────────────────────────────────────────────────────────────────

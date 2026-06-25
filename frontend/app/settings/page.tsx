@@ -1,13 +1,49 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Settings, Save, Lock, Bell, Palette } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Settings, Save, Lock, Bell, Palette, Calendar } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { AuthService } from '../../services/auth.service';
+import { useSearchParams, useRouter } from 'next/navigation';
 
 export default function SettingsPage() {
   const { user } = useAuth();
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState('account');
   const [saving, setSaving] = useState(false);
+  const [googleConnecting, setGoogleConnecting] = useState(false);
+
+  useEffect(() => {
+    const code = searchParams.get('code');
+    const state = searchParams.get('state');
+    if (code && state) {
+      setGoogleConnecting(true);
+      AuthService.verifyGoogleCallback(code, state)
+        .then(() => {
+          alert('Google Calendar successfully connected!');
+          router.replace('/settings');
+        })
+        .catch((err) => {
+          alert('Failed to connect Google Calendar: ' + err.message);
+          router.replace('/settings');
+        })
+        .finally(() => setGoogleConnecting(false));
+    }
+  }, [searchParams, router]);
+
+  const handleConnectGoogle = async () => {
+    try {
+      setGoogleConnecting(true);
+      const res = await AuthService.connectGoogleCalendar();
+      if (res.data?.authorization_url) {
+        window.location.href = res.data.authorization_url;
+      }
+    } catch (err: any) {
+      alert('Failed to initiate Google connection: ' + err.message);
+      setGoogleConnecting(false);
+    }
+  };
 
   const handleSave = () => {
     setSaving(true);
@@ -86,6 +122,30 @@ export default function SettingsPage() {
                 <div className="flex flex-col">
                   <label className="text-xs font-mono font-bold text-vintage-ink/60 mb-2 uppercase tracking-widest">University / Institution</label>
                   <input type="text" className="vintage-input bg-vintage-babyBlue/5 border-vintage-ink/20 focus:border-vintage-crimson w-full" defaultValue="State University" />
+                </div>
+
+                <div className="mt-8 pt-8 border-t border-vintage-ink/10">
+                  <h3 className="text-xl font-display font-black text-vintage-crimson mb-2">Integrations</h3>
+                  <p className="text-sm font-sans text-vintage-ink/60 mb-4">Connect external services to CampusFlow.</p>
+                  
+                  <div className="flex items-center justify-between p-4 border border-vintage-ink/10 rounded-lg bg-white/50">
+                    <div className="flex items-center gap-4">
+                      <div className="p-3 bg-red-50 text-red-500 rounded-full">
+                        <Calendar className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-vintage-ink">Google Calendar</h4>
+                        <p className="text-sm text-vintage-ink/60">Sync your academic schedule automatically.</p>
+                      </div>
+                    </div>
+                    <button 
+                      onClick={handleConnectGoogle}
+                      disabled={googleConnecting}
+                      className="vintage-btn py-2 px-4 text-sm"
+                    >
+                      {googleConnecting ? 'Connecting...' : 'Connect'}
+                    </button>
+                  </div>
                 </div>
               </div>
             )}

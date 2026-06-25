@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, ArrowRight } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { AuthService } from '../../services/auth.service';
 import { useRouter } from 'next/navigation';
 
 export default function AuthPage() {
@@ -11,6 +12,7 @@ export default function AuthPage() {
   const [email, setEmail] = useState('demo@campusflow.edu');
   const [password, setPassword] = useState('password123');
   const [fullName, setFullName] = useState('Demo User');
+  const [whatsappNumber, setWhatsappNumber] = useState('9431703182');
   const [error, setError] = useState('');
   
   const { login, register, isLoading } = useAuth();
@@ -21,11 +23,24 @@ export default function AuthPage() {
     setError('');
     
     try {
+      let user;
       if (isLogin) {
-        await login({ email, password });
+        user = await login({ email, password });
       } else {
-        await register({ email, password, full_name: fullName });
+        user = await register({ email, password, full_name: fullName, whatsapp_number: whatsappNumber });
       }
+      
+      if (!user?.google_calendar_connected) {
+        const wantsSync = window.confirm("Welcome to CampusFlow! 🎓\n\nFor the AI to automatically organize your schedule, you need to sync your Google Calendar.\n\nClick OK to connect your calendar now.");
+        if (wantsSync) {
+          const res = await AuthService.connectGoogleCalendar();
+          if (res.data?.authorization_url) {
+            window.location.href = res.data.authorization_url;
+            return;
+          }
+        }
+      }
+      
       router.push('/dashboard');
     } catch (err: any) {
       setError(err.message || 'Authentication failed');
@@ -83,13 +98,24 @@ export default function AuthPage() {
                   exit={{ opacity: 0, height: 0 }}
                   transition={{ duration: 0.2 }}
                 >
-                  <div className="flex flex-col">
+                  <div className="flex flex-col mb-6">
                     <label className="text-xl font-accent text-vintage-crimson mb-1 transform -rotate-1">Full Name</label>
                     <input 
                       type="text" 
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
                       className="vintage-input w-full"
+                      required={!isLogin}
+                    />
+                  </div>
+                  <div className="flex flex-col">
+                    <label className="text-xl font-accent text-vintage-crimson mb-1 transform rotate-1">WhatsApp Number</label>
+                    <input 
+                      type="tel" 
+                      value={whatsappNumber}
+                      onChange={(e) => setWhatsappNumber(e.target.value)}
+                      className="vintage-input w-full"
+                      placeholder="e.g. +1234567890"
                       required={!isLogin}
                     />
                   </div>

@@ -51,6 +51,7 @@ def register(request: UserRegisterRequest):
             user_id=supabase_user.id,
             email=request.email,
             full_name=request.full_name,
+            whatsapp_number=request.whatsapp_number,
         )
 
         return APIResponse(

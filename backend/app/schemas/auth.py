@@ -10,6 +10,7 @@ class UserRegisterRequest(BaseModel):
     email: EmailStr
     password: str
     full_name: str
+    whatsapp_number: str
 
 
 class UserLoginRequest(BaseModel):

@@ -8,8 +8,8 @@ interface AuthContextType {
     user: UserOut | null;
     token: string | null;
     isLoading: boolean;
-    login: (data: UserLoginRequest) => Promise<void>;
-    register: (data: UserRegisterRequest) => Promise<void>;
+    login: (data: UserLoginRequest) => Promise<UserOut>;
+    register: (data: UserRegisterRequest) => Promise<UserOut>;
     logout: () => void;
 }
 
@@ -17,8 +17,8 @@ const AuthContext = createContext<AuthContextType>({
     user: null,
     token: null,
     isLoading: false,
-    login: async () => {},
-    register: async () => {},
+    login: async () => ({} as UserOut),
+    register: async () => ({} as UserOut),
     logout: () => {},
 });
 
@@ -44,21 +44,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const login = async (data: UserLoginRequest) => {
         setIsLoading(true);
         try {
-            // Mock authentication delay
-            await new Promise(resolve => setTimeout(resolve, 800));
-            
-            const mockUser = {
-                id: '1',
-                email: data.email,
-                full_name: 'Demo User',
-                avatar_url: '/avatars/doodle_dog.png',
-                created_at: new Date().toISOString()
-            };
-            
-            setToken('mock-jwt-token-12345');
-            setUser(mockUser);
-            localStorage.setItem('campusflow_token', 'mock-jwt-token-12345');
-            localStorage.setItem('campusflow_user', JSON.stringify(mockUser));
+            const res = await AuthService.login(data);
+            if (res.success && res.data) {
+                setToken(res.data.token);
+                setUser(res.data.user);
+                localStorage.setItem('campusflow_token', res.data.token);
+                localStorage.setItem('campusflow_user', JSON.stringify(res.data.user));
+                return res.data.user;
+            } else {
+                throw new Error(res.message || 'Login failed');
+            }
+        } catch (err: any) {
+            throw new Error(err.response?.data?.detail || err.message || 'Login failed');
         } finally {
             setIsLoading(false);
         }
@@ -67,20 +64,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const register = async (data: UserRegisterRequest) => {
         setIsLoading(true);
         try {
-            await new Promise(resolve => setTimeout(resolve, 800));
-            
-            const mockUser = {
-                id: '2',
-                email: data.email,
-                full_name: data.full_name || 'New Student',
-                avatar_url: 'https://robohash.org/newuser?set=set4&bgset=bg2',
-                created_at: new Date().toISOString()
-            };
-            
-            setToken('mock-jwt-token-67890');
-            setUser(mockUser);
-            localStorage.setItem('campusflow_token', 'mock-jwt-token-67890');
-            localStorage.setItem('campusflow_user', JSON.stringify(mockUser));
+            const res = await AuthService.register(data);
+            if (res.success && res.data) {
+                setToken(res.data.token);
+                setUser(res.data.user);
+                localStorage.setItem('campusflow_token', res.data.token);
+                localStorage.setItem('campusflow_user', JSON.stringify(res.data.user));
+                return res.data.user;
+            } else {
+                throw new Error(res.message || 'Registration failed');
+            }
+        } catch (err: any) {
+            throw new Error(err.response?.data?.detail || err.message || 'Registration failed');
         } finally {
             setIsLoading(false);
         }

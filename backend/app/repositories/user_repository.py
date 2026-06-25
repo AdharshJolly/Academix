@@ -89,7 +89,7 @@ class UserRepository:
             "google_calendar_connected": True,
         }).eq("id", user_id).execute()
 
-    def upsert(self, user_id: str, email: str, full_name: str) -> UserOut:
+    def upsert(self, user_id: str, email: str, full_name: str, whatsapp_number: str = None) -> UserOut:
         """
         Insert or update user profile — safe to call after every login.
         Prevents duplicate errors if profile already exists.
@@ -100,6 +100,8 @@ class UserRepository:
             "email": email,
             "full_name": full_name,
         }
+        if whatsapp_number:
+            payload["whatsapp_number"] = whatsapp_number
         response = (
             db.table(TABLE)
             .upsert(payload, on_conflict="id")
