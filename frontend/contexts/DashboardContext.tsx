@@ -43,9 +43,10 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     const [importantTasks, setImportantTasks] = useState<Record<string, boolean>>({});
 
     const refresh = useCallback(async () => {
+        if (!token) return;
         setIsLoading(true);
         try {
-            const res = await DashboardService.getDashboard(token || '');
+            const res = await DashboardService.getDashboard(token);
             if (res.success && res.data) {
                 setData(res.data);
                 setError(null);
