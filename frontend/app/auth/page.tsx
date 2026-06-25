@@ -7,6 +7,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { AuthService } from '../../services/auth.service';
 import { useRouter } from 'next/navigation';
 import GoogleSyncModal from '../../components/shared/GoogleSyncModal';
+import WhatsAppSetupModal from '../../components/shared/WhatsAppSetupModal';
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -18,6 +19,8 @@ export default function AuthPage() {
   const [showSyncModal, setShowSyncModal] = useState(false);
   const [syncLoading, setSyncLoading] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
+  const [isRegisterFlow, setIsRegisterFlow] = useState(false);
   
   const { login, register, isLoading, token } = useAuth();
   const router = useRouter();
@@ -32,8 +35,10 @@ export default function AuthPage() {
       let user;
       if (isLogin) {
         user = await login({ email, password });
+        setIsRegisterFlow(false);
       } else {
         user = await register({ email, password, full_name: fullName, whatsapp_number: whatsappNumber });
+        setIsRegisterFlow(true);
       }
       
       // Grab the token that was just saved to localStorage
@@ -45,6 +50,12 @@ export default function AuthPage() {
         return;
       }
       
+      // On register, show WhatsApp setup before going to dashboard
+      if (!isLogin) {
+        setShowWhatsAppModal(true);
+        return;
+      }
+
       router.push('/dashboard');
     } catch (err: any) {
       setError(err.message || 'Authentication failed');
@@ -71,7 +82,12 @@ export default function AuthPage() {
 
   const handleSyncSkip = () => {
     setShowSyncModal(false);
-    router.push('/dashboard');
+    // After skipping Google sync, show WhatsApp modal if it was a registration
+    if (isRegisterFlow) {
+      setShowWhatsAppModal(true);
+    } else {
+      router.push('/dashboard');
+    }
   };
 
   return (
@@ -83,6 +99,11 @@ export default function AuthPage() {
         error={syncError}
         onConnect={handleGoogleConnect}
         onSkip={handleSyncSkip}
+      />
+
+      <WhatsAppSetupModal
+        isOpen={showWhatsAppModal}
+        onClose={() => { setShowWhatsAppModal(false); router.push('/dashboard'); }}
       />
       
       <motion.div 

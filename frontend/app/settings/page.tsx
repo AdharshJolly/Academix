@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useState, useEffect, Suspense } from 'react';
-import { Settings, Save, Lock, Bell, Palette, Calendar } from 'lucide-react';
+import { Settings, Save, Lock, Bell, Palette, Calendar, MessageCircle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { AuthService } from '../../services/auth.service';
 import { useSearchParams, useRouter } from 'next/navigation';
+import WhatsAppSetupModal from '../../components/shared/WhatsAppSetupModal';
 
 function SettingsContent() {
   const { user, token } = useAuth();
@@ -13,6 +14,7 @@ function SettingsContent() {
   const [activeTab, setActiveTab] = useState('account');
   const [saving, setSaving] = useState(false);
   const [googleConnecting, setGoogleConnecting] = useState(false);
+  const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
 
   const [googleStatus, setGoogleStatus] = useState<'success' | 'error' | null>(null);
 
@@ -160,6 +162,30 @@ function SettingsContent() {
                       {googleConnecting ? 'Connecting...' : googleStatus === 'success' ? 'Connected ✓' : 'Connect'}
                     </button>
                   </div>
+
+                  {/* WhatsApp Sandbox Row */}
+                  <div className="flex items-center justify-between p-4 border border-vintage-ink/10 rounded-lg bg-white/50 mt-3">
+                    <div className="flex items-center gap-4">
+                      <div className="p-3 bg-green-50 text-green-500 rounded-full">
+                        <MessageCircle className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-vintage-ink">WhatsApp Notifications</h4>
+                        <p className="text-sm text-vintage-ink/60">Join the sandbox to receive deadline alerts on WhatsApp.</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setShowWhatsAppModal(true)}
+                      className="vintage-btn py-2 px-4 text-sm"
+                    >
+                      Setup
+                    </button>
+                  </div>
+
+                  <WhatsAppSetupModal
+                    isOpen={showWhatsAppModal}
+                    onClose={() => setShowWhatsAppModal(false)}
+                  />
                 </div>
               </div>
             )}
