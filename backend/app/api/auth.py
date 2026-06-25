@@ -132,20 +132,18 @@ def connect_google_calendar(user: dict = Depends(verify_token)):
         )
 
 
-@router.get("/google/callback", response_model=APIResponse[dict])
+@router.get("/google/callback")
 def google_calendar_callback(code: str, state: str):
-    """Exchange Google OAuth code for a refresh token and save it for the user."""
+    """Exchange Google OAuth code for a refresh token, save it, then redirect to frontend."""
+    from fastapi.responses import RedirectResponse
+    from app.core.settings import settings
+
+    frontend_url = settings.FRONTEND_URL or "https://campus-flow-six-rho.vercel.app"
+
     try:
         refresh_token = calendar_client.exchange_code_for_refresh_token(code)
         user_repo.save_google_refresh_token(user_id=state, refresh_token=refresh_token)
-        return APIResponse(
-            success=True,
-            message="Google Calendar connected",
-            data={"google_calendar_connected": True},
-        )
+        return RedirectResponse(url=f"{frontend_url}/settings?google_connected=true")
     except Exception as e:
         logger.error(f"Google OAuth callback error: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Failed to connect Google Calendar: {str(e)}",
-        )
+        return RedirectResponse(url=f"{frontend_url}/settings?google_error={str(e)}")

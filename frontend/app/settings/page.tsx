@@ -14,24 +14,20 @@ function SettingsContent() {
   const [saving, setSaving] = useState(false);
   const [googleConnecting, setGoogleConnecting] = useState(false);
 
+  const [googleStatus, setGoogleStatus] = useState<'success' | 'error' | null>(null);
+
   useEffect(() => {
-    const code = searchParams.get('code');
-    const state = searchParams.get('state');
-    if (code && state) {
-      setGoogleConnecting(true);
-      const t = token || localStorage.getItem('campusflow_token') || '';
-      AuthService.verifyGoogleCallback(code, state, t)
-        .then(() => {
-          alert('Google Calendar successfully connected!');
-          router.replace('/settings');
-        })
-        .catch((err) => {
-          alert('Failed to connect Google Calendar: ' + err.message);
-          router.replace('/settings');
-        })
-        .finally(() => setGoogleConnecting(false));
+    // Backend now handles the OAuth exchange and redirects here with a result flag
+    const connected = searchParams.get('google_connected');
+    const googleError = searchParams.get('google_error');
+    if (connected === 'true') {
+      setGoogleStatus('success');
+      router.replace('/settings'); // clean the URL
+    } else if (googleError) {
+      setGoogleStatus('error');
+      router.replace('/settings');
     }
-  }, [searchParams, router, token]);
+  }, [searchParams, router]);
 
   const handleConnectGoogle = async () => {
     try {
@@ -130,7 +126,20 @@ function SettingsContent() {
                 <div className="mt-8 pt-8 border-t border-vintage-ink/10">
                   <h3 className="text-xl font-display font-black text-vintage-crimson mb-2">Integrations</h3>
                   <p className="text-sm font-sans text-vintage-ink/60 mb-4">Connect external services to CampusFlow.</p>
-                  
+
+                  {googleStatus === 'success' && (
+                    <div className="mb-4 flex items-center gap-2 bg-green-50 border border-green-200 text-green-700 font-mono text-sm rounded-lg px-4 py-3">
+                      <span>✓</span>
+                      <span>Google Calendar connected successfully! Your schedule will now sync automatically.</span>
+                    </div>
+                  )}
+                  {googleStatus === 'error' && (
+                    <div className="mb-4 flex items-center gap-2 bg-vintage-crimson/10 border border-vintage-crimson/30 text-vintage-crimson font-mono text-sm rounded-lg px-4 py-3">
+                      <span>⚠</span>
+                      <span>Failed to connect Google Calendar. Please try again.</span>
+                    </div>
+                  )}
+
                   <div className="flex items-center justify-between p-4 border border-vintage-ink/10 rounded-lg bg-white/50">
                     <div className="flex items-center gap-4">
                       <div className="p-3 bg-red-50 text-red-500 rounded-full">
@@ -138,15 +147,17 @@ function SettingsContent() {
                       </div>
                       <div>
                         <h4 className="font-bold text-vintage-ink">Google Calendar</h4>
-                        <p className="text-sm text-vintage-ink/60">Sync your academic schedule automatically.</p>
+                        <p className="text-sm text-vintage-ink/60">
+                          {googleStatus === 'success' ? '✓ Connected — syncing automatically' : 'Sync your academic schedule automatically.'}
+                        </p>
                       </div>
                     </div>
                     <button 
                       onClick={handleConnectGoogle}
-                      disabled={googleConnecting}
-                      className="vintage-btn py-2 px-4 text-sm"
+                      disabled={googleConnecting || googleStatus === 'success'}
+                      className="vintage-btn py-2 px-4 text-sm disabled:opacity-50"
                     >
-                      {googleConnecting ? 'Connecting...' : 'Connect'}
+                      {googleConnecting ? 'Connecting...' : googleStatus === 'success' ? 'Connected ✓' : 'Connect'}
                     </button>
                   </div>
                 </div>

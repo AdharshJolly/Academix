@@ -35,6 +35,7 @@ class Settings:
     GOOGLE_CLIENT_ID: str = os.getenv("GOOGLE_CLIENT_ID", "")
     GOOGLE_CLIENT_SECRET: str = os.getenv("GOOGLE_CLIENT_SECRET", "")
     GOOGLE_REDIRECT_URI: str = os.getenv("GOOGLE_REDIRECT_URI", "")
+    FRONTEND_URL: str = os.getenv("FRONTEND_URL", "https://campus-flow-six-rho.vercel.app")
 
     # Internal automation callback
     AUTOMATION_CALLBACK_SECRET: str = os.getenv("AUTOMATION_CALLBACK_SECRET", "")
