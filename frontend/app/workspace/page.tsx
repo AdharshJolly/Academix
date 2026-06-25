@@ -4,7 +4,8 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Search, Plus, Filter, Calendar, Clock, Inbox, 
-  CheckCircle, Archive, ChevronRight, MessageCircle, Heart, Share2, Sparkles, Send, Smile, Paperclip, MoreHorizontal, ArrowRight
+  CheckCircle, Archive, ChevronRight, MessageCircle, Heart, Share2, Sparkles, Send, Smile, Paperclip, MoreHorizontal, ArrowRight,
+  Pencil, Trash2, AlertTriangle, X
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -58,6 +59,16 @@ export default function WorkspacePage() {
   const [noticeText, setNoticeText] = useState('');
   const [isProcessingNotice, setIsProcessingNotice] = useState(false);
   const [noticeResult, setNoticeResult] = useState<any>(null);
+  const [noticeError, setNoticeError] = useState<string | null>(null);
+
+  // Task Edit/Delete State
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingTask, setEditingTask] = useState<any>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editSubject, setEditSubject] = useState('');
+  const [editPriority, setEditPriority] = useState('medium');
+  const [editDueDate, setEditDueDate] = useState('');
+  const [isDeletingTask, setIsDeletingTask] = useState<string | null>(null);
   const filteredTasks = tasks.filter(task => 
     task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     task.subject.toLowerCase().includes(searchQuery.toLowerCase())
@@ -119,6 +130,8 @@ export default function WorkspacePage() {
   const handleProcessNotice = async () => {
     if (!noticeText.trim() || !token) return;
     setIsProcessingNotice(true);
+    setNoticeError(null);
+    setNoticeResult(null);
     try {
       const res = await IntelligenceService.process({
         input_type: 'notice',
@@ -126,12 +139,59 @@ export default function WorkspacePage() {
       }, token);
       if (res.success && res.data) {
         setNoticeResult(res.data);
+      } else {
+        setNoticeError(res.message || 'AI processing failed. Please try again.');
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      alert('Failed to process notice');
+      setNoticeError(e?.message || 'Failed to reach the AI engine. Check your connection and try again.');
     } finally {
       setIsProcessingNotice(false);
+    }
+  };
+
+  const handleDeleteTask = async (taskId: string) => {
+    if (!token) return;
+    setIsDeletingTask(taskId);
+    try {
+      await TaskService.deleteTask(taskId, token);
+      setTasks(prev => prev.filter(t => t.id !== taskId));
+      if (selectedItem?.id === taskId) setSelectedItem(null);
+    } catch (e) {
+      console.error('Delete failed', e);
+    } finally {
+      setIsDeletingTask(null);
+    }
+  };
+
+  const openEditModal = (task: any) => {
+    setEditingTask(task);
+    setEditTitle(task.title);
+    setEditSubject(task.subject);
+    setEditPriority(task.priority?.toLowerCase() || 'medium');
+    setEditDueDate('');
+    setShowEditModal(true);
+  };
+
+  const handleUpdateTask = async () => {
+    if (!token || !editingTask) return;
+    try {
+      const res = await TaskService.updateTask(editingTask.id, {
+        title: editTitle,
+        description: editSubject,
+        priority: editPriority as any,
+        ...(editDueDate ? { due_date: editDueDate } : {}),
+      }, token);
+      if (res.success && res.data) {
+        const updated = { ...editingTask, title: editTitle, subject: editSubject, priority: editPriority };
+        setTasks(prev => prev.map(t => t.id === editingTask.id ? updated : t));
+        if (selectedItem?.id === editingTask.id) setSelectedItem(updated);
+      }
+    } catch (e) {
+      console.error('Update failed', e);
+    } finally {
+      setShowEditModal(false);
+      setEditingTask(null);
     }
   };
 
@@ -200,25 +260,42 @@ export default function WorkspacePage() {
                         <div 
                           key={task.id}
                           onClick={() => setSelectedItem(task)}
-                          className={`p-4 rounded-lg border cursor-pointer transition-all ${
+                          className={`p-4 rounded-lg border cursor-pointer transition-all group ${
                             selectedItem?.id === task.id 
                               ? 'bg-white border-vintage-crimson shadow-sm scale-[1.01]' 
                               : 'bg-white/50 border-vintage-ink/10 hover:border-vintage-ink/30 hover:bg-white'
                           }`}
                         >
                           <div className="flex items-start justify-between">
-                            <div className="flex gap-3">
-                              <div className="mt-1 w-5 h-5 rounded-md border-2 border-vintage-ink/20 flex items-center justify-center"></div>
-                              <div>
-                                <h3 className="font-bold text-vintage-ink font-mono">{task.title}</h3>
+                            <div className="flex gap-3 flex-1 min-w-0">
+                              <div className="mt-1 w-5 h-5 rounded-md border-2 border-vintage-ink/20 flex items-center justify-center shrink-0"></div>
+                              <div className="min-w-0">
+                                <h3 className="font-bold text-vintage-ink font-mono truncate">{task.title}</h3>
                                 <p className="text-sm text-vintage-ink/60 font-mono mt-1">{task.subject} • {task.type}</p>
                               </div>
                             </div>
-                            <div className={`px-2 py-0.5 rounded text-xs font-mono font-bold ${
-                              task.priority === 'High' ? 'bg-vintage-crimsonLight/20 text-vintage-crimson' : 
-                              'bg-vintage-ink/5 text-vintage-ink/60'
-                            }`}>
-                              {task.priority}
+                            <div className="flex items-center gap-2 shrink-0 ml-2">
+                              <div className={`px-2 py-0.5 rounded text-xs font-mono font-bold ${
+                                task.priority === 'high' || task.priority === 'High' ? 'bg-vintage-crimsonLight/20 text-vintage-crimson' : 
+                                'bg-vintage-ink/5 text-vintage-ink/60'
+                              }`}>
+                                {task.priority}
+                              </div>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); openEditModal(task); }}
+                                className="opacity-0 group-hover:opacity-100 p-1.5 rounded hover:bg-vintage-ink/10 text-vintage-ink/40 hover:text-vintage-ink transition-all"
+                                title="Edit task"
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleDeleteTask(task.id); }}
+                                disabled={isDeletingTask === task.id}
+                                className="opacity-0 group-hover:opacity-100 p-1.5 rounded hover:bg-vintage-crimson/10 text-vintage-ink/40 hover:text-vintage-crimson transition-all disabled:opacity-30"
+                                title="Delete task"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
                             </div>
                           </div>
                         </div>
@@ -239,24 +316,54 @@ export default function WorkspacePage() {
                       className="w-full h-40 bg-transparent border-none resize-none focus:outline-none font-mono text-sm text-vintage-ink placeholder:text-vintage-ink/30"
                     ></textarea>
                     
+                    {/* Error Banner */}
+                    {noticeError && (
+                      <div className="mt-3 p-3 bg-vintage-crimson/10 border border-vintage-crimson/30 rounded-lg flex items-start gap-3">
+                        <AlertTriangle className="w-4 h-4 text-vintage-crimson shrink-0 mt-0.5" />
+                        <p className="text-xs font-mono text-vintage-crimson flex-1">{noticeError}</p>
+                        <button onClick={() => setNoticeError(null)} className="text-vintage-crimson/60 hover:text-vintage-crimson">
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Results Panel */}
                     {noticeResult && (
                       <div className="mt-4 p-4 bg-vintage-paper rounded border border-vintage-ink/10">
-                        <h4 className="font-bold text-sm font-mono mb-2">Notice Details</h4>
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="font-bold text-sm font-mono">Extracted Details</h4>
+                          <button onClick={() => setNoticeResult(null)} className="text-vintage-ink/30 hover:text-vintage-ink text-xs font-mono">Clear</button>
+                        </div>
                         {noticeResult.extracted_events?.length > 0 ? (
-                           <ul className="text-xs font-mono text-vintage-ink/80 space-y-1">
+                           <ul className="text-xs font-mono text-vintage-ink/80 space-y-1 mb-3">
                              {noticeResult.extracted_events.map((ev: any, idx: number) => (
-                                <li key={idx}>• {ev.title} ({ev.date}) - {ev.subject}</li>
+                                <li key={idx} className="flex gap-2"><span className="text-vintage-crimson">◆</span> <span><strong>{ev.title}</strong> — {ev.date} ({ev.subject})</span></li>
                              ))}
                            </ul>
                         ) : (
-                          <p className="text-xs font-mono">No specific dates extracted.</p>
+                          <p className="text-xs font-mono text-vintage-ink/50 mb-3">No specific dates extracted.</p>
                         )}
-                        <h4 className="font-bold text-sm font-mono mt-3 mb-2">Recommendations</h4>
-                        <ul className="text-xs font-mono text-vintage-ink/80 space-y-1">
-                          {noticeResult.recommendations?.map((r: any, idx: number) => (
-                             <li key={idx}>• {r.action}</li>
-                          ))}
-                        </ul>
+                        {noticeResult.recommendations?.length > 0 && (
+                          <>
+                            <h4 className="font-bold text-xs font-mono text-vintage-ink/60 uppercase tracking-widest mb-2">Recommendations</h4>
+                            <ul className="text-xs font-mono text-vintage-ink/80 space-y-1">
+                              {noticeResult.recommendations.map((r: any, idx: number) => (
+                                 <li key={idx} className="flex gap-2"><span className="text-vintage-crimson">→</span> {r.action}</li>
+                              ))}
+                            </ul>
+                          </>
+                        )}
+                        {noticeResult.risk_assessment && (
+                          <div className="mt-3 pt-3 border-t border-vintage-ink/10 flex items-center gap-2">
+                            <span className="text-xs font-mono text-vintage-ink/50">Risk Level:</span>
+                            <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded ${
+                              noticeResult.risk_assessment.risk_level === 'high' ? 'bg-vintage-crimson/10 text-vintage-crimson' :
+                              noticeResult.risk_assessment.risk_level === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                              'bg-green-100 text-green-700'
+                            }`}>{noticeResult.risk_assessment.risk_level?.toUpperCase()}</span>
+                            <span className="text-xs font-mono text-vintage-ink/40">({Math.round((noticeResult.risk_assessment.risk_score || 0) * 100)}% risk score)</span>
+                          </div>
+                        )}
                       </div>
                     )}
 
@@ -486,6 +593,86 @@ export default function WorkspacePage() {
                   className="bg-vintage-crimson text-white px-4 py-2 rounded-md text-sm font-bold font-mono hover:bg-vintage-crimsonDark disabled:opacity-50 transition-colors"
                 >
                   Save Task
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Edit Task Modal */}
+      <AnimatePresence>
+        {showEditModal && editingTask && (
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 border border-vintage-ink/10"
+            >
+              <div className="flex items-center justify-between mb-5">
+                <h3 className="font-display font-black text-xl text-vintage-ink">Edit Task</h3>
+                <button onClick={() => setShowEditModal(false)} className="text-vintage-ink/40 hover:text-vintage-ink">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold font-mono text-vintage-ink/60 mb-1">Title *</label>
+                  <input
+                    type="text"
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    className="w-full bg-vintage-paper border border-vintage-ink/10 rounded p-2 text-sm font-mono focus:border-vintage-crimson outline-none"
+                    autoFocus
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold font-mono text-vintage-ink/60 mb-1">Subject</label>
+                  <input
+                    type="text"
+                    value={editSubject}
+                    onChange={(e) => setEditSubject(e.target.value)}
+                    className="w-full bg-vintage-paper border border-vintage-ink/10 rounded p-2 text-sm font-mono focus:border-vintage-crimson outline-none"
+                  />
+                </div>
+                <div className="flex gap-4">
+                  <div className="flex-1">
+                    <label className="block text-xs font-bold font-mono text-vintage-ink/60 mb-1">Priority</label>
+                    <select
+                      value={editPriority}
+                      onChange={(e) => setEditPriority(e.target.value)}
+                      className="w-full bg-vintage-paper border border-vintage-ink/10 rounded p-2 text-sm font-mono outline-none"
+                    >
+                      <option value="high">High</option>
+                      <option value="medium">Medium</option>
+                      <option value="low">Low</option>
+                    </select>
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-xs font-bold font-mono text-vintage-ink/60 mb-1">New Due Date</label>
+                    <input
+                      type="date"
+                      value={editDueDate}
+                      onChange={(e) => setEditDueDate(e.target.value)}
+                      className="w-full bg-vintage-paper border border-vintage-ink/10 rounded p-2 text-sm font-mono outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-vintage-ink/10">
+                <button
+                  onClick={() => setShowEditModal(false)}
+                  className="px-4 py-2 text-sm font-bold font-mono text-vintage-ink/60 hover:text-vintage-ink transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleUpdateTask}
+                  disabled={!editTitle.trim()}
+                  className="bg-vintage-crimson text-white px-4 py-2 rounded-md text-sm font-bold font-mono hover:bg-vintage-crimsonDark disabled:opacity-50 transition-colors"
+                >
+                  Save Changes
                 </button>
               </div>
             </motion.div>

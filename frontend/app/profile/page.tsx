@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { AuthService } from '../../services/auth.service';
-import { Mail, Shield, BookOpen, Clock, Star, Pencil, Check, Image as ImageIcon } from 'lucide-react';
+import { Mail, Shield, Clock, Star, Pencil, Check } from 'lucide-react';
 
 // A diverse set of cute avatar options
 const AVATAR_OPTIONS = [
@@ -158,7 +158,7 @@ export default function ProfilePage() {
                   Primary Objective
                 </label>
                 <p className="text-xl font-mono font-bold text-vintage-ink leading-relaxed">
-                  Focus on immediate coursework and maintain steady academic progress.
+                  {user?.primary_objective || 'Focus on immediate coursework and maintain steady academic progress.'}
                 </p>
                 <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity">
                   <p className="font-accent text-2xl text-vintage-crimsonLight transform -rotate-3">you got this!</p>
@@ -170,27 +170,47 @@ export default function ProfilePage() {
                   Learning Protocols
                 </label>
                 <div className="flex flex-wrap gap-4">
-                  <span className="px-5 py-3 bg-vintage-babyBlue/20 text-vintage-crimson text-sm font-mono font-bold rounded-md">Smart Tracking</span>
-                  <span className="px-5 py-3 bg-vintage-babyBlue/20 text-vintage-crimson text-sm font-mono font-bold rounded-md">AI Insights</span>
-                  <span className="px-5 py-3 bg-vintage-babyBlue/20 text-vintage-crimson text-sm font-mono font-bold rounded-md">Automated Sync</span>
+                  {(user?.learning_protocols && user.learning_protocols.length > 0)
+                    ? user.learning_protocols.map((protocol: string, idx: number) => (
+                        <span key={idx} className="px-5 py-3 bg-vintage-babyBlue/20 text-vintage-crimson text-sm font-mono font-bold rounded-md">{protocol}</span>
+                      ))
+                    : (
+                      <>
+                        <span className="px-5 py-3 bg-vintage-babyBlue/20 text-vintage-crimson text-sm font-mono font-bold rounded-md">Smart Tracking</span>
+                        <span className="px-5 py-3 bg-vintage-babyBlue/20 text-vintage-crimson text-sm font-mono font-bold rounded-md">AI Insights</span>
+                        <span className="px-5 py-3 bg-vintage-babyBlue/20 text-vintage-crimson text-sm font-mono font-bold rounded-md">Automated Sync</span>
+                      </>
+                    )
+                  }
                 </div>
               </div>
 
               <div className="bg-white p-8 rounded-xl border border-vintage-ink/5 shadow-sm">
                 <label className="block text-xs font-mono font-bold text-vintage-ink/50 uppercase tracking-widest mb-5">
-                  Registered Institutions
+                  Academic Info
                 </label>
-                <div className="flex flex-col sm:flex-row sm:items-center gap-6">
-                  <div className="w-16 h-16 bg-vintage-crimson/5 rounded-full flex items-center justify-center text-vintage-crimson">
-                    <BookOpen className="w-8 h-8" />
-                  </div>
-                  <div>
-                    <p className="font-bold text-lg text-vintage-ink mb-1">State University</p>
-                    <p className="font-mono text-sm text-vintage-ink/50">Synced via Canvas LMS</p>
-                  </div>
-                  <div className="sm:ml-auto">
-                    <span className="px-5 py-3 bg-vintage-crimson text-white text-xs font-mono font-bold uppercase tracking-widest rounded-md">Status: Connected</span>
-                  </div>
+                <div className="flex flex-wrap gap-4">
+                  {user?.academic_year && (
+                    <div className="flex flex-col">
+                      <span className="text-xs font-mono text-vintage-ink/40 uppercase tracking-wider mb-1">Year</span>
+                      <span className="font-bold text-vintage-ink font-mono">{user.academic_year}</span>
+                    </div>
+                  )}
+                  {user?.major && (
+                    <div className="flex flex-col">
+                      <span className="text-xs font-mono text-vintage-ink/40 uppercase tracking-wider mb-1">Major</span>
+                      <span className="font-bold text-vintage-ink font-mono">{user.major}</span>
+                    </div>
+                  )}
+                  {user?.gpa && (
+                    <div className="flex flex-col">
+                      <span className="text-xs font-mono text-vintage-ink/40 uppercase tracking-wider mb-1">GPA</span>
+                      <span className="font-bold text-vintage-ink font-mono">{user.gpa}</span>
+                    </div>
+                  )}
+                  {!user?.academic_year && !user?.major && !user?.gpa && (
+                    <p className="text-sm font-mono text-vintage-ink/40">No academic info added yet. Update in Settings.</p>
+                  )}
                 </div>
               </div>
             </div>

@@ -17,9 +17,13 @@ export const API_ENDPOINTS = {
     // Intelligence
     INTELLIGENCE_PROCESS: '/intelligence/process',
 
-    // Automations
-    AUTOMATION_TASK:      '/automations/task-trigger',
-    AUTOMATION_NOTICE:    '/automations/notice-trigger',
-    AUTOMATION_SCHEDULE:  '/automations/schedule-trigger',
+    // Automations (legacy trigger names)
+    AUTOMATION_TASK:         '/automations/task-trigger',
+    AUTOMATION_NOTICE:       '/automations/notice-trigger',
+    AUTOMATION_SCHEDULE:     '/automations/schedule-trigger',
+
+    // Automations (correct backend endpoints)
+    AUTOMATIONS_LIST:        '/automations',
+    AUTOMATION_TRIGGER:      (type: string) => `/automations/trigger/${type}`,
 } as const;
 
