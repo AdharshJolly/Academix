@@ -65,13 +65,82 @@ CampusFlow/
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Quick Start (Local Setup)
 
-To run CampusFlow locally, please see the complete setup guide in our Technical Design Specification:
+CampusFlow is split into a Next.js 15 frontend and a FastAPI backend. Follow these steps to run the application locally.
 
-👉 **[View Developer Setup Instructions (TDS.md)](docs/TDS.md)**
+### Prerequisites
+- **Node.js** (v18+)
+- **Python** (v3.11+)
+- **Supabase Account** (for PostgreSQL & Auth)
+- **Groq API Key** (for the AI Engine)
 
----
+### 1. Database Setup
+1. Create a new project on [Supabase](https://supabase.com).
+2. Go to the **SQL Editor** in your Supabase dashboard.
+3. Copy the contents of `supabase_migration.sql` (found in the root directory) and run it to create the required tables and columns.
+4. Retrieve your `Project URL` and `anon public key` from **Project Settings > API**.
+
+### 2. Backend Setup (FastAPI)
+Open a new terminal and navigate to the backend directory:
+
+```bash
+cd backend
+```
+
+Create a virtual environment and activate it:
+```bash
+python -m venv venv
+# On Windows: venv\Scripts\activate
+# On Mac/Linux: source venv/bin/activate
+```
+
+Install the dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+Set up your environment variables:
+```bash
+cp .env.example .env
+```
+Edit the `.env` file and fill in your Supabase URL, Supabase Service Role Key, and Groq API Key.
+
+Run the FastAPI server:
+```bash
+uvicorn app.main:app --reload --port 8000
+```
+*The backend will be running at `http://localhost:8000`*
+
+### 3. Frontend Setup (Next.js)
+Open a separate terminal and navigate to the frontend directory:
+
+```bash
+cd frontend
+```
+
+Install the dependencies:
+```bash
+npm install
+```
+
+Set up your environment variables:
+```bash
+cp .env.example .env.local
+```
+Edit `.env.local` to include your Supabase credentials and point the backend API to `http://localhost:8000/api/v1`.
+
+Run the development server:
+```bash
+npm run dev
+```
+*The frontend will be available at `http://localhost:3000`*
+
+### 4. Demo Data (Optional)
+To quickly populate your account with realistic tasks and academic profile data for testing, register an account on the frontend, then run:
+```bash
+python scripts/seed_demo_data.py your_email@example.com
+```
 
 ## 📚 Documentation Index
 
