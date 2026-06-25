@@ -38,7 +38,10 @@ function SettingsContent() {
     gpa: user?.gpa?.toString() || '',
     study_hours: user?.study_hours?.toString() || '',
     primary_objective: user?.primary_objective || '',
-    learning_protocols: user?.learning_protocols?.join(', ') || ''
+    learning_protocols: user?.learning_protocols?.join(', ') || '',
+    whatsapp_notifications_enabled: user?.whatsapp_notifications_enabled ?? true,
+    telegram_notifications_enabled: user?.telegram_notifications_enabled ?? false,
+    telegram_username: user?.telegram_username || ''
   });
 
   const handleConnectGoogle = async () => {
@@ -68,6 +71,9 @@ function SettingsContent() {
         study_hours: formData.study_hours ? parseFloat(formData.study_hours) : null,
         primary_objective: formData.primary_objective || null,
         learning_protocols: formData.learning_protocols ? formData.learning_protocols.split(',').map(s => s.trim()).filter(Boolean) : null,
+        whatsapp_notifications_enabled: formData.whatsapp_notifications_enabled,
+        telegram_notifications_enabled: formData.telegram_notifications_enabled,
+        telegram_username: formData.telegram_username || null,
       };
       
       const res = await AuthService.updateProfile(payload, token);
@@ -113,7 +119,6 @@ function SettingsContent() {
             { id: 'account', label: 'Account', icon: Settings },
             { id: 'security', label: 'Security', icon: Lock },
             { id: 'notifications', label: 'Notifications', icon: Bell },
-            { id: 'appearance', label: 'Appearance', icon: Palette },
           ].map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -251,42 +256,67 @@ function SettingsContent() {
               </div>
             )}
 
-            {activeTab === 'appearance' && (
-              <div className="space-y-8 relative z-10">
-                <div>
-                  <h2 className="text-2xl font-display font-black text-vintage-crimson mb-2">Appearance</h2>
-                  <p className="text-sm font-sans text-vintage-ink/60">Customize the look and feel of CampusFlow.</p>
-                </div>
-                
-                <div className="typewriter-divider"></div>
-                
-                <div>
-                  <label className="text-xs font-mono font-bold text-vintage-ink/60 mb-4 block uppercase tracking-widest">Theme Preference</label>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="border-2 border-vintage-crimson rounded-lg p-4 cursor-pointer text-center bg-vintage-crimson/5">
-                      <div className="w-full h-12 bg-vintage-paper rounded-md mb-3 border border-vintage-ink/10 shadow-sm flex items-center justify-center">
-                        <span className="font-accent text-vintage-crimson">Typewriter</span>
-                      </div>
-                      <span className="text-xs font-mono font-bold text-vintage-crimson">Selected</span>
-                    </div>
-                    
-                    <div className="border-2 border-vintage-ink/10 rounded-lg p-4 cursor-pointer text-center hover:border-vintage-crimson/30 transition-colors opacity-50">
-                      <div className="w-full h-12 bg-zinc-900 rounded-md mb-3 border border-zinc-700 shadow-sm"></div>
-                      <span className="text-xs font-mono font-bold text-vintage-ink/60">Dark Terminal</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
 
-            {(activeTab === 'security' || activeTab === 'notifications') && (
+            {activeTab === 'security' && (
               <div className="py-20 text-center relative z-10">
                 <p className="font-mono text-sm text-vintage-ink/40 uppercase tracking-widest">Settings module under construction.</p>
                 <p className="font-accent text-xl text-vintage-crimsonLight transform rotate-2 mt-4">check back later!</p>
               </div>
             )}
 
-            {activeTab !== 'security' && activeTab !== 'notifications' && (
+            {activeTab === 'notifications' && (
+              <div className="space-y-8 relative z-10">
+                <div>
+                  <h2 className="text-2xl font-display font-black text-vintage-crimson mb-2">Notifications</h2>
+                  <p className="text-sm font-sans text-vintage-ink/60">Configure how you receive updates and reminders.</p>
+                </div>
+                
+                <div className="typewriter-divider"></div>
+                
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between bg-vintage-paper border border-vintage-ink/10 p-4 rounded-md opacity-60">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <h4 className="font-mono font-bold text-vintage-ink">WhatsApp Notifications</h4>
+                        <span className="px-2 py-0.5 bg-yellow-100 text-yellow-800 text-[10px] font-mono font-bold rounded-full uppercase tracking-wider">Under Maintenance</span>
+                      </div>
+                      <p className="text-xs text-vintage-ink/60 font-sans">Temporarily disabled while we upgrade our messaging infrastructure.</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-not-allowed">
+                      <input type="checkbox" className="sr-only peer" disabled checked={false} />
+                      <div className="w-11 h-6 bg-vintage-ink/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                    </label>
+                  </div>
+
+                  <div className="flex items-center justify-between bg-vintage-paper border border-vintage-ink/10 p-4 rounded-md">
+                    <div>
+                      <h4 className="font-mono font-bold text-vintage-ink mb-1">Telegram Notifications</h4>
+                      <p className="text-xs text-vintage-ink/60 font-sans">Receive reminders and reports on Telegram.</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" className="sr-only peer" checked={formData.telegram_notifications_enabled} onChange={(e) => handleInputChange('telegram_notifications_enabled', e.target.checked)} />
+                      <div className="w-11 h-6 bg-vintage-ink/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-vintage-crimson"></div>
+                    </label>
+                  </div>
+                  
+                  {formData.telegram_notifications_enabled && (
+                    <div className="flex flex-col mt-4">
+                      <label className="text-xs font-mono font-bold text-vintage-ink/60 mb-2 uppercase tracking-widest">Telegram Username</label>
+                      <input 
+                        type="text" 
+                        value={formData.telegram_username}
+                        onChange={(e) => handleInputChange('telegram_username', e.target.value)}
+                        className="vintage-input"
+                        placeholder="@your_username"
+                      />
+                      <p className="text-xs text-vintage-ink/40 mt-2">Enter your Telegram username to allow CampusFlow to message you.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {activeTab !== 'security' && (
               <div className="mt-12 flex justify-end">
                 <button 
                   onClick={handleSave}

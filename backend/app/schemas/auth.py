@@ -32,6 +32,10 @@ class UserOut(BaseModel):
     study_hours: float | None = None
     primary_objective: str | None = None
     learning_protocols: list[str] | None = None
+    telegram_chat_id: str | None = None
+    telegram_username: str | None = None
+    whatsapp_notifications_enabled: bool = True
+    telegram_notifications_enabled: bool = False
 
 class UserProfileUpdate(BaseModel):
     full_name: str | None = None
@@ -43,6 +47,10 @@ class UserProfileUpdate(BaseModel):
     study_hours: float | None = None
     primary_objective: str | None = None
     learning_protocols: list[str] | None = None
+    telegram_chat_id: str | None = None
+    telegram_username: str | None = None
+    whatsapp_notifications_enabled: bool | None = None
+    telegram_notifications_enabled: bool | None = None
 
 
 class AuthResponse(BaseModel):

@@ -36,6 +36,16 @@ export interface UserOut {
     avatar_url?: string;
     google_calendar_connected?: boolean;
     whatsapp_number?: string;
+    academic_year?: string;
+    major?: string;
+    gpa?: number;
+    study_hours?: number;
+    primary_objective?: string;
+    learning_protocols?: string[];
+    telegram_chat_id?: string;
+    telegram_username?: string;
+    whatsapp_notifications_enabled?: boolean;
+    telegram_notifications_enabled?: boolean;
     created_at?: string;
 }
 

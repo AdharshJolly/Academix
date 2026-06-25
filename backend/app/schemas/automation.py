@@ -43,3 +43,14 @@ class AutomationLogResponse(BaseModel):
 
 class AutomationCallbackResponse(BaseModel):
     logged: bool
+
+
+class IncomingMessageWebhook(BaseModel):
+    platform: Literal["telegram", "whatsapp"]
+    sender_id: str
+    text: str
+
+
+class IncomingMessageResponse(BaseModel):
+    success: bool
+    message: str

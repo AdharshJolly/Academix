@@ -7,7 +7,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { AuthService } from '../../services/auth.service';
 import { useRouter, useSearchParams } from 'next/navigation';
 import GoogleSyncModal from '../../components/shared/GoogleSyncModal';
-import WhatsAppSetupModal from '../../components/shared/WhatsAppSetupModal';
+import TelegramSetupModal from '../../components/shared/TelegramSetupModal';
+import AcademicProfileModal from '../../components/shared/AcademicProfileModal';
 
 export default function AuthPage() {
   return (
@@ -24,17 +25,20 @@ function AuthPageContent() {
   const [fullName, setFullName] = useState('');
   const [whatsappNumber, setWhatsappNumber] = useState('');
   const [error, setError] = useState('');
+  
+  const [showAcademicModal, setShowAcademicModal] = useState(false);
   const [showSyncModal, setShowSyncModal] = useState(false);
   const [syncLoading, setSyncLoading] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
-  const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
+  const [showTelegramModal, setShowTelegramModal] = useState(false);
+  
   const [isRegisterFlow, setIsRegisterFlow] = useState(false);
   
   const { login, register, isLoading, token } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [sessionExpired] = useState(searchParams.get('reason') === 'session_expired');
-  // Store token locally after login so it's available immediately for Google connect
+  // Store token locally after login so it's available immediately for modals
   const [authToken, setAuthToken] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -51,18 +55,24 @@ function AuthPageContent() {
         setIsRegisterFlow(true);
       }
       
-      // Grab the token that was just saved to localStorage
       const freshToken = localStorage.getItem('campusflow_token');
       setAuthToken(freshToken);
       
+      // Step 1: Academic Profile check
+      if (!user?.major || !user?.academic_year) {
+        setShowAcademicModal(true);
+        return;
+      }
+      
+      // Step 2: Google Sync check
       if (!user?.google_calendar_connected) {
         setShowSyncModal(true);
         return;
       }
       
-      // On register, show WhatsApp setup before going to dashboard
+      // Step 3: Telegram Setup check (only on register)
       if (!isLogin) {
-        setShowWhatsAppModal(true);
+        setShowTelegramModal(true);
         return;
       }
 
@@ -70,6 +80,23 @@ function AuthPageContent() {
     } catch (err: any) {
       setError(err.message || 'Authentication failed');
     }
+  };
+
+  const handleAcademicComplete = (updatedUser: any) => {
+    setShowAcademicModal(false);
+    
+    // Resume flow
+    if (!updatedUser?.google_calendar_connected) {
+      setShowSyncModal(true);
+      return;
+    }
+    
+    if (isRegisterFlow) {
+      setShowTelegramModal(true);
+      return;
+    }
+    
+    router.push('/dashboard');
   };
 
   const handleGoogleConnect = async () => {
@@ -92,9 +119,8 @@ function AuthPageContent() {
 
   const handleSyncSkip = () => {
     setShowSyncModal(false);
-    // After skipping Google sync, show WhatsApp modal if it was a registration
     if (isRegisterFlow) {
-      setShowWhatsAppModal(true);
+      setShowTelegramModal(true);
     } else {
       router.push('/dashboard');
     }
@@ -103,6 +129,12 @@ function AuthPageContent() {
   return (
     <div className="flex-1 flex items-center justify-center relative z-10 w-full min-h-screen pt-12 pb-12 p-6">
       
+      <AcademicProfileModal 
+        isOpen={showAcademicModal} 
+        token={authToken || token} 
+        onComplete={handleAcademicComplete} 
+      />
+
       <GoogleSyncModal
         isOpen={showSyncModal}
         isLoading={syncLoading}
@@ -111,9 +143,9 @@ function AuthPageContent() {
         onSkip={handleSyncSkip}
       />
 
-      <WhatsAppSetupModal
-        isOpen={showWhatsAppModal}
-        onClose={() => { setShowWhatsAppModal(false); router.push('/dashboard'); }}
+      <TelegramSetupModal
+        isOpen={showTelegramModal}
+        onClose={() => { setShowTelegramModal(false); router.push('/dashboard'); }}
       />
       
       <motion.div 

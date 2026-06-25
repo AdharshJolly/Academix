@@ -19,7 +19,7 @@ class UserRepository:
         db = get_supabase()
         response = (
             db.table(TABLE)
-            .select("id, email, full_name, avatar_url, google_calendar_connected, whatsapp_number, academic_year, major, gpa, study_hours, primary_objective, learning_protocols")
+            .select("id, email, full_name, avatar_url, google_calendar_connected, whatsapp_number, academic_year, major, gpa, study_hours, primary_objective, learning_protocols, telegram_chat_id, telegram_username, whatsapp_notifications_enabled, telegram_notifications_enabled")
             .eq("id", user_id)
             .single()
             .execute()
@@ -33,7 +33,7 @@ class UserRepository:
         db = get_supabase()
         response = (
             db.table(TABLE)
-            .select("id, email, full_name, avatar_url, google_calendar_connected, whatsapp_number, academic_year, major, gpa, study_hours, primary_objective, learning_protocols")
+            .select("id, email, full_name, avatar_url, google_calendar_connected, whatsapp_number, academic_year, major, gpa, study_hours, primary_objective, learning_protocols, telegram_chat_id, telegram_username, whatsapp_notifications_enabled, telegram_notifications_enabled")
             .eq("email", email)
             .execute()
         )
@@ -93,6 +93,10 @@ class UserRepository:
             study_hours=row.get("study_hours"),
             primary_objective=row.get("primary_objective"),
             learning_protocols=row.get("learning_protocols"),
+            telegram_chat_id=row.get("telegram_chat_id"),
+            telegram_username=row.get("telegram_username"),
+            whatsapp_notifications_enabled=row.get("whatsapp_notifications_enabled", True),
+            telegram_notifications_enabled=row.get("telegram_notifications_enabled", False),
         )
 
     def update(self, user_id: str, data: dict) -> UserOut | None:

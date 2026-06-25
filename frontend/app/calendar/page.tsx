@@ -7,7 +7,7 @@ import { CalendarService, CalendarEvent } from '../../services/calendar.service'
 import { TaskService } from '../../services/task.service';
 import {
   ChevronLeft, ChevronRight, RefreshCw, X, CheckSquare, Square,
-  Plus, Loader2, CloudOff, Cloud, CloudCheck, ExternalLink, AlertTriangle
+  Plus, Loader2, CloudOff, Cloud, CheckCircle, ExternalLink, AlertTriangle
 } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -304,7 +304,7 @@ export default function CalendarPage() {
     );
     return (
       <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 border border-green-200 rounded-full text-xs font-mono text-green-700">
-        <CloudCheck className="w-3 h-3" />
+        <CheckCircle className="w-3 h-3" />
         {lastSynced ? `Synced ${lastSynced.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}` : 'Connected'}
       </div>
     );
@@ -532,7 +532,7 @@ export default function CalendarPage() {
 
               {addSuccess && (
                 <div className="mb-3 p-2 bg-green-50 border border-green-200 rounded text-xs font-mono text-green-700 flex items-center gap-2">
-                  <CloudCheck className="w-3 h-3" />
+                  <CheckCircle className="w-3 h-3" />
                   {isCalendarConnected ? 'Added to Google Calendar!' : 'Added locally.'}
                 </div>
               )}
