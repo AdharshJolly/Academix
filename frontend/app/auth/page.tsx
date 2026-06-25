@@ -9,10 +9,10 @@ import { useRouter } from 'next/navigation';
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
-  const [email, setEmail] = useState('demo@campusflow.edu');
-  const [password, setPassword] = useState('password123');
-  const [fullName, setFullName] = useState('Demo User');
-  const [whatsappNumber, setWhatsappNumber] = useState('9431703182');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [whatsappNumber, setWhatsappNumber] = useState('');
   const [error, setError] = useState('');
   
   const { login, register, isLoading } = useAuth();
@@ -105,6 +105,7 @@ export default function AuthPage() {
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
                       className="vintage-input w-full"
+                      placeholder="e.g. John Doe"
                       required={!isLogin}
                     />
                   </div>
@@ -130,6 +131,7 @@ export default function AuthPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="vintage-input w-full"
+                placeholder="e.g. student@campusflow.edu"
                 required
               />
             </div>
@@ -141,6 +143,7 @@ export default function AuthPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="vintage-input w-full"
+                placeholder="Enter your password"
                 required
               />
             </div>
