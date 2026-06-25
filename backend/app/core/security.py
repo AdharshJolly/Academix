@@ -1,23 +1,56 @@
 """
 Security Utilities
-Authentication uses Supabase Auth exclusively.
-Backend verifies Supabase-issued JWTs — no custom token minting.
+Custom JWT authentication — no Supabase Auth dependency.
+Passwords are hashed with bcrypt via passlib.
+Tokens are minted and verified with python-jose.
 """
+import os
+from datetime import datetime, timedelta, timezone
+
 from fastapi import HTTPException, Security, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from app.db.client import get_supabase
+from jose import JWTError, jwt
+from passlib.context import CryptContext
+
+# ── Config ────────────────────────────────────────────────────────────────────
+SECRET_KEY = os.getenv("SECRET_KEY", "changeme-very-secret-key-replace-in-prod")
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_HOURS = 72   # 3 days — plenty for hackathon demo
+
+# ── Password hashing ──────────────────────────────────────────────────────────
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 bearer_scheme = HTTPBearer(auto_error=False)
+
+
+def hash_password(plain: str) -> str:
+    """Return a bcrypt hash of the plain-text password."""
+    return pwd_context.hash(plain)
+
+
+def verify_password(plain: str, hashed: str) -> bool:
+    """Return True if the plain password matches the stored hash."""
+    return pwd_context.verify(plain, hashed)
+
+
+def create_access_token(user_id: str, email: str) -> str:
+    """Mint a signed JWT containing user_id and email."""
+    expire = datetime.now(timezone.utc) + timedelta(hours=ACCESS_TOKEN_EXPIRE_HOURS)
+    payload = {
+        "sub": user_id,
+        "email": email,
+        "exp": expire,
+    }
+    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
 
 def verify_token(
     credentials: HTTPAuthorizationCredentials = Security(bearer_scheme),
 ) -> dict:
     """
-    FastAPI dependency — verifies a Supabase JWT from the Authorization header.
-    Returns the decoded user payload on success.
+    FastAPI dependency — verifies our own JWT from the Authorization header.
+    Returns {"id": ..., "email": ...} on success.
     Raises 401 if missing or invalid.
-    Usage: user = Depends(verify_token)
     """
     if not credentials or not credentials.credentials:
         raise HTTPException(
@@ -26,28 +59,18 @@ def verify_token(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    token = credentials.credentials
-
     try:
-        supabase = get_supabase()
-        response = supabase.auth.get_user(token)
-
-        if not response or not response.user:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid or expired token",
-            )
-
-        user = response.user
-        return {
-            "id": user.id,
-            "email": user.email,
-        }
-
-    except HTTPException:
-        raise
-    except Exception as e:
+        payload = jwt.decode(
+            credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM]
+        )
+        user_id: str = payload.get("sub")
+        email: str = payload.get("email")
+        if not user_id:
+            raise JWTError("Missing subject")
+        return {"id": user_id, "email": email}
+    except JWTError as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Token verification failed: {str(e)}",
+            detail=f"Invalid or expired token: {str(e)}",
+            headers={"WWW-Authenticate": "Bearer"},
         )

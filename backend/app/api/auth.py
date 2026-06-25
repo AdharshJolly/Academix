@@ -1,13 +1,20 @@
 """
 Auth Router
-User registration and login via Supabase Auth.
-No custom JWT — tokens are issued and verified by Supabase.
+Custom email/password authentication — no Supabase Auth.
+Passwords are bcrypt-hashed and stored in the public.users table.
+JWTs are minted by our own security module.
 """
 import logging
+import uuid
+
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from app.core.security import verify_token
-from app.db.client import get_supabase
+from app.core.security import (
+    create_access_token,
+    hash_password,
+    verify_password,
+    verify_token,
+)
 from app.integrations.calendar import GoogleCalendarClient
 from app.repositories.user_repository import UserRepository
 from app.schemas.auth import AuthResponse, UserLoginRequest, UserOut, UserRegisterRequest
@@ -20,39 +27,34 @@ calendar_client = GoogleCalendarClient()
 
 
 @router.post("/register", response_model=APIResponse[AuthResponse])
-def register(request: UserRegisterRequest):
+async def register(request: UserRegisterRequest):
     """
     Register a new student account.
-    1. Creates Supabase Auth user
-    2. Creates public user profile in users table
-    3. Returns JWT token + user profile
+    1. Check email is not already taken
+    2. Hash password and store in users table
+    3. Return JWT + user profile
     """
     try:
-        db = get_supabase()
-        auth_response = db.auth.sign_up({
-            "email": request.email,
-            "password": request.password,
-            "options": {
-                "data": {"full_name": request.full_name}
-            },
-        })
-
-        if not auth_response.user or not auth_response.session:
+        # Check duplicate email
+        existing = user_repo.get_by_email(request.email)
+        if existing:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Registration failed. Email may already be registered.",
+                detail="An account with this email already exists.",
             )
 
-        supabase_user = auth_response.user
-        token = auth_response.session.access_token
+        user_id = str(uuid.uuid4())
+        password_hash = hash_password(request.password)
 
-        # Create or update user profile in public.users
-        user_profile = user_repo.upsert(
-            user_id=supabase_user.id,
+        user_profile = user_repo.create(
+            user_id=user_id,
             email=request.email,
             full_name=request.full_name,
+            password_hash=password_hash,
             whatsapp_number=request.whatsapp_number,
         )
+
+        token = create_access_token(user_id=user_id, email=request.email)
 
         return APIResponse(
             success=True,
@@ -71,32 +73,29 @@ def register(request: UserRegisterRequest):
 
 
 @router.post("/login", response_model=APIResponse[AuthResponse])
-def login(request: UserLoginRequest):
+async def login(request: UserLoginRequest):
     """
-    Authenticate a student and return a Supabase JWT.
-    Token must be passed as Authorization: Bearer <token> on all protected requests.
+    Authenticate a student with email + password.
+    Returns our own signed JWT on success.
     """
     try:
-        db = get_supabase()
-        auth_response = db.auth.sign_in_with_password({
-            "email": request.email,
-            "password": request.password,
-        })
+        user = user_repo.get_by_email_with_password(request.email)
 
-        if not auth_response.user or not auth_response.session:
+        if not user or not verify_password(request.password, user["password_hash"]):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid email or password",
+                detail="Invalid email or password.",
             )
 
-        supabase_user = auth_response.user
-        token = auth_response.session.access_token
+        token = create_access_token(user_id=user["id"], email=user["email"])
 
-        # Fetch or upsert the user profile
-        user_profile = user_repo.upsert(
-            user_id=supabase_user.id,
-            email=supabase_user.email,
-            full_name=supabase_user.user_metadata.get("full_name", "Student"),
+        user_profile = UserOut(
+            id=user["id"],
+            email=user["email"],
+            full_name=user["full_name"],
+            avatar_url=user.get("avatar_url"),
+            google_calendar_connected=user.get("google_calendar_connected", False),
+            whatsapp_number=user.get("whatsapp_number"),
         )
 
         return APIResponse(

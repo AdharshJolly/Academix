@@ -1,7 +1,7 @@
 """
 UserRepository
-Data access layer for the users table.
-Used after Supabase Auth creates the auth.users record.
+Data access layer for the public.users table.
+Handles all CRUD operations including password_hash storage.
 """
 import logging
 from app.db.client import get_supabase
@@ -15,11 +15,11 @@ TABLE = "users"
 class UserRepository:
 
     def get_by_id(self, user_id: str) -> UserOut | None:
-        """Fetch user profile by Supabase auth UUID."""
+        """Fetch user profile by UUID."""
         db = get_supabase()
         response = (
             db.table(TABLE)
-            .select("*")
+            .select("id, email, full_name, avatar_url, google_calendar_connected, whatsapp_number")
             .eq("id", user_id)
             .single()
             .execute()
@@ -29,32 +29,65 @@ class UserRepository:
         return UserOut(**response.data)
 
     def get_by_email(self, email: str) -> UserOut | None:
-        """Fetch user profile by email address."""
+        """Fetch safe user profile by email (no password_hash)."""
+        db = get_supabase()
+        response = (
+            db.table(TABLE)
+            .select("id, email, full_name, avatar_url, google_calendar_connected, whatsapp_number")
+            .eq("email", email)
+            .execute()
+        )
+        if not response.data:
+            return None
+        return UserOut(**response.data[0])
+
+    def get_by_email_with_password(self, email: str) -> dict | None:
+        """
+        Fetch full user row including password_hash.
+        Only for use during login — never expose password_hash to the client.
+        """
         db = get_supabase()
         response = (
             db.table(TABLE)
             .select("*")
             .eq("email", email)
-            .single()
             .execute()
         )
         if not response.data:
             return None
-        return UserOut(**response.data)
+        return response.data[0]
 
-    def create(self, user_id: str, email: str, full_name: str) -> UserOut:
+    def create(
+        self,
+        user_id: str,
+        email: str,
+        full_name: str,
+        password_hash: str,
+        whatsapp_number: str | None = None,
+    ) -> UserOut:
         """
-        Create the public user profile after Supabase Auth registration.
-        The user_id must match the Supabase auth.users UUID.
+        Insert a new user row with a bcrypt-hashed password.
         """
         db = get_supabase()
         payload = {
             "id": user_id,
             "email": email,
             "full_name": full_name,
+            "password_hash": password_hash,
         }
+        if whatsapp_number:
+            payload["whatsapp_number"] = whatsapp_number
+
         response = db.table(TABLE).insert(payload).execute()
-        return UserOut(**response.data[0])
+        row = response.data[0]
+        return UserOut(
+            id=row["id"],
+            email=row["email"],
+            full_name=row["full_name"],
+            avatar_url=row.get("avatar_url"),
+            google_calendar_connected=row.get("google_calendar_connected", False),
+            whatsapp_number=row.get("whatsapp_number"),
+        )
 
     def update(self, user_id: str, data: dict) -> UserOut | None:
         """Partial update of user profile fields."""
@@ -67,7 +100,15 @@ class UserRepository:
         )
         if not response.data:
             return None
-        return UserOut(**response.data[0])
+        row = response.data[0]
+        return UserOut(
+            id=row["id"],
+            email=row["email"],
+            full_name=row["full_name"],
+            avatar_url=row.get("avatar_url"),
+            google_calendar_connected=row.get("google_calendar_connected", False),
+            whatsapp_number=row.get("whatsapp_number"),
+        )
 
     def get_automation_profile(self, user_id: str) -> dict | None:
         """Fetch only fields needed by automation services."""
@@ -88,23 +129,3 @@ class UserRepository:
             "google_refresh_token": refresh_token,
             "google_calendar_connected": True,
         }).eq("id", user_id).execute()
-
-    def upsert(self, user_id: str, email: str, full_name: str, whatsapp_number: str = None) -> UserOut:
-        """
-        Insert or update user profile — safe to call after every login.
-        Prevents duplicate errors if profile already exists.
-        """
-        db = get_supabase()
-        payload = {
-            "id": user_id,
-            "email": email,
-            "full_name": full_name,
-        }
-        if whatsapp_number:
-            payload["whatsapp_number"] = whatsapp_number
-        response = (
-            db.table(TABLE)
-            .upsert(payload, on_conflict="id")
-            .execute()
-        )
-        return UserOut(**response.data[0])
