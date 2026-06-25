@@ -1,36 +1,43 @@
 """
 Security Utilities
 Custom JWT authentication — no Supabase Auth dependency.
-Passwords are hashed with bcrypt via passlib.
-Tokens are minted and verified with python-jose.
+Passwords: SHA-256 pre-hash → bcrypt (eliminates the 72-byte bcrypt limit entirely).
+Tokens: python-jose HS256 JWTs.
 """
+import hashlib
 import os
 from datetime import datetime, timedelta, timezone
 
+import bcrypt
 from fastapi import HTTPException, Security, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 
 # ── Config ────────────────────────────────────────────────────────────────────
 SECRET_KEY = os.getenv("SECRET_KEY", "changeme-very-secret-key-replace-in-prod")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_HOURS = 72   # 3 days — plenty for hackathon demo
 
-# ── Password hashing ──────────────────────────────────────────────────────────
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
+bcrypt_rounds = 12
 bearer_scheme = HTTPBearer(auto_error=False)
 
 
+def _sha256(plain: str) -> bytes:
+    """SHA-256 of the plain password as bytes. Always 32 bytes → safe for bcrypt."""
+    return hashlib.sha256(plain.encode("utf-8")).digest()
+
+
 def hash_password(plain: str) -> str:
-    """Return a bcrypt hash. Truncates to 72 bytes (bcrypt limit)."""
-    return pwd_context.hash(plain[:72])
+    """SHA-256 pre-hash then bcrypt. Immune to the 72-byte bcrypt limit."""
+    return bcrypt.hashpw(_sha256(plain), bcrypt.gensalt(rounds=bcrypt_rounds)).decode("utf-8")
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    """Return True if the plain password matches the stored hash."""
-    return pwd_context.verify(plain[:72], hashed)
+    """Verify plain password against a stored bcrypt hash."""
+    try:
+        return bcrypt.checkpw(_sha256(plain), hashed.encode("utf-8"))
+    except Exception:
+        return False
 
 
 def create_access_token(user_id: str, email: str) -> str:
