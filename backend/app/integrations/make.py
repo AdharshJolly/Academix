@@ -35,7 +35,10 @@ class MakeClient:
                 with httpx.Client(timeout=15.0) as client:
                     response = client.post(self.webhook_url, json=body)
                     response.raise_for_status()
-                    return response.json() if response.content else {"status": "triggered"}
+                    try:
+                        return response.json() if response.content else {"status": "triggered"}
+                    except ValueError:
+                        return {"status": "triggered", "message": response.text}
             except (httpx.HTTPStatusError, httpx.RequestError) as exc:
                 last_error = exc
                 logger.warning("Make.com webhook attempt %s failed: %s", attempt + 1, exc)
