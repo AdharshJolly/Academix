@@ -1,25 +1,88 @@
 """
 UserRepository
 Data access layer for the users table.
+Used after Supabase Auth creates the auth.users record.
 """
+import logging
+from app.db.client import get_supabase
 from app.schemas.auth import UserOut
+
+logger = logging.getLogger(__name__)
+
+TABLE = "users"
 
 
 class UserRepository:
 
-    def get_by_id(self, user_id: str) -> UserOut:
-        """Fetch user profile by ID. TODO: Implement Supabase query."""
-        pass
+    def get_by_id(self, user_id: str) -> UserOut | None:
+        """Fetch user profile by Supabase auth UUID."""
+        db = get_supabase()
+        response = (
+            db.table(TABLE)
+            .select("*")
+            .eq("id", user_id)
+            .single()
+            .execute()
+        )
+        if not response.data:
+            return None
+        return UserOut(**response.data)
 
-    def get_by_email(self, email: str) -> UserOut:
-        """Fetch user profile by email. TODO: Implement Supabase query."""
-        pass
+    def get_by_email(self, email: str) -> UserOut | None:
+        """Fetch user profile by email address."""
+        db = get_supabase()
+        response = (
+            db.table(TABLE)
+            .select("*")
+            .eq("email", email)
+            .single()
+            .execute()
+        )
+        if not response.data:
+            return None
+        return UserOut(**response.data)
 
     def create(self, user_id: str, email: str, full_name: str) -> UserOut:
-        """Create user profile after Supabase Auth registration. TODO: Implement."""
-        pass
+        """
+        Create the public user profile after Supabase Auth registration.
+        The user_id must match the Supabase auth.users UUID.
+        """
+        db = get_supabase()
+        payload = {
+            "id": user_id,
+            "email": email,
+            "full_name": full_name,
+        }
+        response = db.table(TABLE).insert(payload).execute()
+        return UserOut(**response.data[0])
 
-    def update(self, user_id: str, data: dict) -> UserOut:
-        """Update user profile fields. TODO: Implement Supabase update."""
-        pass
+    def update(self, user_id: str, data: dict) -> UserOut | None:
+        """Partial update of user profile fields."""
+        db = get_supabase()
+        response = (
+            db.table(TABLE)
+            .update(data)
+            .eq("id", user_id)
+            .execute()
+        )
+        if not response.data:
+            return None
+        return UserOut(**response.data[0])
 
+    def upsert(self, user_id: str, email: str, full_name: str) -> UserOut:
+        """
+        Insert or update user profile — safe to call after every login.
+        Prevents duplicate errors if profile already exists.
+        """
+        db = get_supabase()
+        payload = {
+            "id": user_id,
+            "email": email,
+            "full_name": full_name,
+        }
+        response = (
+            db.table(TABLE)
+            .upsert(payload, on_conflict="id")
+            .execute()
+        )
+        return UserOut(**response.data[0])
