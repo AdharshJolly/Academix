@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { DashboardResponse } from '../types';
+import { DashboardResponse, CalendarEvent } from '../types';
 import { DashboardService } from '../services/dashboard.service';
 import { useAuth } from './AuthContext';
 
@@ -10,6 +10,12 @@ interface DashboardContextType {
     isLoading: boolean;
     error: string | null;
     refresh: () => Promise<void>;
+    localTasks: Record<string, CalendarEvent[]>;
+    completedTasks: Record<string, boolean>;
+    importantTasks: Record<string, boolean>;
+    setLocalTasks: React.Dispatch<React.SetStateAction<Record<string, CalendarEvent[]>>>;
+    setCompletedTasks: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
+    setImportantTasks: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
 }
 
 const DashboardContext = createContext<DashboardContextType>({
@@ -17,6 +23,12 @@ const DashboardContext = createContext<DashboardContextType>({
     isLoading: false,
     error: null,
     refresh: async () => {},
+    localTasks: {},
+    completedTasks: {},
+    importantTasks: {},
+    setLocalTasks: () => {},
+    setCompletedTasks: () => {},
+    setImportantTasks: () => {},
 });
 
 export const DashboardProvider = ({ children }: { children: ReactNode }) => {
@@ -24,6 +36,11 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     const [data, setData] = useState<DashboardResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    
+    // Calendar persistent state
+    const [localTasks, setLocalTasks] = useState<Record<string, CalendarEvent[]>>({});
+    const [completedTasks, setCompletedTasks] = useState<Record<string, boolean>>({});
+    const [importantTasks, setImportantTasks] = useState<Record<string, boolean>>({});
 
     const refresh = useCallback(async () => {
         setIsLoading(true);
@@ -47,7 +64,12 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     }, [refresh]);
 
     return (
-        <DashboardContext.Provider value={{ data, isLoading, error, refresh }}>
+        <DashboardContext.Provider value={{ 
+            data, isLoading, error, refresh, 
+            localTasks, setLocalTasks, 
+            completedTasks, setCompletedTasks,
+            importantTasks, setImportantTasks
+        }}>
             {children}
         </DashboardContext.Provider>
     );

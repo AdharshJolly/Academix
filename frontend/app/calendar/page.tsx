@@ -8,19 +8,25 @@ import { CalendarEvent } from '../../types';
 export default function CalendarPage() {
   const { data } = useDashboard();
   
-  const daysInMonth = 30;
-  const startingDay = 3; 
+  const [currentDate, setCurrentDate] = useState(new Date(2026, 5, 1)); // Default to June 2026
+  const currentYear = currentDate.getFullYear();
+  const currentMonth = currentDate.getMonth();
+  
+  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+  const startingDay = new Date(currentYear, currentMonth, 1).getDay();
+  
+  const monthName = currentDate.toLocaleString('default', { month: 'long' }).toUpperCase();
   
   // Local state for interacting with the calendar
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
-  const [completedTasks, setCompletedTasks] = useState<Record<string, boolean>>({});
-  const [importantTasks, setImportantTasks] = useState<Record<string, boolean>>({});
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Persistent state from Dashboard context
+  const { data, localTasks, setLocalTasks, completedTasks, setCompletedTasks, importantTasks, setImportantTasks } = useDashboard();
   
   // Local state for mocked new tasks
   const [newSubjectInput, setNewSubjectInput] = useState('');
   const [newTaskInput, setNewTaskInput] = useState('');
-  const [localTasks, setLocalTasks] = useState<Record<number, CalendarEvent[]>>({});
 
   const SUGGESTED_SUBJECTS = ['CS 301', 'MATH 201', 'PHYS 101', 'ENG 101', 'CHEM 101'];
 
@@ -48,7 +54,9 @@ export default function CalendarPage() {
     }
     
     return events.filter(e => {
-      const isCorrectDay = new Date(e.date).getDate() === day;
+      const eventDate = new Date(e.date);
+      // For mock events that are hardcoded to 2026-06, we map them correctly, or we just trust the date
+      const isCorrectDay = eventDate.getDate() === day && eventDate.getMonth() === currentMonth && eventDate.getFullYear() === currentYear;
       const matchesSearch = e.title.toLowerCase().includes(searchQuery.toLowerCase());
       return isCorrectDay && matchesSearch;
     });
@@ -59,16 +67,17 @@ export default function CalendarPage() {
     if (!newTaskInput.trim() || selectedDay === null) return;
     
     const subjectPrefix = newSubjectInput.trim() ? `${newSubjectInput.trim()}: ` : '';
+    const dateStr = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${selectedDay.toString().padStart(2, '0')}`;
     
     const newTask: CalendarEvent = {
       title: `${subjectPrefix}${newTaskInput.trim()}`,
-      date: `2026-06-${selectedDay.toString().padStart(2, '0')}`,
+      date: dateStr,
       type: 'Personal'
     };
     
     setLocalTasks(prev => ({
       ...prev,
-      [selectedDay]: [...(prev[selectedDay] || []), newTask]
+      [dateStr]: [...(prev[dateStr] || []), newTask]
     }));
     setNewTaskInput('');
     setNewSubjectInput('');
@@ -87,8 +96,9 @@ export default function CalendarPage() {
     
     // Actual days
     for (let i = 1; i <= daysInMonth; i++) {
+      const dateKey = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${i.toString().padStart(2, '0')}`;
       const serverEvents = getEventsForDay(i);
-      const userEvents = localTasks[i] || [];
+      const userEvents = localTasks[dateKey] || [];
       const allEventsForDay = [...serverEvents, ...userEvents];
       const pendingEvents = allEventsForDay.filter(e => !completedTasks[e.title]);
       
@@ -164,8 +174,12 @@ export default function CalendarPage() {
     return days;
   };
 
+  const selectedDateKey = selectedDay ? `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${selectedDay.toString().padStart(2, '0')}` : '';
   const selectedEvents = selectedDay ? getEventsForDay(selectedDay) : [];
-  const currentDayEvents = [...selectedEvents, ...(localTasks[selectedDay || 0] || [])];
+  const currentDayEvents = [...selectedEvents, ...(localTasks[selectedDateKey] || [])];
+  
+  const handlePrevMonth = () => setCurrentDate(new Date(currentYear, currentMonth - 1, 1));
+  const handleNextMonth = () => setCurrentDate(new Date(currentYear, currentMonth + 1, 1));
 
   return (
     <div className="flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-700 max-w-6xl mx-auto py-8 relative w-full">
@@ -190,9 +204,11 @@ export default function CalendarPage() {
             <RefreshCw className="w-5 h-5" />
           </button>
           <div className="flex items-center bg-white rounded-full border border-vintage-ink/10 shadow-sm overflow-hidden">
-            <button className="px-5 py-3 hover:bg-vintage-crimson/5 transition-colors"><ChevronLeft className="w-5 h-5 text-vintage-ink/60" /></button>
-            <div className="px-8 py-3 font-mono font-bold text-sm text-vintage-ink flex items-center justify-center min-w-[160px] border-l border-r border-vintage-ink/5">JUNE 2026</div>
-            <button className="px-5 py-3 hover:bg-vintage-crimson/5 transition-colors"><ChevronRight className="w-5 h-5 text-vintage-ink/60" /></button>
+            <button onClick={handlePrevMonth} className="px-5 py-3 hover:bg-vintage-crimson/5 transition-colors"><ChevronLeft className="w-5 h-5 text-vintage-ink/60" /></button>
+            <div className="px-8 py-3 font-mono font-bold text-sm text-vintage-ink flex items-center justify-center min-w-[160px] border-l border-r border-vintage-ink/5">
+              {monthName} {currentYear}
+            </div>
+            <button onClick={handleNextMonth} className="px-5 py-3 hover:bg-vintage-crimson/5 transition-colors"><ChevronRight className="w-5 h-5 text-vintage-ink/60" /></button>
           </div>
         </div>
       </div>
@@ -261,7 +277,7 @@ export default function CalendarPage() {
             </button>
             
             <div className="mb-8 border-b border-vintage-ink/10 pb-4">
-              <h2 className="font-accent text-3xl text-vintage-crimson mb-[-5px]">June {selectedDay}</h2>
+              <h2 className="font-accent text-3xl text-vintage-crimson mb-[-5px]">{monthName} {selectedDay}, {currentYear}</h2>
               <p className="font-mono text-sm text-vintage-ink/60 tracking-widest uppercase">Task Roster</p>
             </div>
 
