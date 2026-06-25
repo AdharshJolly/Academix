@@ -30,8 +30,8 @@ intelligence_repo = IntelligenceRepository()
 automation_repo = AutomationRepository()
 
 
-@router.get("/", response_model=APIResponse[DashboardResponse])
-def get_dashboard(user: dict = Depends(verify_token)):
+@router.get("", response_model=APIResponse[DashboardResponse])
+async def get_dashboard(user: dict = Depends(verify_token)):
     """
     Aggregate and return the full dashboard presentation model.
     Assembles from: tasks, intelligence_reports, automation_logs.

@@ -18,8 +18,8 @@ task_repo = TaskRepository()
 automation_service = AutomationService()
 
 
-@router.get("/", response_model=PaginatedResponse[TaskResponse])
-def get_tasks(
+@router.get("", response_model=PaginatedResponse[TaskResponse])
+async def get_tasks(
     page: int = 1,
     size: int = 20,
     status: str | None = None,
@@ -44,8 +44,8 @@ def get_tasks(
     )
 
 
-@router.post("/", response_model=APIResponse[TaskResponse])
-def create_task(
+@router.post("", response_model=APIResponse[TaskResponse])
+async def create_task(
     request: TaskCreate,
     user: dict = Depends(verify_token),
 ):
