@@ -56,10 +56,12 @@ export default function CalendarPage() {
   
   const handleAddTask = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newTaskInput.trim() || !newSubjectInput.trim() || selectedDay === null) return;
+    if (!newTaskInput.trim() || selectedDay === null) return;
+    
+    const subjectPrefix = newSubjectInput.trim() ? `${newSubjectInput.trim()}: ` : '';
     
     const newTask: CalendarEvent = {
-      title: `${newSubjectInput}: ${newTaskInput}`,
+      title: `${subjectPrefix}${newTaskInput.trim()}`,
       date: `2026-06-${selectedDay.toString().padStart(2, '0')}`,
       type: 'Personal'
     };
