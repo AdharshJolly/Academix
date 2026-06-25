@@ -31,6 +31,16 @@ function SettingsContent() {
     }
   }, [searchParams, router]);
 
+  const [formData, setFormData] = useState({
+    full_name: user?.full_name || '',
+    academic_year: user?.academic_year || '',
+    major: user?.major || '',
+    gpa: user?.gpa?.toString() || '',
+    study_hours: user?.study_hours?.toString() || '',
+    primary_objective: user?.primary_objective || '',
+    learning_protocols: user?.learning_protocols?.join(', ') || ''
+  });
+
   const handleConnectGoogle = async () => {
     try {
       setGoogleConnecting(true);
@@ -46,9 +56,40 @@ function SettingsContent() {
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (!token) return;
     setSaving(true);
-    setTimeout(() => setSaving(false), 1500);
+    try {
+      const payload = {
+        full_name: formData.full_name,
+        academic_year: formData.academic_year || null,
+        major: formData.major || null,
+        gpa: formData.gpa ? parseFloat(formData.gpa) : null,
+        study_hours: formData.study_hours ? parseFloat(formData.study_hours) : null,
+        primary_objective: formData.primary_objective || null,
+        learning_protocols: formData.learning_protocols ? formData.learning_protocols.split(',').map(s => s.trim()).filter(Boolean) : null,
+      };
+      
+      const res = await AuthService.updateProfile(payload, token);
+      if (res.success && res.data) {
+        // Assume context has an updateUser method or just reload
+        if ((window as any).__updateUserContext) {
+            (window as any).__updateUserContext(res.data);
+        } else {
+            // Quick reload to reflect changes globally if context update is tricky
+            window.location.reload();
+        }
+      }
+    } catch (err) {
+      alert("Failed to save profile updates.");
+      console.error(err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   return (
@@ -112,17 +153,37 @@ function SettingsContent() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="flex flex-col">
                     <label className="text-xs font-mono font-bold text-vintage-ink/60 mb-2 uppercase tracking-widest">Full Name</label>
-                    <input type="text" className="vintage-input bg-vintage-babyBlue/5 border-vintage-ink/20 focus:border-vintage-crimson" defaultValue={user?.full_name || "Demo User"} />
+                    <input type="text" value={formData.full_name} onChange={e => handleInputChange('full_name', e.target.value)} className="vintage-input bg-vintage-babyBlue/5 border-vintage-ink/20 focus:border-vintage-crimson" />
                   </div>
                   <div className="flex flex-col">
                     <label className="text-xs font-mono font-bold text-vintage-ink/60 mb-2 uppercase tracking-widest">Email Address</label>
-                    <input type="email" className="vintage-input bg-vintage-babyBlue/5 border-vintage-ink/20 focus:border-vintage-crimson" defaultValue={user?.email || "demo@campusflow.edu"} />
+                    <input type="email" disabled className="vintage-input bg-gray-100 border-vintage-ink/20 opacity-70 cursor-not-allowed" defaultValue={user?.email || ""} />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="flex flex-col">
+                    <label className="text-xs font-mono font-bold text-vintage-ink/60 mb-2 uppercase tracking-widest">Academic Year</label>
+                    <input type="text" value={formData.academic_year} onChange={e => handleInputChange('academic_year', e.target.value)} placeholder="e.g. Junior" className="vintage-input bg-vintage-babyBlue/5 border-vintage-ink/20 focus:border-vintage-crimson w-full" />
+                  </div>
+                  <div className="flex flex-col">
+                    <label className="text-xs font-mono font-bold text-vintage-ink/60 mb-2 uppercase tracking-widest">Major</label>
+                    <input type="text" value={formData.major} onChange={e => handleInputChange('major', e.target.value)} placeholder="e.g. Computer Science" className="vintage-input bg-vintage-babyBlue/5 border-vintage-ink/20 focus:border-vintage-crimson w-full" />
+                  </div>
+                  <div className="flex flex-col">
+                    <label className="text-xs font-mono font-bold text-vintage-ink/60 mb-2 uppercase tracking-widest">GPA</label>
+                    <input type="number" step="0.1" value={formData.gpa} onChange={e => handleInputChange('gpa', e.target.value)} placeholder="e.g. 3.8" className="vintage-input bg-vintage-babyBlue/5 border-vintage-ink/20 focus:border-vintage-crimson w-full" />
                   </div>
                 </div>
 
                 <div className="flex flex-col">
-                  <label className="text-xs font-mono font-bold text-vintage-ink/60 mb-2 uppercase tracking-widest">University / Institution</label>
-                  <input type="text" className="vintage-input bg-vintage-babyBlue/5 border-vintage-ink/20 focus:border-vintage-crimson w-full" defaultValue="State University" />
+                  <label className="text-xs font-mono font-bold text-vintage-ink/60 mb-2 uppercase tracking-widest">Primary Objective</label>
+                  <input type="text" value={formData.primary_objective} onChange={e => handleInputChange('primary_objective', e.target.value)} placeholder="What's your main academic goal?" className="vintage-input bg-vintage-babyBlue/5 border-vintage-ink/20 focus:border-vintage-crimson w-full" />
+                </div>
+                
+                <div className="flex flex-col">
+                  <label className="text-xs font-mono font-bold text-vintage-ink/60 mb-2 uppercase tracking-widest">Learning Protocols (comma separated)</label>
+                  <input type="text" value={formData.learning_protocols} onChange={e => handleInputChange('learning_protocols', e.target.value)} placeholder="e.g. Feynman Technique, Pomodoro" className="vintage-input bg-vintage-babyBlue/5 border-vintage-ink/20 focus:border-vintage-crimson w-full" />
                 </div>
 
                 <div className="mt-8 pt-8 border-t border-vintage-ink/10">
