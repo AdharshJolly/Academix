@@ -25,5 +25,9 @@ export const API_ENDPOINTS = {
     // Automations (correct backend endpoints)
     AUTOMATIONS_LIST:        '/automations',
     AUTOMATION_TRIGGER:      (type: string) => `/automations/trigger/${type}`,
+
+    // Calendar
+    CALENDAR_EVENTS:         '/calendar/events',
 } as const;
+
 

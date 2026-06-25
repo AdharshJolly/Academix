@@ -84,6 +84,8 @@ function getMockData(endpoint: string, method: string, data?: any): any {
 }
 
 // === CORE CLIENT ===
+let _isHandling401 = false; // guard against redirect loops
+
 async function request<T>(
     method: string,
     endpoint: string,
@@ -102,7 +104,22 @@ async function request<T>(
             headers,
             body: data ? JSON.stringify(data) : undefined,
         });
-        
+
+        // 401 = token expired or invalid → force logout and redirect to /auth
+        if (response.status === 401 && !_isHandling401) {
+            _isHandling401 = true;
+            if (typeof window !== 'undefined') {
+                localStorage.removeItem('campusflow_token');
+                localStorage.removeItem('campusflow_user');
+                // Small delay so any in-flight renders can complete
+                setTimeout(() => {
+                    window.location.href = '/auth?reason=session_expired';
+                    _isHandling401 = false;
+                }, 100);
+            }
+            throw new Error('Session expired. Please log in again.');
+        }
+
         const responseData = await response.json();
         
         if (!response.ok) {

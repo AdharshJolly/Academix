@@ -61,6 +61,44 @@ class GoogleCalendarClient:
         }
         return self._service(refresh_token).events().insert(calendarId="primary", body=event).execute()
 
+    def list_events(self, refresh_token: str, time_min: str, time_max: str, max_results: int = 50) -> list:
+        """
+        Fetch events from the user's primary Google Calendar within a date range.
+        time_min / time_max: RFC3339 datetime strings e.g. '2026-06-01T00:00:00Z'
+        """
+        result = (
+            self._service(refresh_token)
+            .events()
+            .list(
+                calendarId="primary",
+                timeMin=time_min,
+                timeMax=time_max,
+                maxResults=max_results,
+                singleEvents=True,
+                orderBy="startTime",
+            )
+            .execute()
+        )
+        items = result.get("items", [])
+        events = []
+        for item in items:
+            start = item.get("start", {})
+            end = item.get("end", {})
+            events.append({
+                "id": item.get("id"),
+                "title": item.get("summary", "Untitled"),
+                "description": item.get("description", ""),
+                "date": start.get("date") or (start.get("dateTime") or "")[:10],
+                "start_time": start.get("dateTime"),
+                "end_time": end.get("dateTime"),
+                "all_day": "date" in start,
+                "type": "Google Calendar",
+                "source": "google",
+            })
+        return events
+
+
+
     def _build_flow(self):
         from google_auth_oauthlib.flow import Flow
 

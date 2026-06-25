@@ -1,15 +1,23 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, ArrowRight } from 'lucide-react';
+import { Sparkles, ArrowRight, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { AuthService } from '../../services/auth.service';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import GoogleSyncModal from '../../components/shared/GoogleSyncModal';
 import WhatsAppSetupModal from '../../components/shared/WhatsAppSetupModal';
 
 export default function AuthPage() {
+  return (
+    <Suspense fallback={null}>
+      <AuthPageContent />
+    </Suspense>
+  );
+}
+
+function AuthPageContent() {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -24,6 +32,8 @@ export default function AuthPage() {
   
   const { login, register, isLoading, token } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const [sessionExpired] = useState(searchParams.get('reason') === 'session_expired');
   // Store token locally after login so it's available immediately for Google connect
   const [authToken, setAuthToken] = useState<string | null>(null);
 
@@ -204,12 +214,20 @@ export default function AuthPage() {
               />
             </div>
 
+            {sessionExpired && (
+              <div className="text-vintage-crimson text-sm font-mono bg-vintage-crimson/10 border border-vintage-crimson/30 p-3 rounded-md flex items-start gap-2 mt-4">
+                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>Your session has expired. Please log in again to continue.</span>
+              </div>
+            )}
+
             {error && (
               <div className="text-white text-sm font-mono bg-vintage-crimsonLight p-3 rounded-md flex items-start gap-2 shadow-sm mt-4">
                 <span>!</span>
                 <span>{error}</span>
               </div>
             )}
+
 
             <button 
               type="submit" 
