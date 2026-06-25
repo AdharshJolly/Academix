@@ -75,13 +75,9 @@ CampusFlow is split into a Next.js 15 frontend and a FastAPI backend. Follow the
 - **Supabase Account** (for PostgreSQL & Auth)
 - **Groq API Key** (for the AI Engine)
 
-### 1. Database Setup
-1. Create a new project on [Supabase](https://supabase.com).
-2. Go to the **SQL Editor** in your Supabase dashboard.
-3. Copy the contents of `supabase_migration.sql` (found in the root directory) and run it to create the required tables and columns.
-4. Retrieve your `Project URL` and `anon public key` from **Project Settings > API**.
 
-### 2. Backend Setup (FastAPI)
+
+### 1. Backend Setup (FastAPI)
 Open a new terminal and navigate to the backend directory:
 
 ```bash
@@ -112,7 +108,7 @@ uvicorn app.main:app --reload --port 8000
 ```
 *The backend will be running at `http://localhost:8000`*
 
-### 3. Frontend Setup (Next.js)
+### 2. Frontend Setup (Next.js)
 Open a separate terminal and navigate to the frontend directory:
 
 ```bash
@@ -136,11 +132,7 @@ npm run dev
 ```
 *The frontend will be available at `http://localhost:3000`*
 
-### 4. Demo Data (Optional)
-To quickly populate your account with realistic tasks and academic profile data for testing, register an account on the frontend, then run:
-```bash
-python scripts/seed_demo_data.py your_email@example.com
-```
+
 
 ## 📚 Documentation Index
 
