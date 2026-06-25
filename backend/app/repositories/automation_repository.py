@@ -1,7 +1,7 @@
 """
 AutomationRepository
 Data access layer for the automation_logs table.
-All n8n workflow executions are logged here.
+All Make.com workflow executions are logged here.
 """
 import json
 import logging
@@ -41,10 +41,10 @@ class AutomationRepository:
         self,
         log_id: str,
         status: str,
-        n8n_response: dict | None = None,
+        make_response: dict | None = None,
     ) -> None:
         """
-        Update log status after n8n webhook completes.
+        Update log status after Make.com webhook completes.
         status: 'success' | 'failed'
         """
         db = get_supabase()
@@ -52,8 +52,8 @@ class AutomationRepository:
             "status": status,
             "updated_at": datetime.utcnow().isoformat(),
         }
-        if n8n_response:
-            update_payload["n8n_response"] = json.dumps(n8n_response)
+        if make_response:
+            update_payload["response"] = json.dumps(make_response)
 
         db.table(TABLE).update(update_payload).eq("id", log_id).execute()
 

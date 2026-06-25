@@ -19,7 +19,7 @@ app = FastAPI(
 # TODO: Configure CORS origins from settings
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # TODO: Restrict to NEXT_PUBLIC_API_URL in production
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

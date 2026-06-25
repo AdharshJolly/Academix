@@ -1,6 +1,6 @@
 """
 Automations Router
-Triggers n8n workflows for academic task, notice, and schedule automations.
+Triggers Make.com workflows for academic task, notice, and schedule automations.
 All workflow executions are logged in automation_logs.
 """
 import logging
@@ -8,7 +8,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.core.security import verify_token
-from app.integrations.n8n import N8NClient
+from app.integrations.make import MakeClient
 from app.repositories.automation_repository import AutomationRepository
 from app.schemas.automation import TriggerRequest, TriggerResponse
 from app.schemas.common import APIResponse
@@ -16,7 +16,7 @@ from app.schemas.common import APIResponse
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/automations", tags=["automations"])
 
-n8n_client = N8NClient()
+make_client = MakeClient()
 automation_repo = AutomationRepository()
 
 
@@ -37,17 +37,17 @@ def _trigger(
             payload=request.payload,
         )
 
-        # 2. Trigger n8n workflow
-        n8n_payload = {
+        # 2. Trigger Make workflow
+        make_payload = {
             "user_id": user_id,
             "log_id": log_id,
             "workflow_type": workflow_type,
             **request.payload,
         }
-        n8n_response = n8n_client.trigger_workflow(workflow_type, n8n_payload)
+        make_response = make_client.trigger_workflow(workflow_type, make_payload)
 
         # 3. Mark as success
-        automation_repo.update_status(log_id, "success", n8n_response)
+        automation_repo.update_status(log_id, "success", make_response)
 
         return APIResponse(
             success=True,
@@ -56,12 +56,12 @@ def _trigger(
                 workflow_type=workflow_type,
                 status="success",
                 log_id=log_id,
-                message=f"n8n {workflow_type} workflow triggered",
+                message=f"Make.com {workflow_type} workflow triggered",
             ),
         )
 
     except RuntimeError as e:
-        # n8n connection failed — update log and return error
+        # Make.com connection failed — update log and return error
         if log_id:
             automation_repo.update_status(log_id, "failed")
         raise HTTPException(
@@ -83,7 +83,7 @@ def trigger_task(
     request: TriggerRequest,
     user: dict = Depends(verify_token),
 ):
-    """Trigger the n8n task automation workflow (Calendar + WhatsApp for a task)."""
+    """Trigger the Make.com task automation workflow (Calendar + WhatsApp for a task)."""
     return _trigger("task", request, user)
 
 
@@ -92,7 +92,7 @@ def trigger_notice(
     request: TriggerRequest,
     user: dict = Depends(verify_token),
 ):
-    """Trigger the n8n notice automation workflow (Calendar + WhatsApp from a notice report)."""
+    """Trigger the Make.com notice automation workflow (Calendar + WhatsApp from a notice report)."""
     return _trigger("notice", request, user)
 
 
@@ -101,5 +101,5 @@ def trigger_schedule(
     request: TriggerRequest,
     user: dict = Depends(verify_token),
 ):
-    """Trigger the n8n schedule automation workflow (push study blocks to Calendar)."""
+    """Trigger the Make.com schedule automation workflow (push study blocks to Calendar)."""
     return _trigger("schedule", request, user)

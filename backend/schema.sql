@@ -93,8 +93,24 @@ ALTER TABLE tasks                ENABLE ROW LEVEL SECURITY;
 ALTER TABLE intelligence_reports ENABLE ROW LEVEL SECURITY;
 ALTER TABLE automation_logs      ENABLE ROW LEVEL SECURITY;
 
--- TODO: Define RLS policies after auth is confirmed
--- Example policy (users see only their own data):
--- CREATE POLICY "Users can view own data" ON tasks
---   FOR SELECT USING (auth.uid() = user_id);
+-- ──────────────────────────────────────────────────────────────────────────
+-- RLS POLICIES
+-- ──────────────────────────────────────────────────────────────────────────
+-- Users can only read and update their own profile
+CREATE POLICY "Users can view own profile" ON users
+  FOR SELECT USING (auth.uid() = id);
 
+CREATE POLICY "Users can update own profile" ON users
+  FOR UPDATE USING (auth.uid() = id);
+
+-- Tasks are fully private
+CREATE POLICY "Users can manage own tasks" ON tasks
+  FOR ALL USING (auth.uid() = user_id);
+
+-- Intelligence Reports are fully private
+CREATE POLICY "Users can manage own reports" ON intelligence_reports
+  FOR ALL USING (auth.uid() = user_id);
+
+-- Automation Logs are fully private
+CREATE POLICY "Users can manage own automation logs" ON automation_logs
+  FOR ALL USING (auth.uid() = user_id);

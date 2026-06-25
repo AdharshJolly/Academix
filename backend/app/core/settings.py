@@ -23,9 +23,9 @@ class Settings:
     PRIMARY_MODEL: str = os.getenv("PRIMARY_MODEL", "moonshotai/kimi-k2-instruct")
     FALLBACK_MODEL: str = os.getenv("FALLBACK_MODEL", "llama-3.3-70b-versatile")
 
-    # n8n
-    N8N_BASE_URL: str = os.getenv("N8N_BASE_URL", "")
-    N8N_API_KEY: str = os.getenv("N8N_API_KEY", "")
+    # Make.com
+    MAKE_BASE_URL: str = os.getenv("MAKE_BASE_URL", "")
+    MAKE_API_KEY: str = os.getenv("MAKE_API_KEY", "")
 
     # Twilio
     TWILIO_ACCOUNT_SID: str = os.getenv("TWILIO_ACCOUNT_SID", "")

@@ -11,7 +11,7 @@
 | users                | Student profiles (extends Supabase Auth) |
 | tasks                | Academic tasks and deadlines           |
 | intelligence_reports | AI analysis outputs                    |
-| automation_logs      | n8n workflow execution history         |
+| automation_logs      | Make.com workflow execution history         |
 
 All AI output is stored in `intelligence_reports`.
 No separate AI output tables exist.
