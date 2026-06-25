@@ -60,8 +60,7 @@ CampusFlow/
 ├── backend/           # FastAPI Application (API & AI Logic)
 ├── docs/              # Architecture, PRD, TDS, and Pitch Docs
 ├── prompts/           # System prompt templates for Groq
-├── scripts/           # Utility and database migration scripts
-└── n8n/               # Legacy workflow assets
+└── scripts/           # Utility and database migration scripts
 ```
 
 ---
