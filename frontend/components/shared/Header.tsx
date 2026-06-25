@@ -1,47 +1,226 @@
 'use client';
 
-import React from 'react';
-import { Bell, Search, Zap } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Bell, Search, AlertCircle, Calendar, CheckSquare, Square, Trash2, Plus } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import Link from 'next/link';
 
 export function Header() {
   const { user } = useAuth();
+  const [showNotifications, setShowNotifications] = useState(false);
+  
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  const mockTasks = [
+    { title: 'Algorithms Midterm', subject: 'CS 301', type: 'Exam' },
+    { title: 'Project Proposal Due', subject: 'CS 301', type: 'Assignment' },
+    { title: 'Calculus Worksheet', subject: 'MATH 201', type: 'Assignment' },
+    { title: 'Physics Lab Report', subject: 'PHYS 101', type: 'Assignment' },
+  ];
+  
+  const searchResults = mockTasks.filter(t => 
+    t.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    t.subject.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const [subjects, setSubjects] = useState([
+    { id: '1', name: 'CS 301: Data Structures', checked: true },
+    { id: '2', name: 'MATH 201: Calculus II', checked: false },
+    { id: '3', name: 'PHYS 101: Mechanics', checked: true },
+  ]);
+  const [newSubject, setNewSubject] = useState('');
+  const searchRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setIsSearchFocused(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleAddSubject = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newSubject.trim()) return;
+    setSubjects([...subjects, { id: Date.now().toString(), name: newSubject, checked: true }]);
+    setNewSubject('');
+  };
+
+  const toggleSubject = (id: string) => {
+    setSubjects(subjects.map(s => s.id === id ? { ...s, checked: !s.checked } : s));
+  };
+
+  const deleteSubject = (id: string) => {
+    setSubjects(subjects.filter(s => s.id !== id));
+  };
 
   return (
-    <header className="h-16 glass-panel border-b border-white/5 flex items-center justify-between px-6 sticky top-0 z-30">
+    <header className="h-24 bg-transparent flex items-center justify-between px-10 sticky top-0 z-50">
+      
       <div className="flex items-center gap-4 flex-1">
-        <div className="relative w-64">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+        <div className="relative w-[32rem]" ref={searchRef}>
+          <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-6 h-6 text-vintage-crimson opacity-50 z-10" />
           <input 
             type="text" 
-            placeholder="Search campus notices..." 
-            className="w-full bg-white/5 border border-white/10 rounded-full py-1.5 pl-10 pr-4 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-neonBlue transition-colors"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search campus notices or subjects..." 
+            onFocus={() => setIsSearchFocused(true)}
+            className="w-full bg-white/90 border-2 border-transparent focus:border-vintage-crimson/30 rounded-full py-4 pl-14 pr-6 text-base font-mono font-bold text-vintage-ink placeholder:text-vintage-ink/40 focus:outline-none transition-all shadow-sm focus:shadow-md backdrop-blur-md relative z-10"
           />
+          
+          {/* Search Dropdown (Subjects or Results) */}
+          {isSearchFocused && (
+            <div className="absolute top-full left-0 right-0 mt-4 bg-white border border-vintage-ink/10 rounded-xl shadow-2xl overflow-hidden z-40 animate-in fade-in slide-in-from-top-2 duration-200">
+              
+              {!searchQuery.trim() ? (
+                /* Show Subjects when no search query */
+                <>
+                  <div className="bg-vintage-babyBlue/20 p-4 border-b border-vintage-ink/5">
+                    <h4 className="font-mono font-bold text-vintage-ink uppercase tracking-wider text-sm">Subject Filters</h4>
+                    <p className="text-xs font-mono text-vintage-ink/50 mt-1">Select subjects to include in search</p>
+                  </div>
+                  
+                  <div className="max-h-64 overflow-y-auto p-2">
+                    {subjects.length > 0 ? (
+                      subjects.map(subject => (
+                        <div key={subject.id} className="flex items-center justify-between p-3 hover:bg-vintage-crimson/5 rounded-md transition-colors group">
+                          <div 
+                            className="flex items-center gap-3 cursor-pointer flex-1"
+                            onClick={() => toggleSubject(subject.id)}
+                          >
+                            <div className={subject.checked ? 'text-vintage-crimson' : 'text-vintage-ink/30'}>
+                              {subject.checked ? <CheckSquare className="w-5 h-5" /> : <Square className="w-5 h-5" />}
+                            </div>
+                            <span className={`font-mono font-bold text-sm ${subject.checked ? 'text-vintage-ink' : 'text-vintage-ink/50'}`}>
+                              {subject.name}
+                            </span>
+                          </div>
+                          <button 
+                            onClick={() => deleteSubject(subject.id)}
+                            className="p-2 text-vintage-ink/20 hover:text-vintage-crimson hover:bg-white rounded-md opacity-0 group-hover:opacity-100 transition-all"
+                            title="Delete Subject"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="p-6 text-center">
+                        <p className="text-sm font-mono text-vintage-ink/50 border border-dashed border-vintage-ink/20 p-4 rounded-lg bg-vintage-ink/5">No subjects added yet.</p>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="p-3 border-t border-vintage-ink/10 bg-white/50">
+                    <form onSubmit={handleAddSubject} className="flex gap-2">
+                      <input 
+                        type="text" 
+                        value={newSubject}
+                        onChange={(e) => setNewSubject(e.target.value)}
+                        placeholder="Add new subject..."
+                        className="flex-1 bg-white border border-vintage-ink/20 rounded-md px-3 py-2 text-sm font-mono focus:border-vintage-crimson focus:outline-none"
+                      />
+                      <button type="submit" className="bg-vintage-crimson text-white p-2 rounded-md hover:bg-[#5a0008] transition-colors" title="Add Subject">
+                        <Plus className="w-5 h-5" />
+                      </button>
+                    </form>
+                  </div>
+                </>
+              ) : (
+                /* Show Search Results when searching */
+                <>
+                  <div className="bg-vintage-ink p-4 border-b border-vintage-ink/5 flex justify-between items-center">
+                    <h4 className="font-mono font-bold text-white uppercase tracking-wider text-sm">Search Results</h4>
+                    <span className="text-xs font-mono bg-white/20 text-white px-2 py-0.5 rounded-full">{searchResults.length} found</span>
+                  </div>
+                  <div className="max-h-[300px] overflow-y-auto p-2">
+                    {searchResults.length > 0 ? (
+                      searchResults.map((task, idx) => (
+                        <div key={idx} className="flex items-start gap-3 p-3 hover:bg-vintage-crimson/5 rounded-md transition-colors cursor-pointer group border-b border-vintage-ink/5 last:border-b-0">
+                          <div className="w-2 h-2 rounded-full bg-vintage-crimson mt-2"></div>
+                          <div>
+                            <p className="font-bold text-vintage-ink text-sm group-hover:text-vintage-crimson">{task.title}</p>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="text-xs font-mono font-bold bg-vintage-babyBlue/30 text-vintage-ink px-2 py-0.5 rounded">{task.subject}</span>
+                              <span className="text-xs font-mono text-vintage-ink/50">{task.type}</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="p-8 text-center">
+                        <p className="text-sm font-mono text-vintage-ink/50 border border-dashed border-vintage-ink/20 p-4 rounded-lg bg-vintage-ink/5">
+                          No tasks found for "{searchQuery}".
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
         </div>
       </div>
       
-      <div className="flex items-center gap-6">
-        <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-neonPurple/10 border border-neonPurple/20 text-neonPurple text-xs font-medium tracking-wide">
-          <span className="w-1.5 h-1.5 rounded-full bg-neonPurple animate-pulse"></span>
-          Mock DB Fallback Active
-        </div>
-
-        <button className="relative p-2 rounded-full hover:bg-white/10 transition-colors text-slate-400 hover:text-white">
-          <Bell className="w-5 h-5" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-neonRed glow-red"></span>
-        </button>
-
-        <div className="flex items-center gap-3 pl-4 border-l border-white/10">
-          <div className="flex flex-col items-end hidden sm:flex">
-            <span className="text-sm font-medium text-white">{user?.full_name || 'Demo User'}</span>
-            <span className="text-xs text-slate-400">{user?.email || 'demo@campusflow.edu'}</span>
+      <div className="flex items-center gap-8 relative">
+        
+        <div className="flex items-center gap-2">
+          <p className="font-accent text-2xl text-vintage-crimsonLight transform -rotate-3 mt-2">
+            stay updated
+          </p>
+          <div className="relative">
+            <button 
+              onClick={() => setShowNotifications(!showNotifications)}
+              className="relative p-3 bg-white text-vintage-crimson rounded-full shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all"
+            >
+              <Bell className="w-6 h-6" />
+              <span className="absolute top-0 right-0 w-3 h-3 bg-vintage-crimson border-2 border-white rounded-full animate-pulse"></span>
+            </button>
+            
+            {showNotifications && (
+              <div className="absolute top-full right-0 mt-4 w-80 bg-white border border-vintage-ink/10 rounded-lg shadow-2xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-200">
+                <div className="bg-vintage-babyBlue/20 p-4 border-b border-vintage-ink/5 flex justify-between items-center">
+                  <h4 className="font-mono font-bold text-vintage-ink uppercase tracking-wider text-sm">Action Items</h4>
+                  <span className="text-xs font-mono font-bold bg-vintage-crimson text-white px-2 py-0.5 rounded-full">2 New</span>
+                </div>
+                <div className="p-2">
+                  <Link href="/workspace" className="flex items-start gap-3 p-3 hover:bg-vintage-crimson/5 rounded-md transition-colors cursor-pointer group">
+                    <AlertCircle className="w-5 h-5 text-vintage-crimson mt-0.5" />
+                    <div>
+                      <p className="font-bold text-vintage-ink text-sm group-hover:text-vintage-crimson">Complete SWE Application</p>
+                      <p className="text-xs font-mono text-vintage-ink/50 mt-1">Due in 24 hours</p>
+                    </div>
+                  </Link>
+                  <Link href="/calendar" className="flex items-start gap-3 p-3 hover:bg-vintage-crimson/5 rounded-md transition-colors cursor-pointer group border-t border-vintage-ink/5">
+                    <Calendar className="w-5 h-5 text-vintage-babyBlue mt-0.5" />
+                    <div>
+                      <p className="font-bold text-vintage-ink text-sm group-hover:text-vintage-crimson">CS 301 Study Block</p>
+                      <p className="text-xs font-mono text-vintage-ink/50 mt-1">Starts at 2:00 PM</p>
+                    </div>
+                  </Link>
+                </div>
+              </div>
+            )}
           </div>
-          <img 
-            src={user?.avatar_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix'} 
-            alt="Avatar" 
-            className="w-9 h-9 rounded-full bg-white/10 border border-white/20 p-0.5 object-cover"
-          />
         </div>
+
+        <Link href="/profile" className="flex items-center gap-4 pl-8 border-l border-vintage-ink/10 cursor-pointer group">
+          <div className="flex flex-col items-end hidden sm:flex">
+            <span className="text-base font-display font-black text-vintage-crimson leading-tight group-hover:text-vintage-ink transition-colors">{user?.full_name || 'Demo User'}</span>
+            <span className="text-sm font-mono text-vintage-ink/60 tracking-tight">{user?.email || 'demo@campusflow.edu'}</span>
+          </div>
+          <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-white shadow-sm bg-vintage-paper group-hover:scale-105 transition-transform flex-shrink-0">
+            <img 
+              src={user?.avatar_url || '/avatars/doodle_dog.png'} 
+              alt="Avatar" 
+              className="w-full h-full object-cover"
+            />
+          </div>
+        </Link>
       </div>
     </header>
   );

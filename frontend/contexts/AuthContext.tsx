@@ -44,15 +44,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const login = async (data: UserLoginRequest) => {
         setIsLoading(true);
         try {
-            const res = await AuthService.login(data);
-            if (res.success && res.data) {
-                setToken(res.data.token);
-                setUser(res.data.user);
-                localStorage.setItem('campusflow_token', res.data.token);
-                localStorage.setItem('campusflow_user', JSON.stringify(res.data.user));
-            } else {
-                throw new Error(res.message);
-            }
+            // Mock authentication delay
+            await new Promise(resolve => setTimeout(resolve, 800));
+            
+            const mockUser = {
+                id: '1',
+                email: data.email,
+                full_name: 'Demo User',
+                avatar_url: '/avatars/doodle_dog.png',
+                created_at: new Date().toISOString()
+            };
+            
+            setToken('mock-jwt-token-12345');
+            setUser(mockUser);
+            localStorage.setItem('campusflow_token', 'mock-jwt-token-12345');
+            localStorage.setItem('campusflow_user', JSON.stringify(mockUser));
         } finally {
             setIsLoading(false);
         }
@@ -61,15 +67,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const register = async (data: UserRegisterRequest) => {
         setIsLoading(true);
         try {
-            const res = await AuthService.register(data);
-            if (res.success && res.data) {
-                setToken(res.data.token);
-                setUser(res.data.user);
-                localStorage.setItem('campusflow_token', res.data.token);
-                localStorage.setItem('campusflow_user', JSON.stringify(res.data.user));
-            } else {
-                throw new Error(res.message);
-            }
+            await new Promise(resolve => setTimeout(resolve, 800));
+            
+            const mockUser = {
+                id: '2',
+                email: data.email,
+                full_name: data.full_name || 'New Student',
+                avatar_url: 'https://robohash.org/newuser?set=set4&bgset=bg2',
+                created_at: new Date().toISOString()
+            };
+            
+            setToken('mock-jwt-token-67890');
+            setUser(mockUser);
+            localStorage.setItem('campusflow_token', 'mock-jwt-token-67890');
+            localStorage.setItem('campusflow_user', JSON.stringify(mockUser));
         } finally {
             setIsLoading(false);
         }

@@ -3,75 +3,84 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, CheckSquare, Calendar as CalendarIcon, Settings, User, Zap, LogOut } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
-import { motion } from 'framer-motion';
+import { LayoutDashboard, CheckSquare, Calendar, Zap, Settings, User } from 'lucide-react';
 
-const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Workspace', href: '/workspace', icon: CheckSquare },
-  { name: 'Calendar', href: '/calendar', icon: CalendarIcon },
-  { name: 'Automations', href: '/automation-center', icon: Zap },
+const navItems = [
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/workspace', label: 'Workspace', icon: CheckSquare },
+  { href: '/calendar', label: 'Calendar', icon: Calendar },
+  { href: '/automation-center', label: 'Automations', icon: Zap },
+];
+
+const bottomItems = [
+  { href: '/profile', label: 'Profile', icon: User },
+  { href: '/settings', label: 'Settings', icon: Settings },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { logout } = useAuth();
 
   return (
-    <div className="w-64 glass-panel border-r border-white/5 flex flex-col justify-between hidden md:flex h-screen sticky top-0">
-      <div>
-        <div className="h-16 flex items-center px-6 border-b border-white/5">
-          <Link href="/dashboard" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded bg-gradient-to-br from-neonBlue to-neonPurple flex items-center justify-center glow-blue">
-              <Zap className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-lg font-semibold tracking-wide text-white">
-              CampusFlow
-            </span>
-          </Link>
-        </div>
-        
-        <nav className="p-4 space-y-2 mt-4">
-          {navigation.map((item) => {
-            const isActive = pathname.startsWith(item.href);
+    <aside className="w-64 bg-transparent h-full flex flex-col z-20">
+      
+      {/* Branding */}
+      <div className="h-24 flex flex-col items-center justify-center border-b border-vintage-ink/10 px-6 relative overflow-hidden">
+        <h1 className="text-3xl font-display font-black tracking-tight text-vintage-crimson">
+          CampusFlow
+        </h1>
+        <p className="font-accent text-xl text-vintage-crimsonLight transform -rotate-2">
+          steal these!
+        </p>
+      </div>
+
+      {/* Navigation */}
+      <nav className="flex-1 py-8 px-4 flex flex-col gap-2 relative">
+        {navItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = pathname === item.href;
+          
+          return (
+            <Link key={item.href} href={item.href}>
+              <div 
+                className={`flex items-center gap-3 px-4 py-3 rounded-md transition-all font-mono font-bold text-base tracking-wider ${
+                  isActive 
+                    ? 'bg-vintage-crimson text-white shadow-md -translate-y-0.5' 
+                    : 'text-vintage-ink/70 hover:bg-vintage-crimson/5 hover:text-vintage-crimson'
+                }`}
+              >
+                <Icon className={`w-5 h-5 ${isActive ? 'text-white' : ''}`} />
+                <span>{item.label}</span>
+              </div>
+            </Link>
+          );
+        })}
+      </nav>
+
+      {/* Bottom Actions */}
+      <div className="p-4 border-t border-vintage-ink/10">
+        <div className="flex flex-col gap-2">
+          {bottomItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = pathname === item.href;
+            
             return (
-              <Link key={item.name} href={item.href}>
-                <div className={`relative flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ${isActive ? 'text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>
-                  {isActive && (
-                    <motion.div
-                      layoutId="active-tab"
-                      className="absolute inset-0 bg-white/10 rounded-xl"
-                      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                    />
-                  )}
-                  <item.icon className={`w-5 h-5 relative z-10 ${isActive ? 'text-neonBlue drop-shadow-[0_0_8px_rgba(0,242,254,0.8)]' : ''}`} />
-                  <span className="font-medium relative z-10">{item.name}</span>
+              <Link key={item.href} href={item.href}>
+                <div 
+                  className={`flex items-center gap-3 px-4 py-3 rounded-md transition-all font-mono font-bold text-sm tracking-wider ${
+                    isActive 
+                      ? 'bg-vintage-crimson text-white shadow-sm' 
+                      : 'text-vintage-ink/70 hover:bg-vintage-crimson/5 hover:text-vintage-crimson'
+                  }`}
+                >
+                  <Icon className={`w-5 h-5 ${isActive ? 'text-white' : ''}`} />
+                  <span>{item.label}</span>
                 </div>
               </Link>
             );
           })}
-        </nav>
+        </div>
       </div>
-
-      <div className="p-4 border-t border-white/5 space-y-2">
-        <Link href="/profile">
-          <div className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${pathname === '/profile' ? 'bg-white/10 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>
-            <User className="w-5 h-5" />
-            <span className="font-medium">Profile</span>
-          </div>
-        </Link>
-        <Link href="/settings">
-          <div className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${pathname === '/settings' ? 'bg-white/10 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>
-            <Settings className="w-5 h-5" />
-            <span className="font-medium">Settings</span>
-          </div>
-        </Link>
-        <button onClick={logout} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-400 hover:text-neonRed hover:bg-neonRed/10">
-          <LogOut className="w-5 h-5" />
-          <span className="font-medium">Sign Out</span>
-        </button>
-      </div>
-    </div>
+      
+    </aside>
   );
 }

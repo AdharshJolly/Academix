@@ -2,122 +2,149 @@
 
 import React, { useState } from 'react';
 import { useDashboard } from '../../contexts/DashboardContext';
-import { Play, Zap, Calendar as CalendarIcon, MessageCircle, AlertCircle, CheckCircle2 } from 'lucide-react';
-import { AutomationService } from '../../services/automation.service';
+import { Calendar as CalendarIcon, CheckSquare, FileText, Zap, Sparkles, Server, Terminal } from 'lucide-react';
 
 export default function AutomationCenterPage() {
   const { data } = useDashboard();
   const [triggering, setTriggering] = useState<string | null>(null);
 
-  const automations = data?.recent_automations || [];
-
-  const handleManualTrigger = async (type: 'task' | 'notice' | 'schedule') => {
+  const handleManualTrigger = (type: string) => {
     setTriggering(type);
-    try {
-      if (type === 'task') await AutomationService.triggerTaskWorkflow({ test: true });
-      else if (type === 'notice') await AutomationService.triggerNoticeWorkflow({ test: true });
-      else await AutomationService.triggerScheduleWorkflow({ test: true });
-      
-      // Usually we'd refresh here or show a toast
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setTimeout(() => setTriggering(null), 1000);
-    }
+    setTimeout(() => {
+      setTriggering(null);
+    }, 2000);
   };
 
   return (
-    <div className="h-full flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-700 max-w-5xl mx-auto">
-      <div className="mb-8 text-center">
-        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-neonPurple to-neonBlue flex items-center justify-center glow-purple mx-auto mb-4">
-          <Zap className="w-8 h-8 text-white" />
+    <div className="h-full flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-700 max-w-6xl mx-auto py-8">
+      
+      <div className="flex items-end justify-between border-b border-vintage-ink/10 pb-6 mb-12 relative">
+        <div>
+          <h4 className="font-accent text-3xl text-vintage-crimsonLight mb-[-10px] transform -rotate-2 relative z-10">
+            command & control
+          </h4>
+          <h1 className="text-6xl font-display font-black text-vintage-crimson tracking-tighter">Automations</h1>
         </div>
-        <h1 className="text-3xl font-bold text-white mb-2">Automation Center</h1>
-        <p className="text-slate-400">Monitor and trigger your n8n workflow integrations.</p>
+        <div className="hidden sm:flex items-center gap-2 px-4 py-2 bg-vintage-babyBlue/20 border-2 border-vintage-ink/10 rounded-full">
+          <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+          <span className="font-mono font-bold text-xs uppercase tracking-widest text-vintage-ink/60">Systems Online</span>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-        <div className="glass-panel rounded-xl border border-white/10 p-6 flex flex-col items-center text-center">
-          <CalendarIcon className="w-8 h-8 text-neonBlue mb-3" />
-          <h3 className="text-white font-medium mb-1">Calendar Sync</h3>
-          <p className="text-xs text-slate-400 mb-4">Push study schedules to GCal.</p>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-10 mb-16">
+        
+        {/* Calendar Sync Card */}
+        <div className="vintage-panel p-8 flex flex-col items-center text-center group border border-vintage-ink/5 relative transform -rotate-1 hover:rotate-0 transition-transform shadow-md bg-white">
+          <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-16 h-6 bg-white/40 backdrop-blur-md shadow-sm transform rotate-3"></div>
+          
+          <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-vintage-babyBlue/10 text-vintage-ink border-2 border-dashed border-vintage-ink/20 group-hover:bg-vintage-crimson group-hover:text-white group-hover:border-transparent transition-all">
+             <CalendarIcon className="w-8 h-8" />
+          </div>
+          <h3 className="text-xl font-mono font-black uppercase tracking-widest text-vintage-ink mb-4 border-b-2 border-vintage-ink/10 pb-4 w-full">Calendar Sync</h3>
+          <p className="text-vintage-ink/80 text-base font-sans font-medium mb-8 flex-1">Push study schedules directly to your external calendar.</p>
           <button 
             onClick={() => handleManualTrigger('schedule')}
             disabled={triggering === 'schedule'}
-            className="mt-auto px-4 py-2 w-full bg-white/5 hover:bg-white/10 rounded-lg text-sm text-white font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+            className="vintage-btn-outline w-full disabled:opacity-50"
           >
-            {triggering === 'schedule' ? 'Triggering...' : <><Play className="w-3 h-3" /> Run Now</>}
+            {triggering === 'schedule' ? 'Syncing...' : 'Trigger Sync'}
           </button>
         </div>
 
-        <div className="glass-panel rounded-xl border border-white/10 p-6 flex flex-col items-center text-center">
-          <MessageCircle className="w-8 h-8 text-neonGreen mb-3" />
-          <h3 className="text-white font-medium mb-1">WhatsApp Reminders</h3>
-          <p className="text-xs text-slate-400 mb-4">Send alerts via Twilio API.</p>
-          <button 
-            onClick={() => handleManualTrigger('notice')}
-            disabled={triggering === 'notice'}
-            className="mt-auto px-4 py-2 w-full bg-white/5 hover:bg-white/10 rounded-lg text-sm text-white font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
-          >
-            {triggering === 'notice' ? 'Triggering...' : <><Play className="w-3 h-3" /> Run Now</>}
-          </button>
-        </div>
-
-        <div className="glass-panel rounded-xl border border-white/10 p-6 flex flex-col items-center text-center">
-          <Zap className="w-8 h-8 text-neonPurple mb-3" />
-          <h3 className="text-white font-medium mb-1">Task Sync</h3>
-          <p className="text-xs text-slate-400 mb-4">Automate task categorization.</p>
+        {/* Task Sync Card (Active/Primary) */}
+        <div className="vintage-panel p-8 flex flex-col items-center text-center group relative transform scale-105 shadow-xl bg-[#73010b] text-[#fcf3cf] border-4 border-black z-10">
+          <div className="absolute top-[-15px] left-[-15px] bg-[#fcf3cf] text-black text-xs font-mono font-black px-4 py-1 rounded-sm transform -rotate-12 shadow-md border-2 border-black z-20 uppercase tracking-widest">
+            Primary Node
+          </div>
+          <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-black/20 border-2 border-[#fcf3cf]/20 backdrop-blur-sm">
+             <CheckSquare className="w-8 h-8 text-[#fcf3cf]" />
+          </div>
+          <h3 className="text-xl font-mono font-black uppercase tracking-widest mb-4 border-b-2 border-[#fcf3cf]/20 pb-4 w-full">Task Sync</h3>
+          <p className="text-[#fcf3cf]/90 text-base font-sans font-medium mb-8 flex-1">Sync assignments from Canvas & Notion directly to CampusFlow.</p>
           <button 
             onClick={() => handleManualTrigger('task')}
             disabled={triggering === 'task'}
-            className="mt-auto px-4 py-2 w-full bg-white/5 hover:bg-white/10 rounded-lg text-sm text-white font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+            className="w-full inline-flex items-center justify-center px-6 py-4 bg-[#fcf3cf] text-black font-mono font-black uppercase tracking-wider text-sm rounded-sm shadow-md hover:shadow-lg transition-all border-2 border-black disabled:opacity-50"
           >
-            {triggering === 'task' ? 'Triggering...' : <><Play className="w-3 h-3" /> Run Now</>}
+             {triggering === 'task' ? 'Executing Protocol...' : 'Force Sync'}
+          </button>
+        </div>
+
+        {/* Notice Scan Card */}
+        <div className="vintage-panel p-8 flex flex-col items-center text-center group border border-vintage-ink/5 relative transform rotate-1 hover:rotate-0 transition-transform shadow-md bg-white">
+          <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-16 h-6 bg-white/40 backdrop-blur-md shadow-sm transform -rotate-3"></div>
+
+          <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 bg-vintage-babyBlue/10 text-vintage-ink border-2 border-dashed border-vintage-ink/20 group-hover:bg-vintage-crimson group-hover:text-white group-hover:border-transparent transition-all">
+             <FileText className="w-8 h-8" />
+          </div>
+          <h3 className="text-xl font-mono font-black uppercase tracking-widest text-vintage-ink mb-4 border-b-2 border-vintage-ink/10 pb-4 w-full">Notice Scan</h3>
+          <p className="text-vintage-ink/80 text-base font-sans font-medium mb-8 flex-1">Scan inbox for academic notices and extract intelligence.</p>
+          <button 
+            onClick={() => handleManualTrigger('notice')}
+            disabled={triggering === 'notice'}
+            className="vintage-btn-outline w-full disabled:opacity-50"
+          >
+             {triggering === 'notice' ? 'Processing...' : 'Trigger Scan'}
           </button>
         </div>
       </div>
 
-      <div className="glass-panel border border-white/10 rounded-xl overflow-hidden flex-1">
-        <div className="px-6 py-4 border-b border-white/10 bg-black/20">
-          <h3 className="text-lg font-semibold text-white">Execution Logs</h3>
+      {/* Receipt Style Log */}
+      <div className="relative mx-auto w-full max-w-4xl">
+        {/* Hardware Top bar */}
+        <div className="h-8 bg-gradient-to-b from-gray-300 to-gray-400 rounded-t-xl border-x-2 border-t-2 border-gray-500 shadow-inner flex items-center px-6 gap-4">
+           <Server className="w-4 h-4 text-gray-600" />
+           <span className="text-[10px] font-mono font-black text-gray-600 uppercase tracking-widest">Syslog Output Terminal</span>
         </div>
-        <div className="p-0">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-white/10 text-slate-400 text-sm">
-                <th className="py-3 px-6 font-medium">Log ID</th>
-                <th className="py-3 px-6 font-medium">Workflow Type</th>
-                <th className="py-3 px-6 font-medium">Status</th>
-                <th className="py-3 px-6 font-medium">Triggered At</th>
-              </tr>
-            </thead>
-            <tbody>
-              {automations.length > 0 ? automations.map(auto => (
-                <tr key={auto.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                  <td className="py-4 px-6 text-sm text-slate-400">{auto.id}</td>
-                  <td className="py-4 px-6 text-white font-medium capitalize">{auto.workflow_type}</td>
-                  <td className="py-4 px-6">
-                    {auto.status === 'success' ? (
-                      <span className="flex items-center gap-1.5 text-xs font-bold text-neonGreen">
-                        <CheckCircle2 className="w-4 h-4" /> SUCCESS
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-1.5 text-xs font-bold text-neonRed">
-                        <AlertCircle className="w-4 h-4" /> FAILED
-                      </span>
-                    )}
-                  </td>
-                  <td className="py-4 px-6 text-sm text-slate-400">
-                    {new Date(auto.triggered_at).toLocaleString()}
-                  </td>
-                </tr>
-              )) : (
-                <tr><td colSpan={4} className="py-8 text-center text-slate-500">No recent automation logs found.</td></tr>
-              )}
-            </tbody>
-          </table>
+        
+        {/* Receipt Paper */}
+        <div className="bg-[#fdfbf7] p-8 border-x-2 border-gray-300 relative shadow-2xl min-h-[300px]" style={{ backgroundImage: 'linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px)', backgroundSize: '100% 24px' }}>
+          
+          <h3 className="text-xl font-mono font-black text-vintage-ink mb-8 border-b-2 border-dashed border-vintage-ink/30 pb-4 uppercase tracking-widest flex items-center gap-3">
+            <Terminal className="w-5 h-5" />
+            Execution Log
+          </h3>
+          
+          <div className="space-y-6 font-mono">
+            
+            <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-6 group">
+              <span className="text-sm font-bold text-vintage-ink/50 w-24 shrink-0 mt-1">[10:42 AM]</span>
+              <div className="flex-1 border-l-2 border-vintage-crimson pl-4 pb-2">
+                <p className="font-bold text-vintage-ink text-base">SYNC_COMPLETE: Canvas Assignments</p>
+                <p className="text-sm text-vintage-ink/70 mt-1 leading-relaxed">Extracted 3 new tasks. Detected mid-term for CS 301. Updated schedule blocks accordingly.</p>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-6 group">
+              <span className="text-sm font-bold text-vintage-ink/50 w-24 shrink-0 mt-1">[08:15 AM]</span>
+              <div className="flex-1 border-l-2 border-vintage-babyBlue pl-4 pb-2">
+                <p className="font-bold text-vintage-ink text-base">SYNC_COMPLETE: Google Calendar</p>
+                <p className="text-sm text-vintage-ink/70 mt-1 leading-relaxed">Pushed 4 study blocks to external calendar. No conflicts detected.</p>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-6 group">
+              <span className="text-sm font-bold text-vintage-ink/50 w-24 shrink-0 mt-1">[YESTERDAY]</span>
+              <div className="flex-1 border-l-2 border-vintage-ink/20 pl-4 pb-2">
+                <p className="font-bold text-vintage-ink/60 text-base">SCAN_COMPLETE: Inbox</p>
+                <p className="text-sm text-vintage-ink/50 mt-1 leading-relaxed">Processed 12 emails. 0 actionable notices found.</p>
+              </div>
+            </div>
+            
+          </div>
+          
+          {/* Fading bottom gradient for realism */}
+          <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#fdfbf7] to-transparent pointer-events-none"></div>
+        </div>
+        
+        {/* Zig Zag Bottom (Torn Paper effect) */}
+        <div className="h-4 w-full flex text-[#fdfbf7]">
+          {[...Array(40)].map((_, i) => (
+            <div key={i} className="flex-1 border-b-[8px] border-l-[8px] border-r-[8px] border-transparent border-t-[#fdfbf7] drop-shadow-md"></div>
+          ))}
         </div>
       </div>
+
     </div>
   );
 }

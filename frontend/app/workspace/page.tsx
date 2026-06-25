@@ -1,278 +1,399 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
-import { TaskService } from '../../services/task.service';
-import { IntelligenceService } from '../../services/intelligence.service';
-import { TaskResponse, IntelligenceResponse } from '../../types';
-import { CheckSquare, FileText, Calendar as CalendarIcon, Plus, Loader2, Sparkles, BrainCircuit } from 'lucide-react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Search, Plus, Filter, Calendar, Clock, Inbox, 
+  CheckCircle, Archive, ChevronRight, MessageCircle, Heart, Share2, Sparkles, Send, Smile, Paperclip, MoreHorizontal, ArrowRight
+} from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
+
+// Mock Data Initial State
+const INITIAL_TASKS = [
+  { id: '1', title: 'Algorithms Midterm', subject: 'CS 301', type: 'Exam', date: 'Oct 15', priority: 'High', status: 'pending', comments: [] },
+  { id: '2', title: 'Project Proposal Due', subject: 'CS 301', type: 'Assignment', date: 'Oct 10', priority: 'Medium', status: 'pending', comments: [] },
+  { id: '3', title: 'Calculus Worksheet', subject: 'MATH 201', type: 'Assignment', date: 'Oct 12', priority: 'Low', status: 'pending', comments: [] },
+  { id: '4', title: 'Physics Lab Report', subject: 'PHYS 101', type: 'Assignment', date: 'Oct 14', priority: 'High', status: 'pending', comments: [] },
+];
 
 export default function WorkspacePage() {
-  const { token } = useAuth();
-  const [activeTab, setActiveTab] = useState<'tasks' | 'notices' | 'planner'>('notices');
+  const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState<'tasks' | 'inbox' | 'completed'>('tasks');
+  const [tasks, setTasks] = useState(INITIAL_TASKS);
+  const [selectedItem, setSelectedItem] = useState<any>(INITIAL_TASKS[0]);
+  const [searchQuery, setSearchQuery] = useState('');
   
-  // Tasks State
-  const [tasks, setTasks] = useState<TaskResponse[]>([]);
-  const [isLoadingTasks, setIsLoadingTasks] = useState(false);
+  // Quick Capture State
+  const [showQuickCapture, setShowQuickCapture] = useState(false);
+  const [newTaskSubject, setNewTaskSubject] = useState('');
+  const [newTaskTitle, setNewTaskTitle] = useState('');
+  const [newTaskType, setNewTaskType] = useState('Assignment');
+  const [newTaskPriority, setNewTaskPriority] = useState('Medium');
+  const [newTaskDate, setNewTaskDate] = useState('');
+
+  const filteredTasks = tasks.filter(task => 
+    task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    task.subject.toLowerCase().includes(searchQuery.toLowerCase())
+  );
   
-  // Notices State
-  const [noticeText, setNoticeText] = useState('');
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [intelligenceResult, setIntelligenceResult] = useState<IntelligenceResponse | null>(null);
+  // Instagram-style comment state
+  const [newComment, setNewComment] = useState('');
+  const [isLiked, setIsLiked] = useState(false);
+  const [comments, setComments] = useState<{user: string, text: string}[]>([
+    { user: 'ai_copilot', text: 'I have automatically synced this to your calendar and set a WhatsApp reminder 24h prior.' }
+  ]);
 
-  useEffect(() => {
-    if (activeTab === 'tasks' && token) {
-      loadTasks();
-    }
-  }, [activeTab, token]);
-
-  const loadTasks = async () => {
-    setIsLoadingTasks(true);
-    try {
-      const res = await TaskService.getTasks(token!);
-      if (res.success && res.data) setTasks(res.data);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsLoadingTasks(false);
-    }
+  const handleAddComment = () => {
+    if (!newComment.trim()) return;
+    setComments([...comments, { user: user?.full_name || 'You', text: newComment }]);
+    setNewComment('');
   };
 
-  const handleProcessNotice = async () => {
-    if (!noticeText.trim() || !token) return;
-    setIsProcessing(true);
-    setIntelligenceResult(null);
-    try {
-      const res = await IntelligenceService.processNotice({
-        input_type: 'notice',
-        data: { text: noticeText }
-      }, token);
-      if (res.success && res.data) {
-        setIntelligenceResult(res.data);
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsProcessing(false);
-    }
+  const handleQuickCapture = () => {
+    if (!newTaskSubject || !newTaskTitle) return;
+    const newTask = {
+      id: Date.now().toString(),
+      subject: newTaskSubject,
+      title: newTaskTitle,
+      type: newTaskType,
+      priority: newTaskPriority,
+      date: newTaskDate || 'Soon',
+      status: 'pending',
+      comments: []
+    };
+    setTasks([newTask, ...tasks]);
+    setSelectedItem(newTask);
+    setShowQuickCapture(false);
+    setNewTaskSubject('');
+    setNewTaskTitle('');
+    setNewTaskDate('');
   };
 
   return (
-    <div className="h-full flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="flex flex-col h-[calc(100%+3rem)] -mx-6 -mt-6 -mb-6 bg-vintage-paper overflow-hidden relative">
       
-      {/* Workspace Header & Tabs */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white mb-6">Workspace</h1>
+      {/* 1. Workspace Toolbar */}
+      <div className="h-14 border-b border-vintage-ink/10 bg-white/50 flex items-center justify-between px-4 shrink-0">
+        <div className="flex items-center gap-4 flex-1">
+          <div className="relative max-w-sm w-full">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-vintage-ink/40" />
+            <input 
+              type="text" 
+              placeholder="Search tasks, notices, plans..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-white border border-vintage-ink/10 rounded-md py-1.5 pl-9 pr-4 text-sm font-mono focus:outline-none focus:border-vintage-crimson transition-colors"
+            />
+          </div>
+          <button 
+            onClick={() => setShowQuickCapture(true)}
+            className="flex items-center gap-2 bg-vintage-crimson text-white px-3 py-1.5 rounded-md text-sm font-bold font-mono hover:bg-vintage-crimsonDark transition-colors shadow-sm"
+          >
+            <Plus className="w-4 h-4" /> Quick Capture
+          </button>
+        </div>
         
-        <div className="flex p-1 bg-white/5 rounded-xl inline-flex border border-white/5 shadow-inner">
-          <button 
-            onClick={() => setActiveTab('tasks')}
-            className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-medium transition-all ${activeTab === 'tasks' ? 'bg-white/10 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}
-          >
-            <CheckSquare className="w-4 h-4" /> Tasks
+        <div className="flex items-center gap-3">
+          <button className="text-vintage-ink/60 hover:text-vintage-ink p-1.5 rounded-md hover:bg-black/5 transition-colors">
+            <Filter className="w-4 h-4" />
           </button>
-          <button 
-            onClick={() => setActiveTab('notices')}
-            className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-medium transition-all ${activeTab === 'notices' ? 'bg-white/10 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}
-          >
-            <FileText className="w-4 h-4" /> AI Notices
-          </button>
-          <button 
-            onClick={() => setActiveTab('planner')}
-            className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-medium transition-all ${activeTab === 'planner' ? 'bg-white/10 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}
-          >
-            <CalendarIcon className="w-4 h-4" /> Planner
-          </button>
+          <div className="flex items-center gap-2 px-3 py-1 bg-neonBlue/10 text-neonBlue rounded-full text-xs font-mono border border-neonBlue/20">
+            <Sparkles className="w-3 h-3" /> AI Active
+          </div>
         </div>
       </div>
 
-      {/* Tab Content Area */}
-      <div className="flex-1 min-h-0">
-        <AnimatePresence mode="wait">
+      {/* 3 Pane Layout */}
+      <div className="flex flex-1 overflow-hidden">
+        
+        {/* Left Panel: Navigation */}
+        <div className="w-56 border-r border-vintage-ink/10 bg-white/30 flex flex-col p-4 gap-1">
+          <p className="font-accent text-vintage-crimson transform -rotate-2 mb-4 text-lg">navigation</p>
           
-          {/* TASKS TAB */}
-          {activeTab === 'tasks' && (
-            <motion.div 
-              key="tasks"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="h-full flex flex-col"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div className="relative w-64">
-                  <input type="text" placeholder="Filter tasks..." className="w-full cyber-input py-2 pl-4 pr-4 text-sm" />
+          <NavItem icon={<CheckCircle />} label="Tasks" active={activeTab === 'tasks'} onClick={() => setActiveTab('tasks')} />
+          <NavItem icon={<Inbox />} label="AI Inbox" active={activeTab === 'inbox'} onClick={() => setActiveTab('inbox')} badge="2" />
+          
+          <div className="my-2 border-b border-vintage-ink/10"></div>
+          
+          <NavItem icon={<Archive />} label="Completed" active={activeTab === 'completed'} onClick={() => setActiveTab('completed')} />
+        </div>
+
+        {/* Middle Panel: Active Work Area */}
+        <div className="flex-1 bg-white/40 flex flex-col overflow-y-auto">
+          <div className="p-6 max-w-3xl w-full mx-auto">
+            
+            <AnimatePresence mode="wait">
+              {activeTab === 'tasks' && (
+                <motion.div key="tasks" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+                  <h2 className="text-2xl font-black font-display text-vintage-ink mb-6">Today's Focus</h2>
+                  <div className="space-y-3">
+                    {filteredTasks.length === 0 ? (
+                      <p className="text-vintage-ink/50 font-mono text-sm">No tasks found matching your search.</p>
+                    ) : (
+                      filteredTasks.map(task => (
+                        <div 
+                          key={task.id}
+                          onClick={() => setSelectedItem(task)}
+                          className={`p-4 rounded-lg border cursor-pointer transition-all ${
+                            selectedItem?.id === task.id 
+                              ? 'bg-white border-vintage-crimson shadow-sm scale-[1.01]' 
+                              : 'bg-white/50 border-vintage-ink/10 hover:border-vintage-ink/30 hover:bg-white'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex gap-3">
+                              <div className="mt-1 w-5 h-5 rounded-md border-2 border-vintage-ink/20 flex items-center justify-center"></div>
+                              <div>
+                                <h3 className="font-bold text-vintage-ink font-mono">{task.title}</h3>
+                                <p className="text-sm text-vintage-ink/60 font-mono mt-1">{task.subject} • {task.type}</p>
+                              </div>
+                            </div>
+                            <div className={`px-2 py-0.5 rounded text-xs font-mono font-bold ${
+                              task.priority === 'High' ? 'bg-vintage-crimsonLight/20 text-vintage-crimson' : 
+                              'bg-vintage-ink/5 text-vintage-ink/60'
+                            }`}>
+                              {task.priority}
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </motion.div>
+              )}
+
+              {activeTab === 'inbox' && (
+                <motion.div key="inbox" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+                  <h2 className="text-2xl font-black font-display text-vintage-ink mb-6">AI Notice Processor</h2>
+                  <div className="bg-white rounded-xl border border-vintage-ink/10 p-4 shadow-sm">
+                    <textarea 
+                      placeholder="Paste your syllabus, notice, or email here..."
+                      className="w-full h-40 bg-transparent border-none resize-none focus:outline-none font-mono text-sm text-vintage-ink placeholder:text-vintage-ink/30"
+                    ></textarea>
+                    <div className="flex justify-between items-center mt-4 pt-4 border-t border-vintage-ink/10">
+                      <div className="text-xs font-mono text-vintage-ink/40 flex items-center gap-2">
+                        <Sparkles className="w-3 h-3" /> AI is ready to extract tasks
+                      </div>
+                      <button className="bg-vintage-crimson text-white px-4 py-2 rounded-md text-sm font-bold font-mono hover:bg-vintage-crimsonDark flex items-center gap-2">
+                        Process Notice <ArrowRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+            
+          </div>
+        </div>
+
+        {/* Right Panel: Context Panel (AI Assistant & Instagram-style social interaction) */}
+        <div className="w-80 border-l border-vintage-ink/10 bg-white flex flex-col shrink-0">
+          {selectedItem ? (
+            <>
+              {/* Header */}
+              <div className="p-4 border-b border-vintage-ink/10 flex justify-between items-center bg-vintage-paper/50">
+                <h3 className="font-bold font-mono text-sm text-vintage-ink">Context Panel</h3>
+                <MoreHorizontal className="w-4 h-4 text-vintage-ink/40 cursor-pointer hover:text-vintage-ink" />
+              </div>
+
+              <div className="flex-1 overflow-y-auto">
+                {/* Image/Preview (Instagram-style header for the task) */}
+                <div className="w-full aspect-video bg-vintage-ink/5 border-b border-vintage-ink/10 flex flex-col items-center justify-center p-6 text-center relative overflow-hidden">
+                  <div className="absolute -inset-4 striped-bg opacity-30 z-0"></div>
+                  <div className="z-10 bg-white p-4 rounded-lg shadow-sm border border-vintage-ink/5 transform rotate-1">
+                    <h2 className="font-black font-display text-xl text-vintage-ink mb-1">{selectedItem.title}</h2>
+                    <p className="font-mono text-sm text-vintage-crimson">{selectedItem.date}</p>
+                  </div>
                 </div>
-                <button className="flex items-center gap-2 px-4 py-2 bg-neonBlue text-black font-semibold rounded-lg hover:bg-neonBlue/90 transition-colors">
-                  <Plus className="w-4 h-4" /> New Task
+
+                {/* Instagram Style Action Bar */}
+                <div className="p-3 flex items-center justify-between border-b border-vintage-ink/5">
+                  <div className="flex items-center gap-4">
+                    <button onClick={() => setIsLiked(!isLiked)} className="hover:scale-110 transition-transform">
+                      <Heart className={`w-6 h-6 ${isLiked ? 'fill-vintage-crimson text-vintage-crimson' : 'text-vintage-ink'}`} />
+                    </button>
+                    <button className="hover:scale-110 transition-transform">
+                      <MessageCircle className="w-6 h-6 text-vintage-ink" />
+                    </button>
+                    <button className="hover:scale-110 transition-transform">
+                      <Share2 className="w-6 h-6 text-vintage-ink" />
+                    </button>
+                  </div>
+                  <BookmarkIcon />
+                </div>
+
+                {/* Details Section */}
+                <div className="p-4 border-b border-vintage-ink/5">
+                  <p className="text-sm font-mono text-vintage-ink">
+                    <span className="font-bold">{user?.full_name || 'Demo User'}</span> Need to finish this before the weekend. Priority is set to <span className="font-bold text-vintage-crimson">{selectedItem.priority}</span>.
+                  </p>
+                </div>
+
+                {/* AI Insights & Comments */}
+                <div className="p-4 flex flex-col gap-4">
+                  {comments.map((c, i) => (
+                    <div key={i} className="flex items-start gap-3">
+                      <div className="w-6 h-6 rounded-full bg-vintage-ink/10 flex items-center justify-center overflow-hidden shrink-0">
+                         {c.user === 'ai_copilot' ? (
+                           <Sparkles className="w-3 h-3 text-neonBlue" />
+                         ) : (
+                           <img src={user?.avatar_url || '/avatars/doodle_dog.png'} alt="avatar" className="w-full h-full object-cover" />
+                         )}
+                      </div>
+                      <p className="text-sm font-mono text-vintage-ink/80 leading-tight">
+                        <span className="font-bold text-vintage-ink mr-2">{c.user}</span>
+                        {c.text}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Add Comment Input (Instagram Style) */}
+              <div className="p-3 border-t border-vintage-ink/10 bg-white flex items-center gap-3">
+                <div className="w-7 h-7 rounded-full overflow-hidden shrink-0 border border-vintage-ink/10">
+                  <img src={user?.avatar_url || '/avatars/doodle_dog.png'} alt="avatar" className="w-full h-full object-cover" />
+                </div>
+                <input 
+                  type="text" 
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddComment()}
+                  placeholder="Add a comment..." 
+                  className="flex-1 bg-transparent border-none text-sm font-mono focus:outline-none placeholder:text-vintage-ink/40"
+                />
+                <button className="text-vintage-ink/40 hover:text-vintage-ink">
+                  <Smile className="w-5 h-5" />
+                </button>
+                <button 
+                  onClick={handleAddComment}
+                  disabled={!newComment.trim()}
+                  className={`text-sm font-bold font-mono transition-colors ${newComment.trim() ? 'text-neonBlue' : 'text-neonBlue/40'}`}
+                >
+                  Post
                 </button>
               </div>
-              
-              <div className="glass-panel rounded-xl border border-white/10 flex-1 overflow-auto p-4">
-                {isLoadingTasks ? (
-                  <div className="flex justify-center items-center h-40"><Loader2 className="w-6 h-6 animate-spin text-neonBlue" /></div>
-                ) : (
-                  <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="border-b border-white/10 text-slate-400 text-sm">
-                        <th className="py-3 px-4 font-medium">Title</th>
-                        <th className="py-3 px-4 font-medium">Status</th>
-                        <th className="py-3 px-4 font-medium">Priority</th>
-                        <th className="py-3 px-4 font-medium">Due Date</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {tasks.map(task => (
-                        <tr key={task.id} className="border-b border-white/5 hover:bg-white/5 transition-colors group">
-                          <td className="py-4 px-4">
-                            <div className="text-white font-medium">{task.title}</div>
-                            {task.description && <div className="text-xs text-slate-500 mt-1">{task.description}</div>}
-                          </td>
-                          <td className="py-4 px-4">
-                            <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-white/5 text-slate-300 capitalize">
-                              {task.status.replace('_', ' ')}
-                            </span>
-                          </td>
-                          <td className="py-4 px-4">
-                            <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${task.priority === 'high' ? 'text-neonRed bg-neonRed/10' : task.priority === 'medium' ? 'text-neonOrange bg-neonOrange/10' : 'text-neonBlue bg-neonBlue/10'}`}>
-                              {task.priority.toUpperCase()}
-                            </span>
-                          </td>
-                          <td className="py-4 px-4 text-sm text-slate-400">
-                            {task.due_date ? new Date(task.due_date).toLocaleDateString() : '-'}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-              </div>
-            </motion.div>
+            </>
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center text-center p-8 opacity-50">
+              <Sparkles className="w-8 h-8 mb-4 text-vintage-ink" />
+              <p className="font-mono text-sm">Select an item to view AI context, insights, and discussion.</p>
+            </div>
           )}
-
-          {/* NOTICES TAB */}
-          {activeTab === 'notices' && (
-            <motion.div 
-              key="notices"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="h-full flex gap-6 flex-col lg:flex-row"
-            >
-              {/* Input Area */}
-              <div className="flex-1 flex flex-col">
-                <div className="glass-panel rounded-xl border border-white/10 p-6 flex-1 flex flex-col relative overflow-hidden">
-                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-neonBlue to-neonPurple"></div>
-                  <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                    <BrainCircuit className="w-5 h-5 text-neonPurple" />
-                    Input Academic Notice
-                  </h2>
-                  <textarea 
-                    value={noticeText}
-                    onChange={(e) => setNoticeText(e.target.value)}
-                    placeholder="Paste your syllabus, email from professor, or canvas announcement here..."
-                    className="flex-1 bg-white/5 border border-white/10 rounded-xl p-4 text-slate-200 resize-none focus:outline-none focus:border-neonPurple focus:ring-1 focus:ring-neonPurple transition-all mb-4"
-                  />
-                  <button 
-                    onClick={handleProcessNotice}
-                    disabled={isProcessing || !noticeText.trim()}
-                    className="w-full py-3 rounded-xl bg-gradient-to-r from-neonPurple to-neonBlue text-white font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
-                  >
-                    {isProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
-                    {isProcessing ? 'AI Processing...' : 'Extract Intelligence'}
-                  </button>
-                </div>
-              </div>
-
-              {/* Result Area */}
-              <div className="flex-1 flex flex-col">
-                {intelligenceResult ? (
-                  <motion.div 
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="glass-panel-heavy rounded-xl border border-neonBlue/20 p-6 flex-1 overflow-y-auto"
-                  >
-                    <div className="flex items-center justify-between mb-6">
-                      <h2 className="text-lg font-bold text-white text-gradient-cyan-purple">Intelligence Report</h2>
-                      <div className="px-3 py-1 rounded-full bg-neonBlue/10 border border-neonBlue/20 text-neonBlue text-xs font-bold flex items-center gap-2">
-                        <CheckCircle2 className="w-3 h-3" /> Processed
-                      </div>
-                    </div>
-
-                    <div className="space-y-6">
-                      {/* Risk */}
-                      <div>
-                        <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-2">Assessed Risk</h3>
-                        <div className="flex items-center gap-3">
-                          <span className="text-2xl font-bold text-white">{(intelligenceResult.risk_assessment.risk_score * 100).toFixed(0)}%</span>
-                          <span className="px-2 py-1 rounded bg-white/10 text-xs font-medium text-slate-300">{intelligenceResult.risk_assessment.risk_level.toUpperCase()}</span>
-                        </div>
-                      </div>
-
-                      {/* Events */}
-                      <div>
-                        <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Extracted Events</h3>
-                        <div className="space-y-2">
-                          {intelligenceResult.extracted_events.map((ev, i) => (
-                            <div key={i} className="p-3 bg-white/5 border border-white/5 rounded-lg flex justify-between items-center">
-                              <div>
-                                <p className="font-medium text-white text-sm">{ev.title}</p>
-                                <p className="text-xs text-slate-400 mt-0.5">{ev.type} • {ev.location || 'No location'}</p>
-                              </div>
-                              <div className="text-xs font-medium text-neonBlue bg-neonBlue/10 px-2 py-1 rounded">
-                                {new Date(ev.date).toLocaleDateString()}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Recommendations */}
-                      <div>
-                        <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Recommended Actions</h3>
-                        <div className="space-y-2">
-                          {intelligenceResult.recommendations.map((rec, i) => (
-                            <div key={i} className="p-3 bg-white/5 border border-l-2 border-l-neonPurple rounded-lg">
-                              <p className="font-medium text-slate-200 text-sm">{rec.action}</p>
-                              {rec.rationale && <p className="text-xs text-slate-500 mt-1">{rec.rationale}</p>}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </motion.div>
-                ) : (
-                  <div className="glass-panel rounded-xl border border-white/5 border-dashed p-6 flex-1 flex flex-col items-center justify-center text-slate-500">
-                    <Sparkles className="w-12 h-12 mb-4 opacity-20" />
-                    <p className="text-center">Submit an academic notice to see AI-extracted events, risk factors, and recommended schedules.</p>
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          )}
-
-          {/* PLANNER TAB */}
-          {activeTab === 'planner' && (
-            <motion.div 
-              key="planner"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="h-full flex flex-col"
-            >
-              <div className="glass-panel rounded-xl border border-white/10 flex-1 flex items-center justify-center">
-                <div className="text-center">
-                  <CalendarIcon className="w-12 h-12 text-slate-600 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-white mb-2">Study Planner</h3>
-                  <p className="text-slate-400">Process notices to automatically generate your study schedule here.</p>
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-        </AnimatePresence>
+        </div>
+        
       </div>
+
+      {/* Quick Capture Modal */}
+      <AnimatePresence>
+        {showQuickCapture && (
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 border border-vintage-ink/10"
+            >
+              <h3 className="font-display font-black text-xl text-vintage-ink mb-4">Quick Capture</h3>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold font-mono text-vintage-ink/60 mb-1">Subject *</label>
+                  <input 
+                    type="text" 
+                    list="workspace-subjects"
+                    placeholder="e.g. CS 301"
+                    value={newTaskSubject}
+                    onChange={(e) => setNewTaskSubject(e.target.value)}
+                    className="w-full bg-vintage-paper border border-vintage-ink/10 rounded p-2 text-sm font-mono focus:border-vintage-crimson outline-none"
+                    autoFocus
+                  />
+                  <datalist id="workspace-subjects">
+                    {Array.from(new Set(INITIAL_TASKS.map(t => t.subject))).map(sub => (
+                      <option key={sub} value={sub} />
+                    ))}
+                  </datalist>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold font-mono text-vintage-ink/60 mb-1">Title *</label>
+                  <input 
+                    type="text" 
+                    placeholder="Task name"
+                    value={newTaskTitle}
+                    onChange={(e) => setNewTaskTitle(e.target.value)}
+                    className="w-full bg-vintage-paper border border-vintage-ink/10 rounded p-2 text-sm font-mono focus:border-vintage-crimson outline-none"
+                  />
+                </div>
+                <div className="flex gap-4">
+                  <div className="flex-1">
+                    <label className="block text-xs font-bold font-mono text-vintage-ink/60 mb-1">Type</label>
+                    <select 
+                      value={newTaskType}
+                      onChange={(e) => setNewTaskType(e.target.value)}
+                      className="w-full bg-vintage-paper border border-vintage-ink/10 rounded p-2 text-sm font-mono outline-none"
+                    >
+                      <option>Assignment</option>
+                      <option>Exam</option>
+                      <option>Reading</option>
+                      <option>Project</option>
+                    </select>
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-xs font-bold font-mono text-vintage-ink/60 mb-1">Priority</label>
+                    <select 
+                      value={newTaskPriority}
+                      onChange={(e) => setNewTaskPriority(e.target.value)}
+                      className="w-full bg-vintage-paper border border-vintage-ink/10 rounded p-2 text-sm font-mono outline-none"
+                    >
+                      <option>High</option>
+                      <option>Medium</option>
+                      <option>Low</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-vintage-ink/10">
+                <button 
+                  onClick={() => setShowQuickCapture(false)}
+                  className="px-4 py-2 text-sm font-bold font-mono text-vintage-ink/60 hover:text-vintage-ink transition-colors"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={handleQuickCapture}
+                  disabled={!newTaskSubject || !newTaskTitle}
+                  className="bg-vintage-crimson text-white px-4 py-2 rounded-md text-sm font-bold font-mono hover:bg-vintage-crimsonDark disabled:opacity-50 transition-colors"
+                >
+                  Save Task
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
+
+// Subcomponents
+const NavItem = ({ icon, label, active, badge, onClick }: { icon: React.ReactNode, label: string, active?: boolean, badge?: string, onClick?: () => void }) => (
+  <button 
+    onClick={onClick}
+    className={`w-full flex items-center justify-between px-3 py-2 rounded-md font-mono text-sm transition-all ${
+      active ? 'bg-white font-bold text-vintage-crimson shadow-sm border border-vintage-ink/10' : 'text-vintage-ink/60 hover:bg-white/50 hover:text-vintage-ink'
+    }`}
+  >
+    <div className="flex items-center gap-3">
+      {React.cloneElement(icon as React.ReactElement, { className: 'w-4 h-4' })}
+      {label}
+    </div>
+    {badge && <span className="bg-vintage-crimson text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">{badge}</span>}
+  </button>
+);
+
+const BookmarkIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-vintage-ink hover:scale-110 transition-transform cursor-pointer">
+    <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>
+  </svg>
+);
