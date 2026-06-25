@@ -82,3 +82,8 @@ next-env.d.ts
 
 .graphify
 graphifyy_output.txt
+
+# --- Local-only hackathon docs (keep locally, not in repo) ---
+supabase_migration.sql
+CampusFlow_reqs.txt
+CampusFlow_v2_WhatsApp_Calendar.docx
