@@ -96,8 +96,13 @@ async def login(request: UserLoginRequest):
             avatar_url=user.get("avatar_url"),
             google_calendar_connected=user.get("google_calendar_connected", False),
             whatsapp_number=user.get("whatsapp_number"),
+            academic_year=user.get("academic_year"),
+            major=user.get("major"),
+            gpa=user.get("gpa"),
+            study_hours=user.get("study_hours"),
+            primary_objective=user.get("primary_objective"),
+            learning_protocols=user.get("learning_protocols"),
         )
-
         return APIResponse(
             success=True,
             message="Login successful",
@@ -109,9 +114,35 @@ async def login(request: UserLoginRequest):
     except Exception as e:
         logger.error(f"Login error: {e}")
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Login failed. Check credentials.",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Login failed: {str(e)}",
         )
+
+from app.schemas.auth import UserProfileUpdate
+
+@router.put("/profile", response_model=APIResponse[UserOut])
+async def update_profile(
+    request: UserProfileUpdate,
+    user: dict = Depends(verify_token),
+):
+    """Update user academic profile fields."""
+    update_data = {k: v for k, v in request.model_dump().items() if v is not None}
+    if not update_data:
+        return APIResponse(
+            success=True, 
+            message="No fields to update", 
+            data=user_repo.get_by_id(user["id"])
+        )
+        
+    updated_user = user_repo.update(user["id"], update_data)
+    if not updated_user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    return APIResponse(
+        success=True,
+        message="Profile updated successfully",
+        data=updated_user,
+    )
 
 
 @router.get("/google/connect", response_model=APIResponse[dict])

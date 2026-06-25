@@ -26,6 +26,23 @@ class UserOut(BaseModel):
     avatar_url: str | None = None
     google_calendar_connected: bool = False
     whatsapp_number: str | None = None
+    academic_year: str | None = None
+    major: str | None = None
+    gpa: float | None = None
+    study_hours: float | None = None
+    primary_objective: str | None = None
+    learning_protocols: list[str] | None = None
+
+class UserProfileUpdate(BaseModel):
+    full_name: str | None = None
+    avatar_url: str | None = None
+    whatsapp_number: str | None = None
+    academic_year: str | None = None
+    major: str | None = None
+    gpa: float | None = None
+    study_hours: float | None = None
+    primary_objective: str | None = None
+    learning_protocols: list[str] | None = None
 
 
 class AuthResponse(BaseModel):

@@ -10,6 +10,12 @@ ALTER TABLE public.users
   ADD COLUMN IF NOT EXISTS avatar_url               TEXT,
   ADD COLUMN IF NOT EXISTS google_refresh_token     TEXT,
   ADD COLUMN IF NOT EXISTS google_calendar_connected BOOLEAN DEFAULT FALSE,
+  ADD COLUMN IF NOT EXISTS academic_year            TEXT,
+  ADD COLUMN IF NOT EXISTS major                    TEXT,
+  ADD COLUMN IF NOT EXISTS gpa                      NUMERIC(3,2),
+  ADD COLUMN IF NOT EXISTS study_hours              NUMERIC(5,1) DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS primary_objective        TEXT,
+  ADD COLUMN IF NOT EXISTS learning_protocols       TEXT[],
   ADD COLUMN IF NOT EXISTS created_at               TIMESTAMPTZ DEFAULT NOW(),
   ADD COLUMN IF NOT EXISTS updated_at               TIMESTAMPTZ DEFAULT NOW();
 

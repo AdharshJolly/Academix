@@ -19,7 +19,7 @@ class UserRepository:
         db = get_supabase()
         response = (
             db.table(TABLE)
-            .select("id, email, full_name, avatar_url, google_calendar_connected, whatsapp_number")
+            .select("id, email, full_name, avatar_url, google_calendar_connected, whatsapp_number, academic_year, major, gpa, study_hours, primary_objective, learning_protocols")
             .eq("id", user_id)
             .single()
             .execute()
@@ -33,7 +33,7 @@ class UserRepository:
         db = get_supabase()
         response = (
             db.table(TABLE)
-            .select("id, email, full_name, avatar_url, google_calendar_connected, whatsapp_number")
+            .select("id, email, full_name, avatar_url, google_calendar_connected, whatsapp_number, academic_year, major, gpa, study_hours, primary_objective, learning_protocols")
             .eq("email", email)
             .execute()
         )
@@ -87,6 +87,12 @@ class UserRepository:
             avatar_url=row.get("avatar_url"),
             google_calendar_connected=row.get("google_calendar_connected", False),
             whatsapp_number=row.get("whatsapp_number"),
+            academic_year=row.get("academic_year"),
+            major=row.get("major"),
+            gpa=row.get("gpa"),
+            study_hours=row.get("study_hours"),
+            primary_objective=row.get("primary_objective"),
+            learning_protocols=row.get("learning_protocols"),
         )
 
     def update(self, user_id: str, data: dict) -> UserOut | None:
@@ -108,6 +114,12 @@ class UserRepository:
             avatar_url=row.get("avatar_url"),
             google_calendar_connected=row.get("google_calendar_connected", False),
             whatsapp_number=row.get("whatsapp_number"),
+            academic_year=row.get("academic_year"),
+            major=row.get("major"),
+            gpa=row.get("gpa"),
+            study_hours=row.get("study_hours"),
+            primary_objective=row.get("primary_objective"),
+            learning_protocols=row.get("learning_protocols"),
         )
 
     def get_automation_profile(self, user_id: str) -> dict | None:
