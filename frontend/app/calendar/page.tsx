@@ -118,7 +118,7 @@ export default function CalendarPage() {
             </span>
             {/* Hand-drawn red circle selection mark */}
             {isSelected && (
-              <svg className="absolute -top-1.5 -left-1.5 w-12 h-12 text-vintage-crimson pointer-events-none z-0 opacity-70" viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="48" height="48" className="absolute -top-1.5 -left-1.5 w-12 h-12 text-vintage-crimson pointer-events-none z-0 opacity-70" viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M50 15 C 75 10, 90 35, 80 60 C 70 90, 20 85, 15 55 C 10 30, 30 15, 60 20" />
               </svg>
             )}
@@ -144,7 +144,7 @@ export default function CalendarPage() {
           
           {/* Fun little scribble on hover */}
           <div className={`absolute top-2 right-2 transition-opacity z-10 pointer-events-none ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
-            <svg className="w-8 h-8 text-vintage-crimsonLight" viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M10 50 Q 25 20 50 50 T 90 50"/></svg>
+            <svg width="32" height="32" className="w-8 h-8 text-vintage-crimsonLight" viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M10 50 Q 25 20 50 50 T 90 50"/></svg>
           </div>
         </div>
       );
@@ -166,9 +166,9 @@ export default function CalendarPage() {
   const currentDayEvents = [...selectedEvents, ...(localTasks[selectedDay || 0] || [])];
 
   return (
-    <div className="h-full flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-700 max-w-6xl mx-auto py-8 relative">
+    <div className="flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-700 max-w-6xl mx-auto py-8 relative w-full">
       
-      <div className="flex items-end justify-between pb-6 mb-10 relative">
+      <div className="flex items-end justify-between pb-6 mb-10 relative shrink-0">
         <div>
           <h4 className="font-accent text-3xl text-vintage-crimsonLight mb-[-10px] transform -rotate-1 relative z-10">
             temporal overview
@@ -195,7 +195,7 @@ export default function CalendarPage() {
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col bg-[#fdfbf7] rounded-sm shadow-xl border-2 border-vintage-ink/20 overflow-hidden relative">
+      <div className="flex flex-col bg-[#fdfbf7] rounded-sm shadow-xl border-2 border-vintage-ink/20 relative">
         {/* Fake spiral binding holes at top */}
         <div className="absolute top-0 left-0 w-full h-6 flex justify-around items-center px-8 bg-gray-200 border-b-2 border-gray-300 z-10">
           {[...Array(24)].map((_, i) => (
@@ -214,7 +214,7 @@ export default function CalendarPage() {
         <div className="absolute -top-2 -left-4 w-16 h-6 bg-white/60 backdrop-blur-sm shadow-sm transform -rotate-45 z-20"></div>
         <div className="absolute -top-2 -right-4 w-16 h-6 bg-[#E5B5B5]/60 backdrop-blur-sm shadow-sm transform rotate-45 z-20"></div>
         
-        <div className="pt-10 h-full flex flex-col relative z-10">
+        <div className="pt-10 flex flex-col relative z-10">
           
           {/* Vertical notebook red margin lines */}
           <div className="absolute top-0 bottom-0 left-12 w-px bg-red-400/40 pointer-events-none z-0"></div>
@@ -230,7 +230,7 @@ export default function CalendarPage() {
           </div>
           
           {/* Calendar Grid */}
-          <div className="grid grid-cols-7 flex-1 overflow-y-auto relative z-10 bg-transparent px-2 pb-2">
+          <div className="grid grid-cols-7 relative z-10 bg-transparent px-2 pb-2">
             {renderDays()}
           </div>
         </div>
