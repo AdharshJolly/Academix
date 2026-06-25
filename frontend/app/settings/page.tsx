@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { Settings, Save, Lock, Bell, Palette, Calendar } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { AuthService } from '../../services/auth.service';
 import { useSearchParams, useRouter } from 'next/navigation';
 
-export default function SettingsPage() {
+function SettingsContent() {
   const { user } = useAuth();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -200,5 +200,13 @@ export default function SettingsPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SettingsPage() {
+  return (
+    <Suspense fallback={<div className="p-10 text-center font-mono">Loading settings...</div>}>
+      <SettingsContent />
+    </Suspense>
   );
 }
