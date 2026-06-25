@@ -5,8 +5,19 @@ Injects variables using {variable_name} syntax.
 """
 from pathlib import Path
 
-# Resolve prompts directory relative to this file's location
-PROMPTS_DIR = Path(__file__).resolve().parents[4] / "prompts"
+# Resolve prompts directory dynamically by searching upwards
+def _find_prompts_dir() -> Path:
+    current = Path(__file__).resolve()
+    for parent in current.parents:
+        potential_dir = parent / "prompts"
+        if potential_dir.is_dir() and (potential_dir / "system_prompt.md").exists():
+            return potential_dir
+    # Fallback in case we are running in an environment where prompts were copied to root
+    if Path("/prompts").is_dir():
+        return Path("/prompts")
+    raise RuntimeError("Could not find 'prompts' directory with 'system_prompt.md'")
+
+PROMPTS_DIR = _find_prompts_dir()
 
 
 class PromptManager:
