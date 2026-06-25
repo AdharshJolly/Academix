@@ -1,0 +1,101 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-outfit: 'Outfit', 'Inter', sans-serif;
+  color-scheme: dark;
+}
+
+body {
+  background-color: #050811;
+  color: #f3f4f6;
+  font-family: var(--font-outfit);
+  overflow-x: hidden;
+}
+
+/* Custom Webkit scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(8, 12, 20, 0.5);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 242, 254, 0.3);
+}
+
+/* Glassmorphism Panel styles */
+.glass-panel {
+  background: rgba(13, 20, 35, 0.55);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+}
+
+.glass-panel-heavy {
+  background: rgba(9, 14, 26, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.5);
+}
+
+/* Cyber Glow Accents */
+.glow-blue {
+  box-shadow: 0 0 15px rgba(0, 242, 254, 0.15);
+}
+.glow-purple {
+  box-shadow: 0 0 15px rgba(189, 94, 255, 0.15);
+}
+.glow-green {
+  box-shadow: 0 0 15px rgba(57, 255, 20, 0.15);
+}
+
+/* Premium gradient texts */
+.text-gradient-cyan-purple {
+  background: linear-gradient(135deg, #00f2fe 0%, #bd5eff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.text-gradient-green-cyan {
+  background: linear-gradient(135deg, #39ff14 0%, #00f2fe 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Subtle Animated Background Mesh Grid */
+.mesh-bg {
+  background-image: 
+    radial-gradient(at 10% 20%, rgba(0, 242, 254, 0.04) 0px, transparent 50%),
+    radial-gradient(at 90% 10%, rgba(189, 94, 255, 0.04) 0px, transparent 50%),
+    radial-gradient(at 50% 80%, rgba(57, 255, 20, 0.02) 0px, transparent 50%);
+  background-size: 100% 100%;
+}
+
+.grid-overlay {
+  background-image: linear-gradient(rgba(255,255,255,0.01) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(255,255,255,0.01) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* Custom interactive input elements */
+.cyber-input {
+  background: rgba(8, 12, 20, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  color: #fff;
+  transition: all 0.2s ease-in-out;
+}
+.cyber-input:focus {
+  outline: none;
+  border-color: #00f2fe;
+  box-shadow: 0 0 10px rgba(0, 242, 254, 0.2);
+}

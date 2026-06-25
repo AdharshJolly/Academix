@@ -1,11 +1,15 @@
-/**
- * AppProvider
- * Root provider wrapping all context providers.
- * Must be applied at the layout level.
- * TODO: Compose AuthProvider + DashboardProvider + ThemeProvider
- */
-export function AppProvider({ children }: { children: React.ReactNode }) {
-    // TODO: Wrap with all providers
-    return <>{children}</>;
-}
+'use client';
 
+import React from 'react';
+import { AuthProvider } from '../contexts/AuthContext';
+import { DashboardProvider } from '../contexts/DashboardContext';
+
+export function AppProvider({ children }: { children: React.ReactNode }) {
+    return (
+        <AuthProvider>
+            <DashboardProvider>
+                {children}
+            </DashboardProvider>
+        </AuthProvider>
+    );
+}

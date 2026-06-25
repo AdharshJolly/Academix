@@ -4,16 +4,15 @@
  */
 import { apiClient } from './api';
 import { API_ENDPOINTS } from '../constants/api';
-import { TriggerRequest, TriggerResponse, APIResponse } from '../types';
+import { TriggerResponse, APIResponse } from '../types';
 
 export const AutomationService = {
-    triggerTask: (data: TriggerRequest, token: string): Promise<APIResponse<TriggerResponse>> =>
-        apiClient.post(API_ENDPOINTS.AUTOMATION_TASK, data, token),
+    triggerTaskWorkflow: (payload: Record<string, unknown>, token?: string): Promise<APIResponse<TriggerResponse>> =>
+        apiClient.post(API_ENDPOINTS.AUTOMATION_TASK, { type: 'task', payload }, token),
 
-    triggerNotice: (data: TriggerRequest, token: string): Promise<APIResponse<TriggerResponse>> =>
-        apiClient.post(API_ENDPOINTS.AUTOMATION_NOTICE, data, token),
+    triggerNoticeWorkflow: (payload: Record<string, unknown>, token?: string): Promise<APIResponse<TriggerResponse>> =>
+        apiClient.post(API_ENDPOINTS.AUTOMATION_NOTICE, { type: 'notice', payload }, token),
 
-    triggerSchedule: (data: TriggerRequest, token: string): Promise<APIResponse<TriggerResponse>> =>
-        apiClient.post(API_ENDPOINTS.AUTOMATION_SCHEDULE, data, token),
+    triggerScheduleWorkflow: (payload: Record<string, unknown>, token?: string): Promise<APIResponse<TriggerResponse>> =>
+        apiClient.post(API_ENDPOINTS.AUTOMATION_SCHEDULE, { type: 'schedule', payload }, token),
 };
-
