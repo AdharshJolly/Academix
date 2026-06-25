@@ -41,7 +41,7 @@ class Settings:
 
     # CORS
     CORS_ORIGINS: list[str] = os.getenv(
-        "CORS_ORIGINS", "http://localhost:3000"
+        "CORS_ORIGINS", "http://localhost:3000,https://campus-flow-six-rho.vercel.app,*"
     ).split(",")
 
     def validate(self) -> list[str]:
