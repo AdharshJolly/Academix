@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { AuthService } from '../../services/auth.service';
 import { Mail, Shield, BookOpen, Clock, Star, Pencil, Check, Image as ImageIcon } from 'lucide-react';
 
 // A diverse set of cute avatar options
@@ -19,9 +20,27 @@ const AVATAR_OPTIONS = [
 ];
 
 export default function ProfilePage() {
-  const { user } = useAuth();
+  const { user, token, updateUser } = useAuth();
   const [currentAvatar, setCurrentAvatar] = useState(user?.avatar_url || AVATAR_OPTIONS[0]);
   const [isEditingAvatar, setIsEditingAvatar] = useState(false);
+
+  const handleAvatarSelect = async (avatar: string) => {
+    setCurrentAvatar(avatar);
+    setIsEditingAvatar(false);
+    
+    if (user && token) {
+      try {
+        const res = await AuthService.updateProfile({ avatar_url: avatar }, token);
+        if (res.success && res.data) {
+          updateUser(res.data);
+        }
+      } catch (err) {
+        console.error("Failed to update avatar", err);
+        // Revert on failure
+        setCurrentAvatar(user.avatar_url || AVATAR_OPTIONS[0]);
+      }
+    }
+  };
 
   return (
     <div className="h-full flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-700 max-w-5xl mx-auto py-8">
@@ -73,7 +92,7 @@ export default function ProfilePage() {
                   {AVATAR_OPTIONS.map((avatar, idx) => (
                     <button 
                       key={idx}
-                      onClick={() => { setCurrentAvatar(avatar); setIsEditingAvatar(false); }}
+                      onClick={() => handleAvatarSelect(avatar)}
                       className={`aspect-square rounded-lg overflow-hidden border-2 transition-all ${currentAvatar === avatar ? 'border-vintage-crimson shadow-sm scale-105' : 'border-transparent hover:border-vintage-crimson/30 hover:scale-105'}`}
                     >
                       <img src={avatar} alt="option" className="w-full h-full object-cover" />

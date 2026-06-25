@@ -19,5 +19,8 @@ export const AuthService = {
 
     verifyGoogleCallback: (code: string, state: string, token: string): Promise<APIResponse<any>> =>
         apiClient.get(`/auth/google/callback?code=${code}&state=${state}`, token),
+
+    updateProfile: (data: any, token: string): Promise<APIResponse<any>> =>
+        apiClient.put('/auth/profile', data, token),
 };
 

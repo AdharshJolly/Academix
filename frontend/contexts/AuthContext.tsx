@@ -11,6 +11,7 @@ interface AuthContextType {
     login: (data: UserLoginRequest) => Promise<UserOut>;
     register: (data: UserRegisterRequest) => Promise<UserOut>;
     logout: () => void;
+    updateUser: (user: UserOut) => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -20,6 +21,7 @@ const AuthContext = createContext<AuthContextType>({
     login: async () => ({} as UserOut),
     register: async () => ({} as UserOut),
     logout: () => {},
+    updateUser: () => {},
 });
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -98,8 +100,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         localStorage.removeItem('campusflow_user');
     };
 
+    const updateUser = (updatedUser: UserOut) => {
+        setUser(updatedUser);
+        localStorage.setItem('campusflow_user', JSON.stringify(updatedUser));
+    };
+
     return (
-        <AuthContext.Provider value={{ user, token, isLoading, login, register, logout }}>
+        <AuthContext.Provider value={{ user, token, isLoading, login, register, logout, updateUser }}>
             {children}
         </AuthContext.Provider>
     );
