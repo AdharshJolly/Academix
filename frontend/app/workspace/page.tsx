@@ -252,7 +252,11 @@ export default function WorkspacePage() {
                           <p className="text-xs font-mono">No specific dates extracted.</p>
                         )}
                         <h4 className="font-bold text-sm font-mono mt-3 mb-2">Recommendations</h4>
-                        <p className="text-xs font-mono text-vintage-ink/80">{noticeResult.recommendations?.join(', ')}</p>
+                        <ul className="text-xs font-mono text-vintage-ink/80 space-y-1">
+                          {noticeResult.recommendations?.map((r: any, idx: number) => (
+                             <li key={idx}>• {r.action}</li>
+                          ))}
+                        </ul>
                       </div>
                     )}
 
