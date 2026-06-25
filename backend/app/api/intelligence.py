@@ -13,6 +13,7 @@ from app.core.security import verify_token
 from app.repositories.intelligence_repository import IntelligenceRepository
 from app.schemas.common import APIResponse
 from app.schemas.intelligence import IntelligenceRequest, IntelligenceResponse
+from app.services.automation_service import AutomationService
 from app.services.intelligence_engine import AcademicIntelligenceEngine
 
 logger = logging.getLogger(__name__)
@@ -20,6 +21,7 @@ router = APIRouter(prefix="/intelligence", tags=["intelligence"])
 
 intelligence_engine = AcademicIntelligenceEngine()
 intelligence_repo = IntelligenceRepository()
+automation_service = AutomationService()
 
 
 @router.post("/process", response_model=APIResponse[IntelligenceResponse])
@@ -38,7 +40,8 @@ def process_intelligence(
         result = intelligence_engine.process_notice(request)
 
         # Persist the report
-        intelligence_repo.save(user_id=user["id"], response=result)
+        intelligence_repo.save(user_id=user["id"], response=result, raw_input=str(request.data))
+        automation_service.run_for_intelligence(user_id=user["id"], report=result)
 
         return APIResponse(
             success=True,

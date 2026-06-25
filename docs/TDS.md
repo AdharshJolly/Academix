@@ -13,9 +13,9 @@
 | Database    | Supabase (PostgreSQL 15)               |
 | AI          | Groq API — moonshotai/kimi-k2-instruct |
 | AI Fallback | llama-3.3-70b-versatile                |
-| Automation  | n8n (self-hosted or cloud)             |
-| Calendar    | Google Calendar API (via n8n)          |
-| Messaging   | Twilio WhatsApp API (via n8n)          |
+| Automation  | Make.com Router scenario               |
+| Calendar    | Google Calendar API (direct backend)   |
+| Messaging   | Twilio WhatsApp API (via Make.com)     |
 
 ---
 
@@ -25,7 +25,7 @@
 Frontend  ──▶  Vercel     (Next.js 15)
 Backend   ──▶  Render     (FastAPI + Uvicorn)
 Database  ──▶  Supabase   (PostgreSQL)
-Automation──▶  n8n Cloud  (Webhook triggers)
+Automation──▶  Make.com  (WhatsApp webhook)
 ```
 
 Each application deploys independently with its own environment file.
@@ -53,8 +53,9 @@ No shared environment variables between frontend and backend.
 | GROQ_API_KEY              | Groq API access key              |
 | PRIMARY_MODEL             | moonshotai/kimi-k2-instruct      |
 | FALLBACK_MODEL            | llama-3.3-70b-versatile          |
-| N8N_BASE_URL              | n8n webhook base URL             |
-| N8N_API_KEY               | n8n API key                      |
+| MAKE_WEBHOOK_URL          | Make.com production webhook URL  |
+| AUTOMATION_CALLBACK_SECRET| Shared secret for Make callback  |
+| GOOGLE_REDIRECT_URI       | Google OAuth callback URL        |
 | TWILIO_ACCOUNT_SID        | Twilio account ID                |
 | TWILIO_AUTH_TOKEN         | Twilio auth token                |
 | TWILIO_PHONE_NUMBER       | WhatsApp sender number           |
@@ -99,7 +100,7 @@ FastAPI App
 │   ├── client.py
 │   └── models.py
 ├── integrations/
-│   ├── n8n.py
+│   ├── make.py
 │   ├── calendar.py
 │   └── whatsapp.py
 ├── middleware/
@@ -216,7 +217,7 @@ Risk Engine is deterministic. AI only generates raw event and recommendation dat
 | users                 | Student profiles                     |
 | tasks                 | Academic tasks and deadlines         |
 | intelligence_reports  | AI analysis results                  |
-| automation_logs       | n8n workflow execution history       |
+| automation_logs       | Calendar/Make.com execution history  |
 
 See [DATABASE.md](DATABASE.md) for full schema.
 

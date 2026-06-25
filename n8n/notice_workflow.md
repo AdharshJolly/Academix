@@ -1,51 +1,42 @@
-# Notice Automation Workflow
+# Notice WhatsApp Route - Make.com
 
-## Workflow Purpose
-After AI processes a notice and extracts events, automatically create calendar
-events and broadcast a WhatsApp notification for each extracted academic event.
+This file is kept in the legacy `n8n/` folder, but the active automation tool is Make.com.
+
+## Purpose
+After the backend processes a notice and creates Google Calendar events directly, Make.com sends a WhatsApp notice summary through Twilio.
 
 ## Trigger
-Webhook: `POST {N8N_BASE_URL}/webhook/notice-trigger`
-Triggered by: `POST /api/v1/automations/notice-trigger`
+Single Make.com webhook:
+
+`POST {MAKE_WEBHOOK_URL}`
 
 ## Payload
 ```json
 {
-    "type": "notice",
-    "payload": {
-        "report_id": "uuid",
-        "user_id": "uuid",
-        "extracted_events": [
-            {
-                "title": "CS401 Midterm Exam",
-                "date": "2026-07-15",
-                "type": "exam",
-                "subject": "CS401"
-            }
-        ],
-        "whatsapp_number": "+91XXXXXXXXXX"
-    }
+  "type": "notice",
+  "payload": {
+    "user_id": "uuid",
+    "log_id": "uuid",
+    "whatsapp_number": "+91XXXXXXXXXX",
+    "message": "Notice Alert!\n2 academic events have been extracted and added to your Google Calendar.\nCheck your calendar for deadlines! - CampusFlow"
+  }
 }
 ```
 
-## Execution Steps
-1. Receive webhook payload
-2. For each extracted_event: create a Google Calendar event
-3. Compose WhatsApp summary message listing all events
-4. Send WhatsApp broadcast via Twilio
-5. POST back to backend: update `automation_logs` with status=success
+## Make.com Steps
+1. Webhook receives the payload.
+2. Router filters where `type` equals `notice`.
+3. Twilio sends `payload.message` to `payload.whatsapp_number`.
+4. HTTP Request posts delivery result to `POST /api/v1/automations/log`.
 
-## Output
+## Callback Body
 ```json
 {
-    "calendar_events_created": 2,
-    "whatsapp_message_id": "twilio_sid",
-    "status": "success"
+  "workflow_type": "notice",
+  "status": "success",
+  "user_id": "uuid",
+  "log_id": "uuid",
+  "whatsapp_message_id": "twilio_sid",
+  "error": null
 }
 ```
-
-## Failure Handling
-- If any calendar creation fails: continue with remaining events, log partial failure
-- If WhatsApp fails: log error, calendar events remain
-- All failures persisted in `automation_logs`
-

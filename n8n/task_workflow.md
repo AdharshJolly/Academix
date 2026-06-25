@@ -1,45 +1,42 @@
-# Task Automation Workflow
+# Task WhatsApp Route - Make.com
 
-## Workflow Purpose
-Automatically create a Google Calendar event and send a WhatsApp confirmation
-when a student creates a new academic task.
+This file is kept in the legacy `n8n/` folder, but the active automation tool is Make.com.
+
+## Purpose
+After the backend creates a task and attempts direct Google Calendar sync, Make.com sends a WhatsApp confirmation through Twilio.
 
 ## Trigger
-Webhook: `POST {N8N_BASE_URL}/webhook/task-trigger`
-Triggered by: `POST /api/v1/automations/task-trigger`
+Single Make.com webhook:
+
+`POST {MAKE_WEBHOOK_URL}`
 
 ## Payload
 ```json
 {
-    "type": "task",
-    "payload": {
-        "task_id": "uuid",
-        "user_id": "uuid",
-        "title": "Submit Assignment 2",
-        "due_date": "2026-07-01",
-        "priority": "high",
-        "whatsapp_number": "+91XXXXXXXXXX"
-    }
+  "type": "task",
+  "payload": {
+    "user_id": "uuid",
+    "log_id": "uuid",
+    "whatsapp_number": "+91XXXXXXXXXX",
+    "message": "Task Added!\n\"Submit Assignment 2\" is due on 2026-07-01.\nYour Google Calendar has been updated! - CampusFlow"
+  }
 }
 ```
 
-## Execution Steps
-1. Receive webhook payload
-2. Create Google Calendar event with task title and due_date
-3. Send WhatsApp message via Twilio confirming task was added
-4. POST back to backend: update `automation_logs` with status=success
+## Make.com Steps
+1. Webhook receives the payload.
+2. Router filters where `type` equals `task`.
+3. Twilio sends `payload.message` to `payload.whatsapp_number`.
+4. HTTP Request posts delivery result to `POST /api/v1/automations/log`.
 
-## Output
+## Callback Body
 ```json
 {
-    "calendar_event_id": "google_event_id",
-    "whatsapp_message_id": "twilio_sid",
-    "status": "success"
+  "workflow_type": "task",
+  "status": "success",
+  "user_id": "uuid",
+  "log_id": "uuid",
+  "whatsapp_message_id": "twilio_sid",
+  "error": null
 }
 ```
-
-## Failure Handling
-- If Google Calendar fails: log status=failed, skip WhatsApp, notify user via UI
-- If WhatsApp fails: log status=failed, calendar event remains, notify user via UI
-- All failures must be persisted in `automation_logs`
-

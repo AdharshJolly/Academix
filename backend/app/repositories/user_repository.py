@@ -69,6 +69,26 @@ class UserRepository:
             return None
         return UserOut(**response.data[0])
 
+    def get_automation_profile(self, user_id: str) -> dict | None:
+        """Fetch only fields needed by automation services."""
+        db = get_supabase()
+        response = (
+            db.table(TABLE)
+            .select("id, google_refresh_token, google_calendar_connected, whatsapp_number")
+            .eq("id", user_id)
+            .single()
+            .execute()
+        )
+        return response.data or None
+
+    def save_google_refresh_token(self, user_id: str, refresh_token: str) -> None:
+        """Persist a user's Google Calendar refresh token."""
+        db = get_supabase()
+        db.table(TABLE).update({
+            "google_refresh_token": refresh_token,
+            "google_calendar_connected": True,
+        }).eq("id", user_id).execute()
+
     def upsert(self, user_id: str, email: str, full_name: str) -> UserOut:
         """
         Insert or update user profile — safe to call after every login.

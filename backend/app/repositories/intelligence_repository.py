@@ -3,7 +3,6 @@ IntelligenceRepository
 Data access layer for the intelligence_reports table.
 All AI pipeline outputs are stored here.
 """
-import json
 import logging
 from app.db.client import get_supabase
 from app.schemas.intelligence import IntelligenceResponse
@@ -19,6 +18,7 @@ class IntelligenceRepository:
         self,
         user_id: str,
         response: IntelligenceResponse,
+        raw_input: str,
         task_id: str | None = None,
     ) -> str:
         """
@@ -31,16 +31,12 @@ class IntelligenceRepository:
             "user_id": user_id,
             "task_id": task_id,
             "input_type": response.input_type,
-            "extracted_events": json.dumps(
-                [e.model_dump() for e in response.extracted_events]
-            ),
-            "risk_assessment": json.dumps(response.risk_assessment.model_dump()),
-            "recommendations": json.dumps(
-                [r.model_dump() for r in response.recommendations]
-            ),
-            "study_schedule": json.dumps(
-                [s.model_dump() for s in response.study_schedule]
-            ),
+            "raw_input": raw_input,
+            "extracted_events": [e.model_dump() for e in response.extracted_events],
+            "risk_assessment": response.risk_assessment.model_dump(),
+            "recommendations": [r.model_dump() for r in response.recommendations],
+            "study_schedule": [s.model_dump() for s in response.study_schedule],
+            "risk_score": response.risk_assessment.risk_score,
         }
         db.table(TABLE).insert(payload).execute()
         return response.report_id
@@ -81,8 +77,8 @@ class IntelligenceRepository:
         return IntelligenceResponse(
             report_id=row["id"],
             input_type=row["input_type"],
-            extracted_events=json.loads(row.get("extracted_events") or "[]"),
-            risk_assessment=json.loads(row.get("risk_assessment") or "{}"),
-            recommendations=json.loads(row.get("recommendations") or "[]"),
-            study_schedule=json.loads(row.get("study_schedule") or "[]"),
+            extracted_events=row.get("extracted_events") or [],
+            risk_assessment=row.get("risk_assessment") or {},
+            recommendations=row.get("recommendations") or [],
+            study_schedule=row.get("study_schedule") or [],
         )

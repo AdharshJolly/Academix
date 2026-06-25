@@ -219,9 +219,8 @@ AutomationCenterPage
 ```
 
 **API Dependencies:**
-- `POST /api/v1/automations/task-trigger`
-- `POST /api/v1/automations/notice-trigger`
-- `POST /api/v1/automations/schedule-trigger`
+- `GET /api/v1/automations/logs`
+- Automation trigger endpoints are internal to task creation and intelligence processing.
 
 ---
 

@@ -31,7 +31,7 @@ Build a production-quality MVP that demonstrates:
 | Team Lead   | AI + Architecture + Backend | Intelligence Engine, APIs, Code Reviews |
 | Developer 2 | Frontend Lead               | Next.js, Dashboard, Workspace, UI       |
 | Developer 3 | Backend Lead                | Database, CRUD APIs, Dashboard API      |
-| Developer 4 | Automation Engineer         | n8n, Calendar, WhatsApp, Deployment     |
+| Developer 4 | Automation Engineer         | Make.com, Calendar, WhatsApp, Deployment |
 
 ---
 
@@ -87,8 +87,8 @@ Build a production-quality MVP that demonstrates:
 ## Automation Engineer
 
 - [ ] Install Docker
-- [ ] Setup n8n
-- [ ] Configure Google Calendar credentials
+- [ ] Setup Make.com WhatsApp scenario
+- [ ] Configure Google Calendar OAuth credentials in backend
 - [ ] Configure Twilio
 - [ ] Verify webhook endpoint
 
@@ -149,7 +149,7 @@ Build a production-quality MVP that demonstrates:
 
 ### Integrations
 
-- [ ] Configure n8n
+- [ ] Configure Make.com
 - [ ] Task Workflow
 - [ ] Notice Workflow
 - [ ] Schedule Workflow
@@ -270,9 +270,9 @@ Build a production-quality MVP that demonstrates:
 
 ## Automation Engineer
 
-- [ ] Backend → n8n
-- [ ] n8n → Calendar
-- [ ] n8n → WhatsApp
+- [ ] Backend → Google Calendar API
+- [ ] Backend → Make.com
+- [ ] Make.com → WhatsApp
 - [ ] Workflow Validation
 
 ---
@@ -404,7 +404,7 @@ A feature is complete only if:
 - [ ] Backend deployed
 - [ ] Database configured
 - [ ] AI functioning
-- [ ] n8n workflows active
+- [ ] Make.com scenario active
 - [ ] Google Calendar working
 - [ ] WhatsApp working
 - [ ] README updated

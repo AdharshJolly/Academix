@@ -23,6 +23,8 @@ class UserOut(BaseModel):
     email: str
     full_name: str
     avatar_url: str | None = None
+    google_calendar_connected: bool = False
+    whatsapp_number: str | None = None
 
 
 class AuthResponse(BaseModel):

@@ -24,8 +24,7 @@ class Settings:
     FALLBACK_MODEL: str = os.getenv("FALLBACK_MODEL", "llama-3.3-70b-versatile")
 
     # Make.com
-    MAKE_BASE_URL: str = os.getenv("MAKE_BASE_URL", "")
-    MAKE_API_KEY: str = os.getenv("MAKE_API_KEY", "")
+    MAKE_WEBHOOK_URL: str = os.getenv("MAKE_WEBHOOK_URL", "")
 
     # Twilio
     TWILIO_ACCOUNT_SID: str = os.getenv("TWILIO_ACCOUNT_SID", "")
@@ -35,6 +34,10 @@ class Settings:
     # Google
     GOOGLE_CLIENT_ID: str = os.getenv("GOOGLE_CLIENT_ID", "")
     GOOGLE_CLIENT_SECRET: str = os.getenv("GOOGLE_CLIENT_SECRET", "")
+    GOOGLE_REDIRECT_URI: str = os.getenv("GOOGLE_REDIRECT_URI", "")
+
+    # Internal automation callback
+    AUTOMATION_CALLBACK_SECRET: str = os.getenv("AUTOMATION_CALLBACK_SECRET", "")
 
     # CORS
     CORS_ORIGINS: list[str] = os.getenv(

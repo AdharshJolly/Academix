@@ -1,11 +1,10 @@
 """
 AutomationRepository
 Data access layer for the automation_logs table.
-All Make.com workflow executions are logged here.
 """
-import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
+
 from app.db.client import get_supabase
 
 logger = logging.getLogger(__name__)
@@ -14,61 +13,60 @@ TABLE = "automation_logs"
 
 
 class AutomationRepository:
-
     def log(
         self,
         user_id: str,
         workflow_type: str,
         payload: dict,
-        report_id: str | None = None,
+        intelligence_report_id: str | None = None,
+        status: str = "pending",
+        response: dict | None = None,
     ) -> str:
-        """
-        Create an automation log entry with status 'pending'.
-        Returns the generated log_id.
-        """
+        """Create an automation log entry and return the generated log_id."""
         db = get_supabase()
         insert_payload = {
             "user_id": user_id,
-            "report_id": report_id,
+            "intelligence_report_id": intelligence_report_id,
             "workflow_type": workflow_type,
-            "status": "pending",
-            "payload": json.dumps(payload),
+            "status": status,
+            "payload": payload,
+            "response": response or {},
         }
-        response = db.table(TABLE).insert(insert_payload).execute()
-        return response.data[0]["id"]
+        if status in ("success", "failed"):
+            insert_payload["completed_at"] = self._now()
+
+        result = db.table(TABLE).insert(insert_payload).execute()
+        return result.data[0]["id"]
 
     def update_status(
         self,
         log_id: str,
         status: str,
-        make_response: dict | None = None,
+        response: dict | None = None,
     ) -> None:
-        """
-        Update log status after Make.com webhook completes.
-        status: 'success' | 'failed'
-        """
+        """Update log status after Calendar, Make.com, or Twilio callback work."""
         db = get_supabase()
-        update_payload = {
-            "status": status,
-            "updated_at": datetime.utcnow().isoformat(),
-        }
-        if make_response:
-            update_payload["response"] = json.dumps(make_response)
+        update_payload = {"status": status}
+        if status in ("success", "failed"):
+            update_payload["completed_at"] = self._now()
+        if response is not None:
+            update_payload["response"] = response
 
         db.table(TABLE).update(update_payload).eq("id", log_id).execute()
 
     def get_recent_by_user(self, user_id: str, limit: int = 10) -> list[dict]:
-        """
-        Fetch recent automation logs for dashboard display.
-        Returns raw dicts for flexibility (converted in service layer).
-        """
+        """Fetch recent automation logs for dashboard display."""
         db = get_supabase()
-        response = (
+        result = (
             db.table(TABLE)
-            .select("id, workflow_type, status, created_at")
+            .select("id, workflow_type, status, payload, response, triggered_at, completed_at")
             .eq("user_id", user_id)
-            .order("created_at", desc=True)
+            .order("triggered_at", desc=True)
             .limit(limit)
             .execute()
         )
-        return response.data or []
+        return result.data or []
+
+    @staticmethod
+    def _now() -> str:
+        return datetime.now(timezone.utc).isoformat()

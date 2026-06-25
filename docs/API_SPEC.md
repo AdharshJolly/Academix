@@ -58,6 +58,18 @@ Authenticate an existing user.
 ```
 **Response:** `APIResponse[AuthResponse]`
 
+### GET /auth/google/connect
+Return a Google OAuth consent URL for connecting the authenticated user's calendar.
+
+**Response:** `APIResponse[{ "authorization_url": "https://..." }]`
+
+### GET /auth/google/callback
+Google OAuth callback. Exchanges `code` for a refresh token and marks the user as calendar-connected.
+
+**Query Params:** `code`, `state`
+
+**Response:** `APIResponse[{ "google_calendar_connected": true }]`
+
 ---
 
 ## Dashboard Endpoints
@@ -175,32 +187,37 @@ Delete a task.
 
 ## Automation Endpoints
 
-### POST /automations/task-trigger
-Trigger n8n task workflow.
+Automations are triggered internally after task creation and intelligence processing.
+Manual frontend trigger endpoints are deprecated.
 
-**Request:** `TriggerRequest`
+### POST /automations/log
+Internal callback called by Make.com after Twilio WhatsApp delivery.
+
+**Auth:** `Authorization: Bearer <AUTOMATION_CALLBACK_SECRET>`
+
+**Request:**
 ```json
-{ "type": "task", "payload": { "task_id": "uuid" } }
+{
+  "workflow_type": "task",
+  "status": "success",
+  "user_id": "uuid",
+  "log_id": "uuid",
+  "whatsapp_message_id": "twilio_sid",
+  "error": null
+}
 ```
-**Response:** `APIResponse[TriggerResponse]`
 
-### POST /automations/notice-trigger
-Trigger n8n notice workflow.
-
-**Request:** `TriggerRequest`
+**Response:**
 ```json
-{ "type": "notice", "payload": { "report_id": "uuid" } }
+{ "logged": true }
 ```
-**Response:** `APIResponse[TriggerResponse]`
 
-### POST /automations/schedule-trigger
-Trigger n8n schedule workflow.
+### GET /automations/logs
+List recent automation logs for the authenticated user.
 
-**Request:** `TriggerRequest`
-```json
-{ "type": "schedule", "payload": { "schedule_date": "2026-07-10" } }
-```
-**Response:** `APIResponse[TriggerResponse]`
+**Query Params:** `limit`
+
+**Response:** `APIResponse[AutomationLogResponse[]]`
 
 ---
 

@@ -1,51 +1,42 @@
-# Schedule Automation Workflow
+# Schedule WhatsApp Route - Make.com
 
-## Workflow Purpose
-After a study schedule is generated, create recurring Google Calendar study
-blocks and send a WhatsApp summary of the week's study plan.
+This file is kept in the legacy `n8n/` folder, but the active automation tool is Make.com.
+
+## Purpose
+After the backend generates a study schedule and creates Google Calendar study blocks directly, Make.com sends a WhatsApp study-plan summary through Twilio.
 
 ## Trigger
-Webhook: `POST {N8N_BASE_URL}/webhook/schedule-trigger`
-Triggered by: `POST /api/v1/automations/schedule-trigger`
+Single Make.com webhook:
+
+`POST {MAKE_WEBHOOK_URL}`
 
 ## Payload
 ```json
 {
-    "type": "schedule",
-    "payload": {
-        "user_id": "uuid",
-        "schedule_date": "2026-07-10",
-        "study_schedule": [
-            {
-                "date": "2026-07-10",
-                "subject": "CS401",
-                "duration_hours": 2,
-                "session_type": "study"
-            }
-        ],
-        "whatsapp_number": "+91XXXXXXXXXX"
-    }
+  "type": "schedule",
+  "payload": {
+    "user_id": "uuid",
+    "log_id": "uuid",
+    "whatsapp_number": "+91XXXXXXXXXX",
+    "message": "Study Plan Ready!\n5 study blocks added to your Google Calendar.\nStay on track! - CampusFlow"
+  }
 }
 ```
 
-## Execution Steps
-1. Receive webhook payload
-2. For each schedule block: create Google Calendar event with duration
-3. Compose WhatsApp summary with weekly study plan
-4. Send WhatsApp message via Twilio
-5. POST back to backend: update `automation_logs` with status=success
+## Make.com Steps
+1. Webhook receives the payload.
+2. Router filters where `type` equals `schedule`.
+3. Twilio sends `payload.message` to `payload.whatsapp_number`.
+4. HTTP Request posts delivery result to `POST /api/v1/automations/log`.
 
-## Output
+## Callback Body
 ```json
 {
-    "calendar_blocks_created": 5,
-    "whatsapp_message_id": "twilio_sid",
-    "status": "success"
+  "workflow_type": "schedule",
+  "status": "success",
+  "user_id": "uuid",
+  "log_id": "uuid",
+  "whatsapp_message_id": "twilio_sid",
+  "error": null
 }
 ```
-
-## Failure Handling
-- If calendar creation fails: log failure, retry once
-- If WhatsApp fails: log error, schedule blocks remain in calendar
-- All failures persisted in `automation_logs`
-

@@ -4,9 +4,11 @@ User registration and login via Supabase Auth.
 No custom JWT — tokens are issued and verified by Supabase.
 """
 import logging
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 
+from app.core.security import verify_token
 from app.db.client import get_supabase
+from app.integrations.calendar import GoogleCalendarClient
 from app.repositories.user_repository import UserRepository
 from app.schemas.auth import AuthResponse, UserLoginRequest, UserOut, UserRegisterRequest
 from app.schemas.common import APIResponse
@@ -14,6 +16,7 @@ from app.schemas.common import APIResponse
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/auth", tags=["auth"])
 user_repo = UserRepository()
+calendar_client = GoogleCalendarClient()
 
 
 @router.post("/register", response_model=APIResponse[AuthResponse])
@@ -108,4 +111,41 @@ def login(request: UserLoginRequest):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Login failed. Check credentials.",
+        )
+
+
+@router.get("/google/connect", response_model=APIResponse[dict])
+def connect_google_calendar(user: dict = Depends(verify_token)):
+    """Return the Google OAuth URL for connecting the user's calendar."""
+    try:
+        authorization_url = calendar_client.build_authorization_url(state=user["id"])
+        return APIResponse(
+            success=True,
+            message="Google Calendar authorization URL generated",
+            data={"authorization_url": authorization_url},
+        )
+    except Exception as e:
+        logger.error(f"Google OAuth URL error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to start Google Calendar OAuth: {str(e)}",
+        )
+
+
+@router.get("/google/callback", response_model=APIResponse[dict])
+def google_calendar_callback(code: str, state: str):
+    """Exchange Google OAuth code for a refresh token and save it for the user."""
+    try:
+        refresh_token = calendar_client.exchange_code_for_refresh_token(code)
+        user_repo.save_google_refresh_token(user_id=state, refresh_token=refresh_token)
+        return APIResponse(
+            success=True,
+            message="Google Calendar connected",
+            data={"google_calendar_connected": True},
+        )
+    except Exception as e:
+        logger.error(f"Google OAuth callback error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Failed to connect Google Calendar: {str(e)}",
         )

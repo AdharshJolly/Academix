@@ -15,9 +15,16 @@ CREATE TABLE IF NOT EXISTS users (
     email       VARCHAR(255) NOT NULL UNIQUE,
     full_name   VARCHAR(255) NOT NULL,
     avatar_url  VARCHAR(500),
+    google_refresh_token TEXT,
+    google_calendar_connected BOOLEAN NOT NULL DEFAULT FALSE,
+    whatsapp_number VARCHAR(20),
     created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE users ADD COLUMN IF NOT EXISTS google_refresh_token TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS google_calendar_connected BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS whatsapp_number VARCHAR(20);
 
 -- ──────────────────────────────────────────────────────────────────────────
 -- TABLE: tasks

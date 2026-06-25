@@ -60,7 +60,7 @@ flowchart TD
 
     Student --> BE
     BE -->|"1. Create calendar event\nusing student's OAuth token"| GCAL_API
-    BE -->|"2. POST webhook\n{ type, message, whatsapp_number }"| MAKE
+    BE -->|"2. POST webhook\n{ type, user_id, log_id, message, whatsapp_number }"| MAKE
     MAKE -->|"3. Send WhatsApp"| TWILIO
     MAKE -->|"4. Callback with result"| LOG
     LOG --> DB
@@ -85,7 +85,7 @@ sequenceDiagram
     BE->>DB: Save task to tasks table
     BE->>GC: Create calendar event (student's OAuth token)
     GC-->>BE: { event_id, html_link }
-    BE->>MK: POST webhook { type: "task", message, whatsapp_number }
+    BE->>MK: POST webhook { type: "task", user_id, log_id, message, whatsapp_number }
     MK->>WA: Send WhatsApp confirmation
     WA-->>MK: { message_sid }
     MK->>BE: POST /api/v1/automations/log { status: success }
@@ -121,7 +121,7 @@ sequenceDiagram
         BE->>GC: Create calendar event
     end
     GC-->>BE: { events_created: n }
-    BE->>MK: POST webhook { type: "notice", summary_message, whatsapp_number }
+    BE->>MK: POST webhook { type: "notice", user_id, log_id, summary_message, whatsapp_number }
     MK->>WA: Send WhatsApp broadcast summary
     WA-->>MK: { message_sid }
     MK->>BE: POST /api/v1/automations/log { status: success }
@@ -157,7 +157,7 @@ sequenceDiagram
         BE->>GC: Create calendar study block
     end
     GC-->>BE: { blocks_created: n }
-    BE->>MK: POST webhook { type: "schedule", summary_message, whatsapp_number }
+    BE->>MK: POST webhook { type: "schedule", user_id, log_id, summary_message, whatsapp_number }
     MK->>WA: Send WhatsApp study plan summary
     WA-->>MK: { message_sid }
     MK->>BE: POST /api/v1/automations/log { status: success }
@@ -200,6 +200,8 @@ The backend sends a **pre-built message string** — Make.com only needs to deli
 {
   "type": "task | notice | schedule",
   "payload": {
+    "user_id": "uuid",
+    "log_id": "uuid",
     "whatsapp_number": "+91XXXXXXXXXX",
     "message": "Pre-built message string from backend"
   }
@@ -309,6 +311,8 @@ Content-Type: application/json
 {
   "type": "task | notice | schedule",
   "payload": {
+    "user_id": "uuid",
+    "log_id": "uuid",
     "whatsapp_number": "+91XXXXXXXXXX",
     "message": "string"
   }
@@ -337,7 +341,7 @@ Content-Type: application/json
 
 ### 7.3 Automation Logs List (Frontend → Backend)
 ```
-GET /api/v1/automations/logs?user_id={uuid}&limit=20
+GET /api/v1/automations/logs?limit=20
 Authorization: Bearer <jwt>
 ```
 

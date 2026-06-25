@@ -26,7 +26,7 @@ graph TD
 
     DB["Supabase\nPostgreSQL"]
     GROQ_API["Groq API\nKimi K2 / Llama"]
-    N8N["n8n Automation"]
+    MAKE["Make.com Automation"]
     GCAL["Google Calendar"]
     WA["WhatsApp (Twilio)"]
     SUPA["Supabase Auth"]
@@ -45,9 +45,9 @@ graph TD
     GROQ --> JP
     GROQ --> RV
     GROQ --> GROQ_API
-    SVC --> N8N
-    N8N --> GCAL
-    N8N --> WA
+    SVC --> GCAL
+    SVC --> MAKE
+    MAKE --> WA
 ```
 
 ---
@@ -71,7 +71,7 @@ graph LR
 
     subgraph External
         GROQ["Groq API"]
-        N8N["n8n"]
+        MAKE["Make.com"]
         TWILIO["Twilio"]
         GCAL["Google Calendar"]
     end
@@ -80,9 +80,9 @@ graph LR
     FE -- "Auth JWT" --> AUTH
     BE -- "DB queries" --> PG
     BE -- "AI inference" --> GROQ
-    BE -- "Webhooks" --> N8N
-    N8N --> TWILIO
-    N8N --> GCAL
+    BE -- "Direct API" --> GCAL
+    BE -- "WhatsApp webhook" --> MAKE
+    MAKE --> TWILIO
 ```
 
 ---
@@ -176,9 +176,9 @@ flowchart TD
     G --> H["RiskEngine scores risk (deterministic)"]
     H --> I["RecommendationEngine formats actions"]
     I --> J["Save to intelligence_reports table"]
-    J --> K["Trigger n8n automation webhook"]
-    K --> L["Google Calendar event created"]
-    K --> M["WhatsApp reminder sent"]
+    J --> K["Create Google Calendar events directly"]
+    K --> L["Trigger Make.com WhatsApp webhook"]
+    L --> M["WhatsApp reminder sent"]
 ```
 
 ---
@@ -187,10 +187,10 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-    BE["Backend\nAutomation Trigger"] --> N8N["n8n Webhook"]
-    N8N --> CAL["Google Calendar\nCreate Event"]
-    N8N --> WA["Twilio WhatsApp\nSend Message"]
-    N8N --> LOG["automation_logs\nRecord outcome"]
+    BE["Backend\nAutomation Service"] --> CAL["Google Calendar API\nCreate Event"]
+    BE --> MAKE["Make.com Webhook\nWhatsApp only"]
+    MAKE --> WA["Twilio WhatsApp\nSend Message"]
+    MAKE --> LOG["POST /automations/log\nRecord outcome"]
 ```
 
 ---

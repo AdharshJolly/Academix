@@ -15,7 +15,7 @@ AI-powered analysis and workflow automation.
 | Backend            | FastAPI / Python     | Render    |
 | Database           | Supabase (PostgreSQL)| Supabase  |
 | AI Engine          | Groq (Kimi K2)       | Render    |
-| Automation         | n8n                  | Self-host |
+| Automation         | Make.com + Twilio    | Make.com  |
 
 ---
 
@@ -29,9 +29,9 @@ FastAPI Backend (Render)
       │
       ├─▶ Supabase PostgreSQL
       ├─▶ Groq API  (Kimi K2 / Llama fallback)
-      ├─▶ n8n Webhooks
-      │       ├─▶ Google Calendar
-      │       └─▶ WhatsApp (Twilio)
+      ├─▶ Google Calendar API
+      └─▶ Make.com Webhook
+              └─▶ WhatsApp (Twilio)
 ```
 
 ---
@@ -44,7 +44,7 @@ CampusFlow/
 ├── backend/           FastAPI application (Render)
 ├── docs/              All architecture and product documentation
 ├── prompts/           AI prompt templates
-├── n8n/               Automation workflow specifications
+├── n8n/               Legacy folder containing Make.com scenario specifications
 ├── scripts/           Utility scripts
 ├── assets/            Static assets and diagrams
 └── .github/           CI/CD workflows

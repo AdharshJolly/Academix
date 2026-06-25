@@ -27,6 +27,9 @@ erDiagram
         varchar email UK "NOT NULL"
         varchar full_name "NOT NULL"
         varchar avatar_url
+        text google_refresh_token
+        boolean google_calendar_connected
+        varchar whatsapp_number
         timestamptz created_at "DEFAULT NOW()"
         timestamptz updated_at "DEFAULT NOW()"
     }

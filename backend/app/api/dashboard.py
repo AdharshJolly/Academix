@@ -117,7 +117,7 @@ def get_dashboard(user: dict = Depends(verify_token)):
                 id=log["id"],
                 workflow_type=log["workflow_type"],
                 status=log["status"],
-                triggered_at=log["created_at"],
+                triggered_at=log["triggered_at"],
             )
             for log in automation_logs
         ]

@@ -66,14 +66,14 @@ CampusFlow provides:
 - Recommendation generation
 
 ### F5 — Calendar
-- Google Calendar integration via n8n
+- Google Calendar integration via direct backend API calls
 - View upcoming academic events
 - Sync study schedule to calendar
 
 ### F6 — Automation Center
 - View automation logs
 - Monitor WhatsApp notification status
-- Manage n8n workflow triggers
+- Monitor Make.com WhatsApp delivery and backend calendar automation
 
 ### F7 — Profile & Settings
 - User profile management
@@ -121,7 +121,7 @@ The **AcademicIntelligenceEngine** orchestrates internally:
 | Backend   | Render    | `backend/.env.example`   |
 
 Frontend never communicates directly with Groq, Supabase (service role),
-Twilio, Google Calendar, or n8n.
+Twilio, Google Calendar, or Make.com.
 
 ---
 
@@ -129,7 +129,7 @@ Twilio, Google Calendar, or n8n.
 
 - User can submit a notice and receive extracted events and risk scores
 - Events are automatically added to Google Calendar
-- WhatsApp reminders are sent via n8n
+- WhatsApp reminders are sent via Make.com and Twilio
 - Dashboard loads in under 2 seconds
 - AI pipeline returns valid structured JSON or falls back gracefully
 

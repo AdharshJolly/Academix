@@ -10,10 +10,12 @@ from app.core.security import verify_token
 from app.repositories.task_repository import TaskRepository
 from app.schemas.common import APIResponse, PaginatedResponse
 from app.schemas.tasks import TaskCreate, TaskResponse, TaskUpdate
+from app.services.automation_service import AutomationService
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 task_repo = TaskRepository()
+automation_service = AutomationService()
 
 
 @router.get("/", response_model=PaginatedResponse[TaskResponse])
@@ -50,6 +52,7 @@ def create_task(
     """Create a new academic task."""
     try:
         task = task_repo.create(user_id=user["id"], data=request)
+        automation_service.run_for_task(user_id=user["id"], task=task)
         return APIResponse(success=True, message="Task created", data=task)
     except Exception as e:
         logger.error(f"Create task error: {e}")
