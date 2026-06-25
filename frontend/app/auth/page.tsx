@@ -6,6 +6,7 @@ import { Sparkles, ArrowRight } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { AuthService } from '../../services/auth.service';
 import { useRouter } from 'next/navigation';
+import GoogleSyncModal from '../../components/shared/GoogleSyncModal';
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -14,6 +15,9 @@ export default function AuthPage() {
   const [fullName, setFullName] = useState('');
   const [whatsappNumber, setWhatsappNumber] = useState('');
   const [error, setError] = useState('');
+  const [showSyncModal, setShowSyncModal] = useState(false);
+  const [syncLoading, setSyncLoading] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
   
   const { login, register, isLoading } = useAuth();
   const router = useRouter();
@@ -31,14 +35,8 @@ export default function AuthPage() {
       }
       
       if (!user?.google_calendar_connected) {
-        const wantsSync = window.confirm("Welcome to CampusFlow! 🎓\n\nFor the AI to automatically organize your schedule, you need to sync your Google Calendar.\n\nClick OK to connect your calendar now.");
-        if (wantsSync) {
-          const res = await AuthService.connectGoogleCalendar();
-          if (res.data?.authorization_url) {
-            window.location.href = res.data.authorization_url;
-            return;
-          }
-        }
+        setShowSyncModal(true);
+        return; // wait for modal action
       }
       
       router.push('/dashboard');
@@ -47,8 +45,37 @@ export default function AuthPage() {
     }
   };
 
+  const handleGoogleConnect = async () => {
+    setSyncLoading(true);
+    setSyncError(null);
+    try {
+      const res = await AuthService.connectGoogleCalendar();
+      if (res.data?.authorization_url) {
+        window.location.href = res.data.authorization_url;
+      } else {
+        throw new Error('No authorization URL returned from server.');
+      }
+    } catch (err: any) {
+      setSyncError(err.message || 'Failed to start Google OAuth. Make sure Google credentials are configured.');
+      setSyncLoading(false);
+    }
+  };
+
+  const handleSyncSkip = () => {
+    setShowSyncModal(false);
+    router.push('/dashboard');
+  };
+
   return (
     <div className="flex-1 flex items-center justify-center relative z-10 w-full min-h-screen pt-12 pb-12 p-6">
+      
+      <GoogleSyncModal
+        isOpen={showSyncModal}
+        isLoading={syncLoading}
+        error={syncError}
+        onConnect={handleGoogleConnect}
+        onSkip={handleSyncSkip}
+      />
       
       <motion.div 
         initial={{ opacity: 0, y: 10 }}
