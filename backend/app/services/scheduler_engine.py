@@ -5,10 +5,19 @@ No AI involved — pure date arithmetic and slot allocation.
 """
 from datetime import date, timedelta
 from app.schemas.intelligence import ExtractedEvent, ScheduleBlock
+import logging
 
+logger = logging.getLogger(__name__)
 
 class SchedulerEngine:
     """Allocates study sessions before each extracted academic event."""
+    
+    def __init__(self):
+        try:
+            from app.services.groq_client import GroqClient
+            self.groq = GroqClient()
+        except:
+            self.groq = None
 
     # How many study hours to plan per event type
     HOURS_BY_TYPE: dict[str, float] = {
@@ -22,6 +31,29 @@ class SchedulerEngine:
     # Max study hours per day
     MAX_HOURS_PER_DAY = 6.0
 
+    def _estimate_hours_with_ai(self, event: ExtractedEvent) -> float:
+        """Uses LLM to dynamically estimate required study hours based on event title/type."""
+        fallback = self.HOURS_BY_TYPE.get((event.type or "other").lower(), 2.0)
+        if not self.groq:
+            return fallback
+            
+        try:
+            system = "You are an academic planner. Estimate the number of hours of study required for the given task. Return ONLY a single integer (e.g. '5')."
+            prompt = f"Task: {event.title}\nType: {event.type}\nSubject: {event.subject}\n\nHow many hours will this take?"
+            
+            output = self.groq.generate(prompt=prompt, system=system).strip()
+            # Extract first integer found in response
+            import re
+            match = re.search(r'\d+', output)
+            if match:
+                estimated = float(match.group())
+                # Cap the estimation to avoid crazy schedules
+                return min(max(estimated, 1.0), 20.0) 
+        except Exception as e:
+            logger.warning(f"AI estimation failed: {e}")
+            
+        return fallback
+
     def generate_schedule(
         self,
         events: list[ExtractedEvent],
@@ -29,18 +61,6 @@ class SchedulerEngine:
     ) -> list[ScheduleBlock]:
         """
         Build a study schedule from extracted events.
-
-        Strategy:
-          For each event, work backwards from its deadline and
-          allocate 2-hour study blocks, starting 1 day before the event.
-          Skip days that already have 6+ hours allocated.
-
-        Args:
-            events:     List of ExtractedEvent with date fields
-            days_ahead: Maximum days to plan into the future
-
-        Returns:
-            List of ScheduleBlock objects sorted by date
         """
         today = date.today()
         day_load: dict[date, float] = {}
@@ -58,7 +78,7 @@ class SchedulerEngine:
                 continue
 
             event_type = (event.type or "other").lower()
-            total_hours = self.HOURS_BY_TYPE.get(event_type, 2.0)
+            total_hours = self._estimate_hours_with_ai(event)
             session_type = "revision" if event_type == "exam" else "study"
             session_hours = 2.0  # Each session = 2 hours
             sessions_needed = int(total_hours / session_hours)

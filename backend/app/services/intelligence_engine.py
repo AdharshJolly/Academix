@@ -155,18 +155,41 @@ class AcademicIntelligenceEngine:
     def extract_event(self, raw_text: str) -> list[ExtractedEvent]:
         """
         Extract structured academic events from raw notice text using Groq AI.
-        Validates output against ExtractedEvent schema.
+        Implements a self-correcting validation loop to ensure high accuracy.
         """
+        import json
         system = self._prompt_manager.get_system_prompt()
         prompt = self._prompt_manager.get_notice_extraction_prompt(raw_text)
 
         raw_output = self._groq.generate_json(prompt, system=system)
         parsed = self._json_parser.safe_extract(raw_output, fallback={})
-
-        # Handle both {"extracted_events": [...]} and direct array
+        
         events_data = parsed.get("extracted_events") or parsed.get("events") or []
         if not isinstance(events_data, list):
             events_data = []
+
+        # --- Self-Correcting Validation Loop ---
+        try:
+            validation_prompt = (
+                f"Original Text:\n{raw_text}\n\n"
+                f"Your Extracted Events:\n{json.dumps(events_data, indent=2)}\n\n"
+                "Are you absolutely sure you didn't miss any events, assignments, or deadlines from the original text? "
+                "Check if all dates are correctly formatted as YYYY-MM-DD. "
+                "Output the FINAL, corrected JSON array of events."
+            )
+            validation_system = (
+                "You are an academic extraction validator. Return ONLY a JSON object with the key 'extracted_events'."
+            )
+            
+            validated_output = self._groq.generate_json(prompt=validation_prompt, system=validation_system)
+            validated_parsed = self._json_parser.safe_extract(validated_output, fallback={})
+            
+            validated_events_data = validated_parsed.get("extracted_events") or validated_parsed.get("events")
+            if isinstance(validated_events_data, list):
+                events_data = validated_events_data
+        except Exception as e:
+            logger.warning(f"Validation loop failed, falling back to initial extraction: {e}")
+        # ---------------------------------------
 
         events: list[ExtractedEvent] = []
         for item in events_data:

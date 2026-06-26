@@ -97,7 +97,18 @@ class GoogleCalendarClient:
             })
         return events
 
-
+    def get_free_busy(self, refresh_token: str, time_min: str, time_max: str) -> list[dict]:
+        """
+        Fetch Free/Busy information for the primary calendar.
+        Returns a list of busy periods: [{"start": str, "end": str}]
+        """
+        body = {
+            "timeMin": time_min,
+            "timeMax": time_max,
+            "items": [{"id": "primary"}]
+        }
+        result = self._service(refresh_token).freebusy().query(body=body).execute()
+        return result.get("calendars", {}).get("primary", {}).get("busy", [])
 
     def _build_flow(self):
         from google_auth_oauthlib.flow import Flow

@@ -240,7 +240,10 @@ class SupervisorAgent:
         if not events:
             return "You don't have any pending tasks to schedule! Forward me some assignments first."
             
-        schedule = self.intelligence.generate_schedule(events, days_ahead=days_ahead)
+        # Fetch busy periods from calendar
+        busy_periods = self.calendar_sync.get_busy_periods(user_id, days=days_ahead)
+            
+        schedule = self.intelligence.generate_schedule(events, days_ahead=days_ahead, busy_periods=busy_periods)
         
         if not schedule:
             return "I couldn't figure out a good study schedule right now."
@@ -270,11 +273,11 @@ class SupervisorAgent:
             vector_literal = "[" + ",".join(map(str, query_embedding)) + "]"
             
             # 2. Search Supabase via the RPC function
-            # match_study_materials(query_embedding VECTOR, match_threshold FLOAT, match_count INT, p_user_id UUID)
+            # Fetch more matches for reranking
             res = self.task_repo.db.rpc("match_study_materials", {
                 "query_embedding": vector_literal,
-                "match_threshold": 0.5,
-                "match_count": 3,
+                "match_threshold": 0.3, # lower threshold for wider recall
+                "match_count": 10,
                 "p_user_id": user_id
             }).execute()
             
@@ -282,10 +285,41 @@ class SupervisorAgent:
             if not matches:
                 return "I couldn't find any relevant information in your uploaded study materials."
                 
-            # 3. Compile the context
-            context = "\n\n".join([f"Source ({m['filename']}): {m['chunk_text']}" for m in matches])
+            # 3. LLM Reranking (High Accuracy RAG)
+            import json
+            rerank_system = (
+                "You are a relevance-scoring AI. You will be given a question and a list of numbered snippets. "
+                "Output a JSON array of the integers corresponding to the snippets that are genuinely helpful for answering the question. "
+                "Example output: [0, 2, 5]"
+            )
             
-            # 4. Use Groq to answer based ON THE CONTEXT
+            snippets_text = ""
+            for i, m in enumerate(matches):
+                snippets_text += f"\nSnippet {i}:\n{m['chunk_text']}\n"
+                
+            rerank_prompt = f"Question: {query}\n{snippets_text}\n\nReturn ONLY a JSON array of relevant indices."
+            
+            try:
+                rerank_res = self.groq.generate_json(prompt=rerank_prompt, system=rerank_system)
+                from app.services.ai.json_parser import JsonParser
+                parser = JsonParser()
+                # Use safe_extract which handles json parsing
+                relevant_indices = parser.safe_extract(rerank_res, fallback=list(range(min(3, len(matches)))))
+                if not isinstance(relevant_indices, list):
+                    relevant_indices = list(range(min(3, len(matches))))
+            except Exception as e:
+                logger.warning(f"Reranking failed: {e}")
+                relevant_indices = list(range(min(3, len(matches))))
+                
+            if not relevant_indices:
+                return "I searched your documents but couldn't find anything relevant to answer that question."
+                
+            # Filter matches
+            filtered_matches = [matches[i] for i in relevant_indices if i < len(matches)]
+                
+            # 4. Compile the context and answer
+            context = "\n\n".join([f"Source ({m['filename']}): {m['chunk_text']}" for m in filtered_matches])
+            
             system = (
                 "You are an academic tutor. Use the provided study material excerpts to answer the student's question. "
                 "If the answer is not in the context, tell them you don't know based on the uploaded files."
