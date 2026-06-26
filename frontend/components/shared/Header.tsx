@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Bell, Search, AlertCircle, Calendar, CheckSquare, Square, Trash2, Plus } from 'lucide-react';
+import { Bell, Search, AlertCircle, Calendar, CheckSquare, Square, Trash2, Plus, Target } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useDashboard } from '../../contexts/DashboardContext';
+import { FocusTimerModal } from './FocusTimerModal';
 import Link from 'next/link';
 
 export function Header() {
@@ -11,6 +12,7 @@ export function Header() {
   const { data } = useDashboard();
   
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showFocusTimer, setShowFocusTimer] = useState(false);
   
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -197,6 +199,16 @@ export function Header() {
           <p className="font-accent text-2xl text-vintage-crimsonLight transform -rotate-3 mt-2">
             stay updated
           </p>
+          
+          <button 
+            onClick={() => setShowFocusTimer(true)}
+            className="p-3 bg-white text-vintage-ink/70 rounded-full shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:text-vintage-ink transition-all"
+            title="Focus Mode"
+          >
+            <Target className="w-6 h-6" />
+          </button>
+          <FocusTimerModal isOpen={showFocusTimer} onClose={() => setShowFocusTimer(false)} />
+          
           <div className="relative">
             <button 
               onClick={() => setShowNotifications(!showNotifications)}

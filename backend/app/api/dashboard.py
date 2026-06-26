@@ -60,34 +60,54 @@ async def get_dashboard(user: dict = Depends(verify_token)):
                     days_remaining=max(0, days_remaining),
                 ))
 
-        # ── 2. Academic health from latest intelligence report ────────────
-        latest_report = intelligence_repo.get_latest_by_user(user_id)
-
-        if latest_report and latest_report.risk_assessment:
-            risk = latest_report.risk_assessment
-            academic_health = AcademicHealthCard(
-                risk_level=risk.risk_level,
-                risk_score=risk.risk_score,
-                summary=_risk_summary(risk.risk_level, risk.risk_score),
-            )
+        # ── 2. Academic health from current tasks (DYNAMIC) ────────────
+        from app.services.risk_engine import RiskEngine
+        risk_engine = RiskEngine()
+        
+        pending_task_count = len(upcoming_tasks)
+        high_priority_count = sum(1 for t in upcoming_tasks if t.priority == 'high')
+        event_count = sum(1 for t in upcoming_tasks if t.priority in ['high', 'critical'])
+        
+        if upcoming_deadlines:
+            # Assumes upcoming_deadlines is sorted
+            days_to_nearest = upcoming_deadlines[0].days_remaining
         else:
-            academic_health = AcademicHealthCard(
-                risk_level="low",
-                risk_score=0.0,
-                summary="No intelligence report yet. Process a notice to see your academic health.",
-            )
+            days_to_nearest = 14 # default low risk
+            
+        risk = risk_engine.calculate_risk_score(
+            days_to_nearest_deadline=days_to_nearest,
+            pending_task_count=pending_task_count,
+            event_count=event_count,
+            high_priority_count=high_priority_count
+        )
+        
+        from app.api.dashboard import _risk_summary
+        
+        academic_health = AcademicHealthCard(
+            risk_level=risk.risk_level,
+            risk_score=risk.risk_score,
+            summary=_risk_summary(risk.risk_level, risk.risk_score),
+        )
 
-        # ── 3. Next recommended action ────────────────────────────────────
+        # ── 3. Next recommended action (DYNAMIC) ────────────────────────────────────
         next_action: NextRecommendedAction | None = None
-        if latest_report and latest_report.recommendations:
-            top = latest_report.recommendations[0]
+        if upcoming_deadlines:
+            top_task = upcoming_deadlines[0] # Closest deadline
+            
+            action_text = f"Start working on '{top_task.title}'"
+            if top_task.days_remaining <= 1:
+                action_text = f"Urgent: Finish '{top_task.title}' today!"
+                
             next_action = NextRecommendedAction(
-                action=top.action,
-                priority=top.priority,
+                action=action_text,
+                priority=top_task.days_remaining,
+                due_in_hours=top_task.days_remaining * 24
             )
 
         # ── 4. Today's study schedule ─────────────────────────────────────
         today_schedule: list[TodayScheduleItem] = []
+        latest_report = intelligence_repo.get_latest_by_user(user_id)
+        
         if latest_report and latest_report.study_schedule:
             today_str = today.isoformat()
             today_schedule = [

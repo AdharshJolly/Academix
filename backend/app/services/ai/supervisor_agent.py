@@ -6,7 +6,7 @@ from app.services.intelligence_engine import AcademicIntelligenceEngine
 from app.repositories.task_repository import TaskRepository
 from app.repositories.chat_repository import ChatRepository
 from app.services.calendar_sync_service import CalendarSyncService
-from app.schemas.tasks import TaskCreate
+from app.schemas.tasks import TaskCreate, TaskUpdate
 
 logger = logging.getLogger(__name__)
 
@@ -73,6 +73,44 @@ class SupervisorAgent:
                         "required": ["query"]
                     }
                 }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "reschedule_task",
+                    "description": "Call this when the user wants to reschedule an existing task or assignment.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "task_name": {
+                                "type": "string",
+                                "description": "The name or subject of the task to reschedule."
+                            },
+                            "new_date": {
+                                "type": "string",
+                                "description": "The new due date (YYYY-MM-DD or readable format)."
+                            }
+                        },
+                        "required": ["task_name", "new_date"]
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "delete_task",
+                    "description": "Call this when the user wants to delete or cancel an existing task.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "task_name": {
+                                "type": "string",
+                                "description": "The name or subject of the task to delete."
+                            }
+                        },
+                        "required": ["task_name"]
+                    }
+                }
             }
         ]
         
@@ -82,6 +120,7 @@ class SupervisorAgent:
             "You must use the 'extract_and_save_events' tool if the message contains event details, deadlines, or class announcements. "
             "You must use the 'get_study_schedule' tool if they ask for a plan. "
             "You must use the 'search_study_materials' tool if they ask a question about their syllabus, classes, or uploaded documents. "
+            "You must use 'reschedule_task' or 'delete_task' if they ask to modify or remove a task. "
             "If they just say hello or ask a general question, do not use tools—just reply nicely!"
         )
 
@@ -125,6 +164,12 @@ class SupervisorAgent:
                         
                     elif fn_name == "search_study_materials":
                         reply_texts.append(await self._handle_search_materials(user_id, args.get("query", message)))
+                        
+                    elif fn_name == "reschedule_task":
+                        reply_texts.append(self._handle_reschedule(user_id, args.get("task_name"), args.get("new_date")))
+                        
+                    elif fn_name == "delete_task":
+                        reply_texts.append(self._handle_delete(user_id, args.get("task_name")))
                 
                 response_text = "\n\n".join(reply_texts)
                 
