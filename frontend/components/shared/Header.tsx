@@ -1,34 +1,59 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Bell, Search, AlertCircle, Calendar, CheckSquare, Square, Trash2, Plus } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useDashboard } from '../../contexts/DashboardContext';
 import Link from 'next/link';
 
 export function Header() {
   const { user } = useAuth();
+  const { data } = useDashboard();
+  
   const [showNotifications, setShowNotifications] = useState(false);
   
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   
-  const mockTasks = [
-    { title: 'Algorithms Midterm', subject: 'CS 301', type: 'Exam' },
-    { title: 'Project Proposal Due', subject: 'CS 301', type: 'Assignment' },
-    { title: 'Calculus Worksheet', subject: 'MATH 201', type: 'Assignment' },
-    { title: 'Physics Lab Report', subject: 'PHYS 101', type: 'Assignment' },
-  ];
+  // Dynamic tasks from Dashboard context
+  const allTasks = useMemo(() => {
+    const tasks = (data?.upcoming_deadlines || []).map(d => ({
+      title: d.title,
+      subject: 'General',
+      type: d.priority === 'high' ? 'Important' : 'Task'
+    }));
+    
+    const schedules = (data?.today_schedule || []).map(s => ({
+      title: s.session_type,
+      subject: s.subject || 'General',
+      type: 'Study Session'
+    }));
+    
+    return [...tasks, ...schedules];
+  }, [data]);
   
-  const searchResults = mockTasks.filter(t => 
+  const searchResults = allTasks.filter(t => 
     t.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
     t.subject.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const [subjects, setSubjects] = useState([
-    { id: '1', name: 'CS 301: Data Structures', checked: true },
-    { id: '2', name: 'MATH 201: Calculus II', checked: false },
-    { id: '3', name: 'PHYS 101: Mechanics', checked: true },
-  ]);
+  // Dynamic subjects based on schedule items
+  const [subjects, setSubjects] = useState<{id: string, name: string, checked: boolean}[]>([]);
+  
+  useEffect(() => {
+    if (data?.today_schedule) {
+      const uniqueSubjects = Array.from(new Set(data.today_schedule.map(s => s.subject).filter(Boolean)));
+      if (uniqueSubjects.length > 0 && subjects.length === 0) {
+        const initialSubjects = uniqueSubjects.map((name, i) => ({
+          id: String(i),
+          name: name || 'General',
+          checked: true
+        }));
+        setSubjects(initialSubjects);
+      }
+    }
+  }, [data, subjects.length]);
+
   const [newSubject, setNewSubject] = useState('');
   const searchRef = useRef<HTMLDivElement>(null);
 

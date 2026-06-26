@@ -1,9 +1,11 @@
 import json
 import logging
+import asyncio
 from app.services.groq_client import GroqClient
 from app.services.intelligence_engine import AcademicIntelligenceEngine
 from app.repositories.task_repository import TaskRepository
 from app.repositories.chat_repository import ChatRepository
+from app.services.calendar_sync_service import CalendarSyncService
 from app.schemas.tasks import TaskCreate
 
 logger = logging.getLogger(__name__)
@@ -19,6 +21,7 @@ class SupervisorAgent:
         self.intelligence = AcademicIntelligenceEngine()
         self.task_repo = TaskRepository()
         self.chat_repo = ChatRepository()
+        self.calendar_sync = CalendarSyncService()
         
         self.tools = [
             {
@@ -142,7 +145,7 @@ class SupervisorAgent:
         if not events:
             return "I read the message, but couldn't find any actionable deadlines, exams, or events in it."
             
-        added = 0
+        successful_events = []
         for event in events:
             try:
                 desc = f"Type: {event.type}"
@@ -158,29 +161,53 @@ class SupervisorAgent:
                     priority="high" if event.type in ["exam", "assignment"] else "medium"
                 )
                 self.task_repo.create(user_id=user_id, data=task_data)
-                added += 1
+                successful_events.append(event)
             except Exception as e:
                 logger.error(f"Task creation failed for event {event}: {e}")
                 
-        return f"✅ Done! I extracted {added} event(s) from your message and added them to your CampusFlow workspace."
+        # Background Calendar Sync
+        if successful_events:
+            try:
+                loop = asyncio.get_running_loop()
+                loop.create_task(
+                    asyncio.to_thread(self.calendar_sync.sync_events_background, user_id, successful_events)
+                )
+            except Exception as e:
+                logger.error(f"Failed to dispatch calendar sync background task: {e}")
+                
+        return f"✅ Done! I extracted {len(successful_events)} event(s) from your message and added them to your CampusFlow workspace."
         
     def _handle_schedule(self, user_id: str, days_ahead: int) -> str:
         # Get tasks from DB
-        tasks = self.task_repo.get_by_user(user_id)
-        # Convert to ExtractedEvent format for the engine
+        tasks, _ = self.task_repo.get_all(user_id=user_id, size=50)
+        
+        # Convert to ExtractedEvent format for the intelligence engine
         from app.schemas.intelligence import ExtractedEvent
         events = []
         for t in tasks:
-            if t["due_date"]:
+            if t.due_date:
                 events.append(ExtractedEvent(
-                    title=t["title"],
-                    date=t["due_date"],
+                    title=t.title,
+                    date=t.due_date,
                     type="task"
                 ))
                 
+        if not events:
+            return "You don't have any pending tasks to schedule! Forward me some assignments first."
+            
         schedule = self.intelligence.generate_schedule(events, days_ahead=days_ahead)
+        
         if not schedule:
-            return "You don't have any upcoming tasks that need scheduling!"
+            return "I couldn't figure out a good study schedule right now."
+            
+        # Background Calendar Sync
+        try:
+            loop = asyncio.get_running_loop()
+            loop.create_task(
+                asyncio.to_thread(self.calendar_sync.sync_schedules_background, user_id, schedule)
+            )
+        except Exception as e:
+            logger.error(f"Failed to dispatch schedule sync background task: {e}")
             
         response = "📅 **Your Study Schedule:**\n"
         for block in schedule:
