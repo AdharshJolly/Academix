@@ -77,4 +77,3 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
 };
 
 export const useDashboard = () => useContext(DashboardContext);
-export { DashboardContext };

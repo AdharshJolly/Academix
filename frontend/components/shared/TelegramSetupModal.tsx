@@ -1,9 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Send, Copy, Check } from 'lucide-react';
-import { useState } from 'react';
+import { ModalHeader } from './ModalHeader';
 
 interface TelegramSetupModalProps {
   isOpen: boolean;
@@ -52,20 +52,13 @@ export default function TelegramSetupModal({ isOpen, onClose }: TelegramSetupMod
                   <X size={18} />
                 </button>
 
-                <div className="flex flex-col items-center text-center mb-6">
-                  <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center mb-4">
-                    <Send size={32} className="text-blue-500 ml-[-2px] mt-[2px]" />
-                  </div>
-                  <h4 className="font-accent text-lg text-vintage-crimsonLight transform -rotate-1 mb-1">
-                    one more thing!
-                  </h4>
-                  <h2 className="text-3xl font-display font-black text-vintage-crimson tracking-tighter">
-                    Connect Telegram
-                  </h2>
-                  <p className="font-mono text-vintage-ink/60 text-sm mt-3 leading-relaxed">
-                    To receive updates and forward messages to the AI, start a chat with our bot.
-                  </p>
-                </div>
+                <ModalHeader 
+                  icon={<Send size={32} className="ml-[-2px] mt-[2px]" />}
+                  title="Connect Telegram"
+                  description="To receive updates and forward messages to the AI, start a chat with our bot."
+                  iconBgClass="bg-blue-50"
+                  iconColorClass="text-blue-500"
+                />
 
                 <div className="space-y-3 mb-6">
                   <div className="bg-white/60 rounded-lg p-4 border border-vintage-ink/5">

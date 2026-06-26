@@ -53,19 +53,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
     }, []);
 
+    const handleAuthSuccess = (res: any, fallbackErrorMsg: string) => {
+        if (res.success && res.data) {
+            setToken(res.data.token);
+            setUser(res.data.user);
+            localStorage.setItem('campusflow_token', res.data.token);
+            localStorage.setItem('campusflow_user', JSON.stringify(res.data.user));
+            return res.data.user;
+        } else {
+            throw new Error(res.message || fallbackErrorMsg);
+        }
+    };
+
     const login = async (data: UserLoginRequest) => {
         setIsLoading(true);
         try {
             const res = await AuthService.login(data);
-            if (res.success && res.data) {
-                setToken(res.data.token);
-                setUser(res.data.user);
-                localStorage.setItem('campusflow_token', res.data.token);
-                localStorage.setItem('campusflow_user', JSON.stringify(res.data.user));
-                return res.data.user;
-            } else {
-                throw new Error(res.message || 'Login failed');
-            }
+            return handleAuthSuccess(res, 'Login failed');
         } catch (err: any) {
             throw new Error(err.response?.data?.detail || err.message || 'Login failed');
         } finally {
@@ -77,15 +81,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setIsLoading(true);
         try {
             const res = await AuthService.register(data);
-            if (res.success && res.data) {
-                setToken(res.data.token);
-                setUser(res.data.user);
-                localStorage.setItem('campusflow_token', res.data.token);
-                localStorage.setItem('campusflow_user', JSON.stringify(res.data.user));
-                return res.data.user;
-            } else {
-                throw new Error(res.message || 'Registration failed');
-            }
+            return handleAuthSuccess(res, 'Registration failed');
         } catch (err: any) {
             throw new Error(err.response?.data?.detail || err.message || 'Registration failed');
         } finally {
@@ -113,4 +109,3 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 };
 
 export const useAuth = () => useContext(AuthContext);
-export { AuthContext };
