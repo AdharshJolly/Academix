@@ -99,7 +99,7 @@ class CalendarSyncService:
                 # parse RFC3339
                 b_start = datetime.fromisoformat(b["start"].replace('Z', '+00:00'))
                 b_end = datetime.fromisoformat(b["end"].replace('Z', '+00:00'))
-                # Just comparing local naive time for simplicity in hackathon
+                # Just comparing local naive time for simplicity
                 all_busy.append((b_start.replace(tzinfo=None), b_end.replace(tzinfo=None)))
             except:
                 pass

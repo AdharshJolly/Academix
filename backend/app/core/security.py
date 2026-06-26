@@ -16,7 +16,7 @@ from jose import JWTError, jwt
 # ── Config ────────────────────────────────────────────────────────────────────
 SECRET_KEY = os.getenv("SECRET_KEY", "changeme-very-secret-key-replace-in-prod")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_HOURS = 72   # 3 days — plenty for hackathon demo
+ACCESS_TOKEN_EXPIRE_HOURS = 72   # 3 days
 
 bcrypt_rounds = 12
 bearer_scheme = HTTPBearer(auto_error=False)

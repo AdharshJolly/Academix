@@ -28,7 +28,7 @@ graph TD
     GROQ_API["Groq API\nKimi K2 / Llama"]
     MAKE["Make.com Automation"]
     GCAL["Google Calendar"]
-    WA["WhatsApp (Twilio)"]
+    WA["Telegram"]
     SUPA["Supabase Auth"]
 
     Browser -- "HTTPS REST" --> API
@@ -81,7 +81,7 @@ graph LR
     BE -- "DB queries" --> PG
     BE -- "AI inference" --> GROQ
     BE -- "Direct API" --> GCAL
-    BE -- "WhatsApp webhook" --> MAKE
+    BE -- "Telegram webhook" --> MAKE
     MAKE --> TWILIO
 ```
 
@@ -177,8 +177,8 @@ flowchart TD
     H --> I["RecommendationEngine formats actions"]
     I --> J["Save to intelligence_reports table"]
     J --> K["Create Google Calendar events directly"]
-    K --> L["Trigger Make.com WhatsApp webhook"]
-    L --> M["WhatsApp reminder sent"]
+    K --> L["Trigger Make.com Telegram webhook"]
+    L --> M["Telegram reminder sent"]
 ```
 
 ---
@@ -188,8 +188,8 @@ flowchart TD
 ```mermaid
 flowchart LR
     BE["Backend\nAutomation Service"] --> CAL["Google Calendar API\nCreate Event"]
-    BE --> MAKE["Make.com Webhook\nWhatsApp only"]
-    MAKE --> WA["Twilio WhatsApp\nSend Message"]
+    BE --> MAKE["Make.com Webhook\nTelegram only"]
+    MAKE --> WA["Telegram Bot\nSend Message"]
     MAKE --> LOG["POST /automations/log\nRecord outcome"]
 ```
 

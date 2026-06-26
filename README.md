@@ -13,7 +13,7 @@
 
 <br />
 
-> **CampusFlow** is a smart student hub where AI processes college notices, automatically sends WhatsApp reminders, and syncs to Google Calendar so students never miss a deadline again. Built for the **CampusAI Hackathon 2025**.
+> **CampusFlow** is a smart student hub where AI processes college notices, automatically sends Telegram reminders, and syncs to Google Calendar so students never miss a deadline again.
 
 ---
 
@@ -21,7 +21,7 @@
 
 - **🤖 AI Notice Processor:** Paste lengthy college syllabi, exam schedules, or professor emails. AI extracts precise events and flags risks automatically.
 - **📅 Google Calendar Sync:** Every extracted deadline and assignment is instantly pushed to your Google Calendar.
-- **📲 WhatsApp Reminders:** Never miss a due date. Automated 24h & 1h nudge messages sent directly to your phone.
+- **📲 Telegram Reminders:** Never miss a due date. Automated 24h & 1h nudge messages sent directly to your phone via our Telegram bot.
 - **⚡ Quick Capture Workspace:** Log tasks and homework with one click, automatically tagged with priorities and synced across platforms.
 
 ---
@@ -37,7 +37,7 @@ graph TD
     B -->|AI Inference| D[Groq API]
     B -->|Direct API| E[Google Calendar API]
     B -->|Webhook| F[Make.com Automation]
-    F -->|WhatsApp Messaging| G[Twilio]
+    F -->|Messaging| G[Telegram API]
 ```
 
 ### 🛠️ Tech Stack
@@ -48,7 +48,7 @@ graph TD
 | **Backend** | Python 3.12, FastAPI, Pydantic | Railway / Render |
 | **Database** | PostgreSQL, Supabase Auth (Custom JWT) | Supabase |
 | **AI Engine** | Groq API (Kimi K2 / Llama 3) | Serverless |
-| **Automation**| Make.com Webhooks, Twilio Sandbox | Cloud |
+| **Automation**| Make.com Webhooks, Telegram Bot API | Cloud |
 
 ---
 
@@ -144,12 +144,17 @@ Whether you are a judge or a developer, everything you need is documented below:
 | ⚙️ [**Technical Design**](docs/TDS.md) | Setup, tech stack details, and environment vars |
 | 🏛️ [**Architecture**](docs/ARCHITECTURE.md) | High-level system architecture and data flow |
 | 🔌 [**API Contract**](docs/API_SPEC.md) | Endpoints, payloads, and response models |
-| 🗄️ [**Database Schema**](docs/DATABASE.md) | Table structures, columns, and relations |
+| 🗄️ [**Database Schema**](docs/DATABASE_SCHEMA.md) | Table structures, columns, and relations |
 | 🎨 [**Screen Specs**](docs/SCREEN_SPEC.md) | Frontend component breakdown |
-| 🎤 [**Pitch Deck Outline**](docs/PITCH.md) | Complete script for the 2-minute demo pitch |
+
+---
+
+## 📜 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 <br/>
 <div align="center">
   <p><i>"The best student tools were built by students."</i></p>
-  <p>Built with ❤️ for CampusAI Hackathon 2025</p>
+  <p>Built with ❤️ by students, for students</p>
 </div>
