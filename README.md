@@ -45,7 +45,7 @@ graph TD
 | Layer | Technology | Hosting |
 | :--- | :--- | :--- |
 | **Frontend** | React, Next.js 15, TailwindCSS, Framer Motion | Vercel |
-| **Backend** | Python 3.12, FastAPI, Pydantic | Railway / Render |
+| **Backend** | Python 3.12, FastAPI, Pydantic | Render |
 | **Database** | PostgreSQL, Supabase Auth (Custom JWT) | Supabase |
 | **AI Engine** | Groq API (Kimi K2 / Llama 3) | Serverless |
 | **Automation**| Make.com Webhooks, Telegram Bot API | Cloud |
