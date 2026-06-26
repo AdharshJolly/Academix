@@ -17,9 +17,14 @@ export interface CalendarEvent {
     type: string;
     source?: 'google' | 'local' | 'task';
 }
-
-
-
+interface CreateEventPayload {
+    title: string;
+    date: string;
+    description?: string;
+    all_day?: boolean;
+    start_time?: string;
+    duration_hours?: number;
+}
 export const CalendarService = {
     /**
      * Fetch events from the user's Google Calendar for a given year/month.
