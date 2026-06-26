@@ -48,6 +48,7 @@ class AutomationCallbackResponse(BaseModel):
 class IncomingMessageWebhook(BaseModel):
     platform: Literal["telegram", "whatsapp"]
     sender_id: str
+    sender_username: str | None = None
     text: str
 
 
