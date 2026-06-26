@@ -10,3 +10,4 @@ google-auth-httplib2==0.2.0
 google-auth-oauthlib==1.2.1
 bcrypt==4.2.0
 python-jose[cryptography]==3.3.0
+PyMuPDF==1.26.5

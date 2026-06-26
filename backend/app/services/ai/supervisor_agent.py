@@ -3,6 +3,7 @@ import logging
 from app.services.groq_client import GroqClient
 from app.services.intelligence_engine import AcademicIntelligenceEngine
 from app.repositories.task_repository import TaskRepository
+from app.repositories.chat_repository import ChatRepository
 from app.schemas.tasks import TaskCreate
 
 logger = logging.getLogger(__name__)
@@ -17,6 +18,7 @@ class SupervisorAgent:
         self.groq = GroqClient()
         self.intelligence = AcademicIntelligenceEngine()
         self.task_repo = TaskRepository()
+        self.chat_repo = ChatRepository()
         
         self.tools = [
             {
@@ -51,6 +53,23 @@ class SupervisorAgent:
                         }
                     }
                 }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "search_study_materials",
+                    "description": "Searches the user's uploaded study materials (PDFs, syllabi) for answers to their questions.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "query": {
+                                "type": "string",
+                                "description": "The specific question or topic to search for."
+                            }
+                        },
+                        "required": ["query"]
+                    }
+                }
             }
         ]
         
@@ -59,21 +78,34 @@ class SupervisorAgent:
             "You receive messages from students on Telegram or WhatsApp. "
             "You must use the 'extract_and_save_events' tool if the message contains event details, deadlines, or class announcements. "
             "You must use the 'get_study_schedule' tool if they ask for a plan. "
+            "You must use the 'search_study_materials' tool if they ask a question about their syllabus, classes, or uploaded documents. "
             "If they just say hello or ask a general question, do not use tools—just reply nicely!"
         )
 
-    def process_message(self, user_id: str, message: str) -> str:
+    async def process_message(self, user_id: str, message: str) -> str:
         """
         Process an incoming message and return the response string to send back to the user.
+        Includes full conversational memory context.
         """
-        messages = [
-            {"role": "system", "content": self.system_prompt},
-            {"role": "user", "content": message}
-        ]
+        # 1. Save the new user message
+        self.chat_repo.add_message(user_id, "user", message)
+        
+        # 2. Fetch history
+        history = self.chat_repo.get_recent_messages(user_id, limit=10)
+        
+        # 3. Build messages array
+        messages = [{"role": "system", "content": self.system_prompt}]
+        for msg in history:
+            messages.append({"role": msg["role"], "content": msg["content"]})
+            
+        # Ensure the current message is at the end (history already contains it since we just saved it,
+        # but just in case we'll rely on history which should have it as the last element).
         
         try:
             # We call the LLM to decide what to do
             ai_msg = self.groq.generate_with_tools(messages, tools=self.tools)
+            
+            response_text = "I processed your message but have nothing to say."
             
             # If the LLM decided to call a tool:
             if getattr(ai_msg, "tool_calls", None):
@@ -87,14 +119,19 @@ class SupervisorAgent:
                         
                     elif fn_name == "get_study_schedule":
                         reply_texts.append(self._handle_schedule(user_id, args.get("days_ahead", 14)))
+                        
+                    elif fn_name == "search_study_materials":
+                        reply_texts.append(await self._handle_search_materials(user_id, args.get("query", message)))
                 
-                return "\\n\\n".join(reply_texts)
+                response_text = "\n\n".join(reply_texts)
                 
             # If the LLM just responded directly:
-            if getattr(ai_msg, "content", None):
-                return ai_msg.content
+            elif getattr(ai_msg, "content", None):
+                response_text = ai_msg.content
                 
-            return "I processed your message but have nothing to say."
+            # Save assistant response
+            self.chat_repo.add_message(user_id, "assistant", response_text)
+            return response_text
             
         except Exception as e:
             logger.error(f"Supervisor error: {e}")
@@ -110,9 +147,9 @@ class SupervisorAgent:
             try:
                 desc = f"Type: {event.type}"
                 if getattr(event, "subject", None):
-                    desc += f"\\nSubject: {event.subject}"
+                    desc += f"\nSubject: {event.subject}"
                 if getattr(event, "location", None):
-                    desc += f"\\nLocation: {event.location}"
+                    desc += f"\nLocation: {event.location}"
 
                 task_data = TaskCreate(
                     title=event.title,
@@ -145,8 +182,47 @@ class SupervisorAgent:
         if not schedule:
             return "You don't have any upcoming tasks that need scheduling!"
             
-        response = "📅 **Your Study Schedule:**\\n"
+        response = "📅 **Your Study Schedule:**\n"
         for block in schedule:
-            response += f"- **{block.date}**: {block.focus_topic} ({block.duration_minutes} mins)\\n"
+            response += f"- **{block.date}**: {block.focus_topic} ({block.duration_minutes} mins)\n"
             
         return response
+
+    async def _handle_search_materials(self, user_id: str, query: str) -> str:
+        from app.services.ai.document_processor import DocumentProcessor
+        doc_processor = DocumentProcessor()
+        
+        try:
+            # 1. Embed the query
+            query_embedding = await doc_processor.get_embedding(query)
+            vector_literal = "[" + ",".join(map(str, query_embedding)) + "]"
+            
+            # 2. Search Supabase via the RPC function
+            # match_study_materials(query_embedding VECTOR, match_threshold FLOAT, match_count INT, p_user_id UUID)
+            res = self.task_repo.db.rpc("match_study_materials", {
+                "query_embedding": vector_literal,
+                "match_threshold": 0.5,
+                "match_count": 3,
+                "p_user_id": user_id
+            }).execute()
+            
+            matches = res.data or []
+            if not matches:
+                return "I couldn't find any relevant information in your uploaded study materials."
+                
+            # 3. Compile the context
+            context = "\n\n".join([f"Source ({m['filename']}): {m['chunk_text']}" for m in matches])
+            
+            # 4. Use Groq to answer based ON THE CONTEXT
+            system = (
+                "You are an academic tutor. Use the provided study material excerpts to answer the student's question. "
+                "If the answer is not in the context, tell them you don't know based on the uploaded files."
+            )
+            prompt = f"Context:\n{context}\n\nQuestion: {query}"
+            
+            answer = self.groq.generate(prompt=prompt, system=system)
+            return answer
+            
+        except Exception as e:
+            logger.error(f"Failed to search study materials: {e}")
+            return "I ran into an issue searching your study materials!"

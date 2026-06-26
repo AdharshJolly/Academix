@@ -246,34 +246,7 @@ async def telegram_webhook(request: Request):
 
     telegram_client = TelegramClient()
     
-    text = message.get("text", "")
-    
-    # Check for photos
-    photos = message.get("photo", [])
-    if photos:
-        # Get highest resolution photo (last in array)
-        best_photo = photos[-1]
-        file_id = best_photo.get("file_id")
-        
-        # Download photo
-        img_bytes = await telegram_client.get_file_bytes(file_id)
-        if img_bytes:
-            try:
-                vision = VisionExtractor()
-                extracted_text = await vision.extract_text_from_image(img_bytes)
-                text = f"[Image Uploaded] {extracted_text}"
-            except Exception as e:
-                logger.error(f"Vision extraction failed: {e}")
-                await telegram_client.send_message(chat_id, "I received your image, but my vision sensors are offline right now!")
-                return {"ok": True}
-        else:
-            await telegram_client.send_message(chat_id, "I couldn't download the image from Telegram. Try again later.")
-            return {"ok": True}
-            
-    if not text:
-        return {"ok": True}
-        
-    # Look up user
+    # --- 1. Look up user early ---
     db = get_supabase()
     user_id = None
     
@@ -296,18 +269,67 @@ async def telegram_webhook(request: Request):
         await telegram_client.send_message(chat_id, "Looks like this account isn't linked to CampusFlow yet! Ensure your username is set in the web dashboard Settings first.")
         return {"ok": True}
         
+    text = message.get("text", "")
+    
+    # --- 2. Check for Documents (PDFs for RAG) ---
+    document = message.get("document")
+    if document:
+        filename = document.get("file_name", "uploaded_doc.pdf")
+        if filename.endswith(".pdf"):
+            file_id = document.get("file_id")
+            await telegram_client.send_message(chat_id, f"📥 Downloading {filename} and extracting knowledge...")
+            
+            doc_bytes = await telegram_client.get_file_bytes(file_id)
+            if doc_bytes:
+                try:
+                    from app.services.ai.document_processor import DocumentProcessor
+                    processor = DocumentProcessor()
+                    chunks = await processor.process_and_store(user_id, filename, doc_bytes)
+                    await telegram_client.send_message(chat_id, f"✅ Successfully processed {filename} into {chunks} chunks! You can now ask me questions about it.")
+                    return {"ok": True}
+                except Exception as e:
+                    logger.error(f"Document processing failed: {e}")
+                    await telegram_client.send_message(chat_id, "I couldn't read that PDF. Make sure it contains extractable text!")
+                    return {"ok": True}
+        else:
+            await telegram_client.send_message(chat_id, "I currently only support .pdf files for study materials.")
+            return {"ok": True}
+
+    # --- 3. Check for Photos (Posters) ---
+    photos = message.get("photo", [])
+    if photos:
+        best_photo = photos[-1]
+        file_id = best_photo.get("file_id")
+        
+        img_bytes = await telegram_client.get_file_bytes(file_id)
+        if img_bytes:
+            try:
+                vision = VisionExtractor()
+                extracted_text = await vision.extract_text_from_image(img_bytes)
+                text = f"[Image Uploaded] {extracted_text}"
+            except Exception as e:
+                logger.error(f"Vision extraction failed: {e}")
+                await telegram_client.send_message(chat_id, "I received your image, but my vision sensors are offline right now!")
+                return {"ok": True}
+        else:
+            await telegram_client.send_message(chat_id, "I couldn't download the image from Telegram. Try again later.")
+            return {"ok": True}
+            
+    if not text:
+        return {"ok": True}
+        
     text_clean = text.strip().lower()
     if text_clean == "/start":
         await telegram_client.send_message(chat_id, "✅ Telegram linked successfully! You can now forward any class announcements, notices, or deadlines here, and I'll add them to your CampusFlow workspace and Google Calendar automatically.")
         return {"ok": True}
     if text_clean == "/ping":
-        await telegram_client.send_message(chat_id, "Pong! 🏓\\nYour Telegram is successfully linked to CampusFlow.")
+        await telegram_client.send_message(chat_id, "Pong! 🏓\nYour Telegram is successfully linked to CampusFlow.")
         return {"ok": True}
 
     try:
         from app.services.ai.supervisor_agent import SupervisorAgent
         supervisor = SupervisorAgent()
-        response_text = supervisor.process_message(user_id=user_id, message=text)
+        response_text = await supervisor.process_message(user_id=user_id, message=text)
         await telegram_client.send_message(chat_id, response_text)
     except Exception as e:
         logger.error(f"Error handling direct webhook message: {e}")
