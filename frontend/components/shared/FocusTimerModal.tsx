@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Play, Pause, RotateCcw, X, Target, Coffee } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 interface FocusTimerModalProps {
   isOpen: boolean;
@@ -21,7 +22,16 @@ export function FocusTimerModal({ isOpen, onClose, taskTitle }: FocusTimerModalP
       }, 1000);
     } else if (isActive && timeLeft === 0) {
       setIsActive(false);
-      // Play a sound if we wanted to
+      
+      // Play alert sound
+      try {
+        const audio = new Audio('https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg');
+        audio.volume = 0.5;
+        audio.play().catch(e => console.log('Audio play failed:', e));
+      } catch (err) {
+        console.log('Audio not supported', err);
+      }
+
       if (mode === 'focus') {
         setMode('break');
         setTimeLeft(5 * 60);
@@ -58,8 +68,39 @@ export function FocusTimerModal({ isOpen, onClose, taskTitle }: FocusTimerModalP
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-vintage-ink/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl max-w-md w-full p-8 shadow-2xl relative border-2 border-vintage-ink/10 animate-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Animated soothing background */}
+      <div className="absolute inset-0 bg-vintage-ink/80 backdrop-blur-md overflow-hidden">
+        <motion.div 
+          className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-vintage-crimson/20 blur-[100px]"
+          animate={{ 
+            x: [0, 50, 0], 
+            y: [0, 30, 0],
+            scale: [1, 1.1, 1]
+          }}
+          transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <motion.div 
+          className="absolute bottom-[-10%] right-[-10%] w-[60vw] h-[60vw] rounded-full bg-vintage-babyBlue/20 blur-[120px]"
+          animate={{ 
+            x: [0, -40, 0], 
+            y: [0, -50, 0],
+            scale: [1, 1.2, 1]
+          }}
+          transition={{ duration: 18, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+        />
+        <motion.div 
+          className="absolute top-[20%] right-[20%] w-[30vw] h-[30vw] rounded-full bg-[#10B981]/10 blur-[80px]"
+          animate={{ 
+            x: [0, -30, 30, 0], 
+            y: [0, 30, -30, 0],
+          }}
+          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+        />
+      </div>
+
+      {/* Main Modal Content */}
+      <div className="bg-white/95 rounded-3xl max-w-md w-full p-8 shadow-2xl relative border border-white/20 animate-in zoom-in-95 duration-300 backdrop-blur-sm z-10">
         
         <button 
           onClick={onClose}
