@@ -27,7 +27,7 @@ const AuthContext = createContext<AuthContextType>({
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [user, setUser] = useState<UserOut | null>(null);
     const [token, setToken] = useState<string | null>(null);
-    const [isLoading, setIsLoading] = useState(false);
+    const [isLoading, setIsLoading] = useState(true); // Start loading for hydration
 
     useEffect(() => {
         // Hydrate from localStorage on client mount
@@ -50,6 +50,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } catch (e) {
             localStorage.removeItem('academix_token');
             localStorage.removeItem('academix_user');
+        } finally {
+            setIsLoading(false); // Hydration complete
         }
     }, []);
 

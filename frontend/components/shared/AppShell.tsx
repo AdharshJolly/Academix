@@ -9,20 +9,22 @@ import { useAuth } from '../../contexts/AuthContext';
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
 
   const isAuthPage = pathname === '/auth' || pathname === '/';
 
   useEffect(() => {
+    if (isLoading) return; // Wait for hydration
+
     // Only redirect if we are NOT on an auth page and there's no user
     if (!user && !isAuthPage) {
       router.push('/auth');
     }
-    // If logged in and hitting root, redirect to dashboard
-    if (user && pathname === '/') {
+    // If logged in and hitting root or auth page, redirect to dashboard
+    if (user && (pathname === '/' || pathname === '/auth')) {
       router.push('/dashboard');
     }
-  }, [user, isAuthPage, pathname, router]);
+  }, [user, isLoading, isAuthPage, pathname, router]);
 
   // Auth page: render without sidebar/header
   if (isAuthPage) {
