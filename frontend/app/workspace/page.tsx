@@ -26,8 +26,8 @@ export default function WorkspacePage() {
   useEffect(() => {
     if (!token) return;
     TaskService.getTasks(token).then(res => {
-      if (res.success && res.data?.items) {
-        const fetchedTasks = res.data.items.map(t => ({
+      if (res.success && res.data) {
+        const fetchedTasks = res.data.map((t: any) => ({
           id: t.id,
           title: t.title,
           subject: t.description ? t.description.split(' - ')[0] : 'General',
@@ -692,7 +692,7 @@ const NavItem = ({ icon, label, active, badge, onClick }: { icon: React.ReactNod
     }`}
   >
     <div className="flex items-center gap-3">
-      {React.cloneElement(icon as React.ReactElement, { className: 'w-4 h-4' })}
+      {React.cloneElement(icon as React.ReactElement<any>, { className: 'w-4 h-4' })}
       {label}
     </div>
     {badge && <span className="bg-vintage-crimson text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">{badge}</span>}

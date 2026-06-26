@@ -85,8 +85,8 @@ export default function CalendarPage() {
     if (!token) return;
     try {
       const res = await TaskService.getTasks(token);
-      if (res.success && res.data?.items) {
-        const mapped: RichEvent[] = res.data.items
+      if (res.success && res.data) {
+        const mapped: RichEvent[] = res.data
           .filter((t: any) => t.due_date)
           .map((t: any) => ({
             id: t.id,
