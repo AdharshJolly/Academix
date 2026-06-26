@@ -32,24 +32,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     useEffect(() => {
         // Hydrate from localStorage on client mount
         try {
-            const storedToken = localStorage.getItem('campusflow_token');
-            const storedUser = localStorage.getItem('campusflow_user');
+            const storedToken = localStorage.getItem('academix_token');
+            const storedUser = localStorage.getItem('academix_user');
             if (storedToken && storedUser) {
                 // Validate it's our own JWT (3 dot-separated segments)
                 // Old Supabase tokens have a different format and will cause 401s
                 const segments = storedToken.split('.');
                 if (segments.length !== 3) {
                     // Stale token from old Supabase Auth — clear and force re-login
-                    localStorage.removeItem('campusflow_token');
-                    localStorage.removeItem('campusflow_user');
+                    localStorage.removeItem('academix_token');
+                    localStorage.removeItem('academix_user');
                 } else {
                     setToken(storedToken);
                     setUser(JSON.parse(storedUser));
                 }
             }
         } catch (e) {
-            localStorage.removeItem('campusflow_token');
-            localStorage.removeItem('campusflow_user');
+            localStorage.removeItem('academix_token');
+            localStorage.removeItem('academix_user');
         }
     }, []);
 
@@ -57,8 +57,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (res.success && res.data) {
             setToken(res.data.token);
             setUser(res.data.user);
-            localStorage.setItem('campusflow_token', res.data.token);
-            localStorage.setItem('campusflow_user', JSON.stringify(res.data.user));
+            localStorage.setItem('academix_token', res.data.token);
+            localStorage.setItem('academix_user', JSON.stringify(res.data.user));
             return res.data.user;
         } else {
             throw new Error(res.message || fallbackErrorMsg);
@@ -92,13 +92,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const logout = () => {
         setToken(null);
         setUser(null);
-        localStorage.removeItem('campusflow_token');
-        localStorage.removeItem('campusflow_user');
+        localStorage.removeItem('academix_token');
+        localStorage.removeItem('academix_user');
     };
 
     const updateUser = (updatedUser: UserOut) => {
         setUser(updatedUser);
-        localStorage.setItem('campusflow_user', JSON.stringify(updatedUser));
+        localStorage.setItem('academix_user', JSON.stringify(updatedUser));
     };
 
     return (

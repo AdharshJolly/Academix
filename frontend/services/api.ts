@@ -20,7 +20,7 @@ function getMockData(endpoint: string, method: string, data?: any): any {
     if (endpoint.includes(API_ENDPOINTS.AUTH_LOGIN) || endpoint.includes(API_ENDPOINTS.AUTH_REGISTER)) {
         return {
             success: true, message: "Mock Login Successful",
-            data: { token: "mock_jwt_token", user: { id: "u-1", email: data?.email || "demo@campusflow.edu", full_name: data?.full_name || "Demo User", avatar_url: "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" } }
+            data: { token: "mock_jwt_token", user: { id: "u-1", email: data?.email || "demo@academix.edu", full_name: data?.full_name || "Demo User", avatar_url: "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" } }
         };
     }
     if (endpoint.includes(API_ENDPOINTS.DASHBOARD)) {
@@ -109,8 +109,8 @@ async function request<T>(
         if (response.status === 401 && !_isHandling401) {
             _isHandling401 = true;
             if (typeof window !== 'undefined') {
-                localStorage.removeItem('campusflow_token');
-                localStorage.removeItem('campusflow_user');
+                localStorage.removeItem('academix_token');
+                localStorage.removeItem('academix_user');
                 // Small delay so any in-flight renders can complete
                 setTimeout(() => {
                     window.location.href = '/auth?reason=session_expired';

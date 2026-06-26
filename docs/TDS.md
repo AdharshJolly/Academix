@@ -1,5 +1,5 @@
 # Technical Design Specification
-## CampusFlow — Autonomous Academic Copilot
+## Academix — Autonomous Academic Copilot
 **Version:** 1.2 | **Status:** Frozen
 
 ---

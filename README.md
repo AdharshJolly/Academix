@@ -1,9 +1,9 @@
 <div align="center">
-  <img src="https://img.icons8.com/color/96/student-center.png" alt="CampusFlow Logo" width="80" />
-  <h1>🎓 CampusFlow</h1>
+  <img src="https://img.icons8.com/color/96/student-center.png" alt="Academix Logo" width="80" />
+  <h1>🎓 Academix</h1>
   <p><strong>Autonomous Academic Copilot for B.Tech Students</strong></p>
   
-  [![Version](https://img.shields.io/badge/version-v1.2-blue.svg?style=for-the-badge&logo=github)](https://github.com/AdharshJolly/CampusFlow)
+  [![Version](https://img.shields.io/badge/version-v1.2-blue.svg?style=for-the-badge&logo=github)](https://github.com/AdharshJolly/Academix)
   [![Frontend](https://img.shields.io/badge/Frontend-Next.js_15-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
   [![Backend](https://img.shields.io/badge/Backend-FastAPI-009688?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com/)
   [![Database](https://img.shields.io/badge/Database-Supabase-3ECF8E?style=for-the-badge&logo=supabase)](https://supabase.com/)
@@ -13,7 +13,7 @@
 
 <br />
 
-> **CampusFlow** is a smart student hub where AI processes college notices, automatically sends Telegram reminders, and syncs to Google Calendar so students never miss a deadline again.
+> **Academix** is a smart student hub where AI processes college notices, automatically sends Telegram reminders, and syncs to Google Calendar so students never miss a deadline again.
 
 ---
 
@@ -28,7 +28,7 @@
 
 ## 🏗️ System Architecture
 
-CampusFlow uses a modern, serverless 3-tier architecture designed for speed and reliability.
+Academix uses a modern, serverless 3-tier architecture designed for speed and reliability.
 
 ```mermaid
 graph TD
@@ -55,7 +55,7 @@ graph TD
 ## 📂 Repository Structure
 
 ```text
-CampusFlow/
+Academix/
 ├── frontend/          # Next.js 15 App (UI & State)
 ├── backend/           # FastAPI Application (API & AI Logic)
 ├── docs/              # Architecture, PRD, TDS, and Pitch Docs
@@ -67,7 +67,7 @@ CampusFlow/
 
 ## 🚀 Quick Start (Local Setup)
 
-CampusFlow is split into a Next.js 15 frontend and a FastAPI backend. Follow these steps to run the application locally.
+Academix is split into a Next.js 15 frontend and a FastAPI backend. Follow these steps to run the application locally.
 
 ### Prerequisites
 - **Node.js** (v18+)

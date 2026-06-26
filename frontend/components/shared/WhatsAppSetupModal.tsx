@@ -66,7 +66,7 @@ export default function WhatsAppSetupModal({ isOpen, onClose }: WhatsAppSetupMod
                 <ModalHeader 
                   icon={<MessageCircle size={32} />}
                   title="Activate WhatsApp"
-                  description="To receive WhatsApp notifications from CampusFlow, you need to join our sandbox first. It takes 10 seconds."
+                  description="To receive WhatsApp notifications from Academix, you need to join our sandbox first. It takes 10 seconds."
                   iconBgClass="bg-green-50"
                   iconColorClass="text-green-500"
                 />

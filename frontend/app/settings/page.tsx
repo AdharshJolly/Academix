@@ -74,7 +74,7 @@ function SettingsContent() {
   const handleConnectGoogle = async () => {
     try {
       setGoogleConnecting(true);
-      const t = token || localStorage.getItem('campusflow_token') || '';
+      const t = token || localStorage.getItem('academix_token') || '';
       if (!t) { alert('Please log in again.'); return; }
       const res = await AuthService.connectGoogleCalendar(t);
       if (res.data?.authorization_url) {
@@ -220,7 +220,7 @@ function SettingsContent() {
 
                 <div className="mt-8 pt-8 border-t border-vintage-ink/10">
                   <h3 className="text-xl font-display font-black text-vintage-crimson mb-2">Integrations</h3>
-                  <p className="text-sm font-sans text-vintage-ink/60 mb-4">Connect external services to CampusFlow.</p>
+                  <p className="text-sm font-sans text-vintage-ink/60 mb-4">Connect external services to Academix.</p>
 
                   {googleStatus === 'success' && (
                     <div className="mb-4 flex items-center gap-2 bg-green-50 border border-green-200 text-green-700 font-mono text-sm rounded-lg px-4 py-3">
@@ -345,7 +345,7 @@ function SettingsContent() {
                           {testingTelegram ? 'Testing...' : 'Test Connection'}
                         </button>
                       </div>
-                      <p className="text-xs text-vintage-ink/40 mt-2">Enter your Telegram username to allow CampusFlow to message you.</p>
+                      <p className="text-xs text-vintage-ink/40 mt-2">Enter your Telegram username to allow Academix to message you.</p>
                       {telegramTestResult && (
                         <div className={`mt-2 text-xs font-mono p-2 rounded ${telegramTestResult.success ? 'bg-green-100 text-green-800 border-green-200' : 'bg-red-100 text-red-800 border-red-200'} border`}>
                           {telegramTestResult.success ? '✓ ' : '⚠ '}{telegramTestResult.message}

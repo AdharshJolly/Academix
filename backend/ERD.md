@@ -1,5 +1,5 @@
 # Entity Relationship Diagram
-## CampusFlow Backend — Database Layer
+## Academix Backend — Database Layer
 
 See [docs/DATABASE.md](../docs/DATABASE.md) for the full schema reference.
 

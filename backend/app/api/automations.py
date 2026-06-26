@@ -155,7 +155,7 @@ def handle_incoming_message(
     if not user_id:
         return IncomingMessageResponse(
             success=False,
-            message="Looks like this account isn't linked to CampusFlow yet! Ensure your username is set in the web dashboard Settings first."
+            message="Looks like this account isn't linked to Academix yet! Ensure your username is set in the web dashboard Settings first."
         )
 
     text_clean = request.text.strip().lower()
@@ -164,13 +164,13 @@ def handle_incoming_message(
         display_name = f"@{db_username}" if db_username else "your account"
         return IncomingMessageResponse(
             success=True,
-            message=f"Pong! 🏓\nYour Telegram is successfully linked to {display_name} in CampusFlow."
+            message=f"Pong! 🏓\nYour Telegram is successfully linked to {display_name} in Academix."
         )
         
     if text_clean == "/start" or newly_linked:
         return IncomingMessageResponse(
             success=True,
-            message="✅ Telegram linked successfully! You can now forward any class announcements, notices, or deadlines here, and I'll add them to your CampusFlow workspace and Google Calendar automatically."
+            message="✅ Telegram linked successfully! You can now forward any class announcements, notices, or deadlines here, and I'll add them to your Academix workspace and Google Calendar automatically."
         )
 
     # 2. Extract using Intelligence Engine
@@ -266,7 +266,7 @@ async def telegram_webhook(request: Request):
                 break
                 
     if not user_id:
-        await telegram_client.send_message(chat_id, "Looks like this account isn't linked to CampusFlow yet! Ensure your username is set in the web dashboard Settings first.")
+        await telegram_client.send_message(chat_id, "Looks like this account isn't linked to Academix yet! Ensure your username is set in the web dashboard Settings first.")
         return {"ok": True}
         
     text = message.get("text", "")
@@ -320,10 +320,10 @@ async def telegram_webhook(request: Request):
         
     text_clean = text.strip().lower()
     if text_clean == "/start":
-        await telegram_client.send_message(chat_id, "✅ Telegram linked successfully! You can now forward any class announcements, notices, or deadlines here, and I'll add them to your CampusFlow workspace and Google Calendar automatically.")
+        await telegram_client.send_message(chat_id, "✅ Telegram linked successfully! You can now forward any class announcements, notices, or deadlines here, and I'll add them to your Academix workspace and Google Calendar automatically.")
         return {"ok": True}
     if text_clean == "/ping":
-        await telegram_client.send_message(chat_id, "Pong! 🏓\nYour Telegram is successfully linked to CampusFlow.")
+        await telegram_client.send_message(chat_id, "Pong! 🏓\nYour Telegram is successfully linked to Academix.")
         return {"ok": True}
 
     try:
@@ -333,7 +333,7 @@ async def telegram_webhook(request: Request):
         await telegram_client.send_message(chat_id, response_text)
     except Exception as e:
         logger.error(f"Error handling direct webhook message: {e}")
-        await telegram_client.send_message(chat_id, "Oops, something went wrong inside CampusFlow while processing that message.")
+        await telegram_client.send_message(chat_id, "Oops, something went wrong inside Academix while processing that message.")
 
     # Always return 200 OK to Telegram so it doesn't retry
     return {"ok": True}

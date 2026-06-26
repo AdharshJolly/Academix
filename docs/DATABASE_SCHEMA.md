@@ -1,5 +1,5 @@
 # Database Schema Reference
-## CampusFlow — Autonomous Academic Copilot
+## Academix — Autonomous Academic Copilot
 **Version:** 1.2 | **Status:** Frozen
 
 ---
@@ -30,6 +30,16 @@ erDiagram
         text google_refresh_token
         boolean google_calendar_connected
         varchar whatsapp_number
+        varchar academic_year
+        varchar major
+        float gpa
+        float study_hours
+        text primary_objective
+        jsonb learning_protocols
+        varchar telegram_chat_id
+        varchar telegram_username
+        boolean whatsapp_notifications_enabled "DEFAULT TRUE"
+        boolean telegram_notifications_enabled "DEFAULT FALSE"
         timestamptz created_at "DEFAULT NOW()"
         timestamptz updated_at "DEFAULT NOW()"
     }

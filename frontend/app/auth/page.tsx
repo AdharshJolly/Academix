@@ -55,7 +55,7 @@ function AuthPageContent() {
         setIsRegisterFlow(true);
       }
       
-      const freshToken = localStorage.getItem('campusflow_token');
+      const freshToken = localStorage.getItem('academix_token');
       setAuthToken(freshToken);
       
       // Step 1: Academic Profile check
@@ -103,7 +103,7 @@ function AuthPageContent() {
     setSyncLoading(true);
     setSyncError(null);
     try {
-      const t = authToken || token || localStorage.getItem('campusflow_token') || '';
+      const t = authToken || token || localStorage.getItem('academix_token') || '';
       if (!t) throw new Error('Not authenticated. Please log in again.');
       const res = await AuthService.connectGoogleCalendar(t);
       if (res.data?.authorization_url) {
@@ -164,7 +164,7 @@ function AuthPageContent() {
               sign in!
             </h4>
             <h1 className="text-6xl font-display font-black text-vintage-crimson tracking-tighter mb-2 w-full">
-              CampusFlow
+              Academix
             </h1>
             <p className="font-mono text-vintage-ink/60 text-sm tracking-tight border-b border-vintage-ink/10 pb-6 w-full">
               academic_copilot_v1.0
@@ -229,7 +229,7 @@ function AuthPageContent() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="vintage-input w-full"
-                placeholder="e.g. student@campusflow.edu"
+                placeholder="e.g. student@academix.edu"
                 required
               />
             </div>

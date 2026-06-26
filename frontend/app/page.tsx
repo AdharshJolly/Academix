@@ -15,7 +15,7 @@ export default function RootPage() {
     <div className="flex h-screen items-center justify-center">
       <div className="flex flex-col items-center gap-4">
         <div className="w-10 h-10 rounded-full border-2 border-neonBlue border-t-transparent animate-spin"></div>
-        <p className="text-slate-400 text-sm">Loading CampusFlow...</p>
+        <p className="text-slate-400 text-sm">Loading Academix...</p>
       </div>
     </div>
   );

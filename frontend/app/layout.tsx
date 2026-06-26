@@ -26,7 +26,7 @@ const monoFont = Courier_Prime({
 });
 
 export const metadata: Metadata = {
-  title: 'CampusFlow - Academic Copilot',
+  title: 'Academix - Academic Copilot',
   description: 'Your intelligent academic copilot.',
 };
 

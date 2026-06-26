@@ -1,6 +1,6 @@
 """
 AcademicIntelligenceEngine
-The ONLY public AI service in CampusFlow.
+The ONLY public AI service in Academix.
 
 Pipeline (notice input):
   1. Load prompt template (PromptManager)

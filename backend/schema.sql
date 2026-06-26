@@ -1,4 +1,4 @@
--- CampusFlow Database Schema
+-- Academix Database Schema
 -- Version: 1.2 (Frozen)
 -- Platform: Supabase PostgreSQL 15
 -- Run this script in the Supabase SQL Editor
@@ -18,13 +18,19 @@ CREATE TABLE IF NOT EXISTS users (
     google_refresh_token TEXT,
     google_calendar_connected BOOLEAN NOT NULL DEFAULT FALSE,
     whatsapp_number VARCHAR(20),
+    academic_year VARCHAR(50),
+    major VARCHAR(100),
+    gpa FLOAT,
+    study_hours FLOAT,
+    primary_objective TEXT,
+    learning_protocols JSONB,
+    telegram_chat_id VARCHAR(50),
+    telegram_username VARCHAR(100),
+    whatsapp_notifications_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+    telegram_notifications_enabled BOOLEAN NOT NULL DEFAULT FALSE,
     created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-
-ALTER TABLE users ADD COLUMN IF NOT EXISTS google_refresh_token TEXT;
-ALTER TABLE users ADD COLUMN IF NOT EXISTS google_calendar_connected BOOLEAN NOT NULL DEFAULT FALSE;
-ALTER TABLE users ADD COLUMN IF NOT EXISTS whatsapp_number VARCHAR(20);
 
 -- ──────────────────────────────────────────────────────────────────────────
 -- TABLE: tasks

@@ -76,7 +76,7 @@ export default function AcademicProfileModal({ isOpen, token, onComplete }: Prop
           </div>
           <h2 className="font-display font-black text-3xl text-vintage-crimson tracking-tight">Academic Profile</h2>
           <p className="text-center font-sans text-sm text-vintage-ink/60 mt-2 leading-relaxed">
-            Welcome to CampusFlow! Before you start, let's set up your academic profile so the AI can tailor its recommendations specifically for you.
+            Welcome to Academix! Before you start, let's set up your academic profile so the AI can tailor its recommendations specifically for you.
           </p>
         </div>
 

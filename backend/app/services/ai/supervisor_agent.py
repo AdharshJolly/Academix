@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 class SupervisorAgent:
     """
-    Agentic Orchestrator for CampusFlow.
+    Agentic Orchestrator for Academix.
     Uses Groq function calling to decide whether to extract notices, 
     generate schedules, or just chat.
     """
@@ -115,7 +115,7 @@ class SupervisorAgent:
         ]
         
         self.system_prompt = (
-            "You are the CampusFlow AI Coordinator, an intelligent student assistant. "
+            "You are the Academix AI Coordinator, an intelligent student assistant. "
             "You receive messages from students on Telegram or WhatsApp. "
             "You must use the 'extract_and_save_events' tool if the message contains event details, deadlines, or class announcements. "
             "You must use the 'get_study_schedule' tool if they ask for a plan. "
@@ -220,7 +220,7 @@ class SupervisorAgent:
             except Exception as e:
                 logger.error(f"Failed to dispatch calendar sync background task: {e}")
                 
-        return f"✅ Done! I extracted {len(successful_events)} event(s) from your message and added them to your CampusFlow workspace."
+        return f"✅ Done! I extracted {len(successful_events)} event(s) from your message and added them to your Academix workspace."
         
     def _handle_schedule(self, user_id: str, days_ahead: int) -> str:
         # Get tasks from DB

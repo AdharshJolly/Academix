@@ -13,8 +13,8 @@ interface TelegramSetupModalProps {
 export default function TelegramSetupModal({ isOpen, onClose }: TelegramSetupModalProps) {
   const [copiedBot, setCopiedBot] = useState(false);
 
-  const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || '@CampusFlowBot';
-  const botLink = process.env.NEXT_PUBLIC_TELEGRAM_BOT_LINK || 'https://t.me/CampusFlowBot';
+  const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || '@AcademixBot';
+  const botLink = process.env.NEXT_PUBLIC_TELEGRAM_BOT_LINK || 'https://t.me/AcademixBot';
 
   const copy = (text: string) => {
     navigator.clipboard.writeText(text);

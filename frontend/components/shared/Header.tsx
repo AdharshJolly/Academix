@@ -248,7 +248,7 @@ export function Header() {
         <Link href="/profile" className="flex items-center gap-4 pl-8 border-l border-vintage-ink/10 cursor-pointer group">
           <div className="flex flex-col items-end hidden sm:flex">
             <span className="text-base font-display font-black text-vintage-crimson leading-tight group-hover:text-vintage-ink transition-colors">{user?.full_name || 'Demo User'}</span>
-            <span className="text-sm font-mono text-vintage-ink/60 tracking-tight">{user?.email || 'demo@campusflow.edu'}</span>
+            <span className="text-sm font-mono text-vintage-ink/60 tracking-tight">{user?.email || 'demo@academix.edu'}</span>
           </div>
           <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-white shadow-sm bg-vintage-paper group-hover:scale-105 transition-transform flex-shrink-0">
             <img 

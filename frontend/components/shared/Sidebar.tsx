@@ -26,7 +26,7 @@ export function Sidebar() {
       {/* Branding */}
       <div className="h-24 flex flex-col items-center justify-center border-b border-vintage-ink/10 px-6 relative overflow-hidden">
         <h1 className="text-3xl font-display font-black tracking-tight text-vintage-crimson">
-          CampusFlow
+          Academix
         </h1>
         <p className="font-accent text-xl text-vintage-crimsonLight transform -rotate-2">
           steal these!

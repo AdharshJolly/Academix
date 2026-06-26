@@ -72,7 +72,7 @@ export default function GoogleSyncModal({
                     Sync Your Calendar
                   </h2>
                   <p className="font-mono text-vintage-ink/60 text-sm mt-3 leading-relaxed">
-                    Connect Google Calendar so CampusFlow can automatically schedule study sessions, track deadlines, and send smart reminders.
+                    Connect Google Calendar so Academix can automatically schedule study sessions, track deadlines, and send smart reminders.
                   </p>
                 </div>
 

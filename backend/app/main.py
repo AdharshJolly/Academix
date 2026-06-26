@@ -1,5 +1,5 @@
 """
-CampusFlow FastAPI Application Entry Point
+Academix FastAPI Application Entry Point
 Architecture: v1.2 (Frozen)
 """
 from fastapi import FastAPI
@@ -9,7 +9,7 @@ from app.api import auth, dashboard, tasks, intelligence, automations, calendar
 from app.core.settings import settings
 
 app = FastAPI(
-    title="CampusFlow API",
+    title="Academix API",
     description="Autonomous Academic Copilot — Backend API",
     version="1.2.0",
     docs_url="/docs",
@@ -37,5 +37,5 @@ app.include_router(calendar.router,      prefix=PREFIX)
 @app.get("/", tags=["health"])
 def health_check():
     """Health check endpoint."""
-    return {"status": "ok", "version": "1.2.0", "service": "CampusFlow API"}
+    return {"status": "ok", "version": "1.2.0", "service": "Academix API"}
 

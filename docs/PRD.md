@@ -1,12 +1,12 @@
 # Product Requirements Document
-## CampusFlow — Autonomous Academic Copilot
+## Academix — Autonomous Academic Copilot
 **Version:** 1.2 | **Status:** Frozen
 
 ---
 
 ## 1. Product Overview
 
-CampusFlow is an AI-powered academic management system for university students.
+Academix is an AI-powered academic management system for university students.
 It processes academic notices, extracts deadlines, assesses risk, and
 automatically schedules study sessions and sends reminders.
 
@@ -24,7 +24,7 @@ University students struggle to:
 
 ## 3. Solution
 
-CampusFlow provides:
+Academix provides:
 1. **Academic Intelligence Engine** — AI analysis of academic notices
 2. **Automation Engine** — Calendar + WhatsApp workflow automation
 
