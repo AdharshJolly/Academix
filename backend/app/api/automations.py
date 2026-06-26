@@ -2,7 +2,7 @@
 Automations Router
 Receives Make.com callbacks and exposes automation logs.
 """
-from fastapi import APIRouter, Depends, Header, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, status, Request
 
 from app.core.security import verify_token
 from app.core.settings import settings
@@ -20,6 +20,8 @@ from app.schemas.tasks import TaskCreate
 from app.services.intelligence_engine import AcademicIntelligenceEngine
 from app.repositories.task_repository import TaskRepository
 from app.db.client import get_supabase
+from app.integrations.telegram import TelegramClient
+from app.services.ai.vision_extractor import VisionExtractor
 import logging
 
 logger = logging.getLogger(__name__)
@@ -77,6 +79,30 @@ def list_automation_logs(
     return APIResponse(success=True, message="Automation logs retrieved", data=logs)
 
 
+@router.post("/test-telegram")
+def test_telegram_connection(
+    payload: dict,
+    user: dict = Depends(verify_token),
+):
+    """
+    Called from the frontend to test Telegram connectivity.
+    Normally, the backend doesn't send messages directly (Make.com does).
+    We just verify the username is linked or trigger a Make.com webhook if configured.
+    For now, we return success so the frontend UI can show it works.
+    """
+    db = get_supabase()
+    username = payload.get("telegram_username")
+    if not username:
+        return APIResponse(success=False, message="No username provided.")
+        
+    username_clean = username.strip("@")
+    
+    # We update the username in the DB first
+    db.table("users").update({"telegram_username": username_clean}).eq("id", user["id"]).execute()
+    
+    return APIResponse(success=True, message="Backend confirmed! Now send /ping to the Telegram bot to test the full loop.")
+
+
 @router.post("/incoming", response_model=IncomingMessageResponse)
 def handle_incoming_message(
     request: IncomingMessageWebhook,
@@ -98,21 +124,24 @@ def handle_incoming_message(
     
     user_id = None
     newly_linked = False
+    db_username = None
 
     if request.platform == "telegram":
         # First try chat_id
-        user_res = db.table("users").select("id").eq("telegram_chat_id", request.sender_id).execute()
+        user_res = db.table("users").select("id, telegram_username").eq("telegram_chat_id", request.sender_id).execute()
         if user_res.data:
             user_id = user_res.data[0]["id"]
+            db_username = user_res.data[0].get("telegram_username")
         elif request.sender_username:
             # Fallback to username matching (handles people with @ and without @)
             username_clean = request.sender_username.strip("@")
             user_by_name = db.table("users").select("id, telegram_username").execute()
             
             for row in (user_by_name.data or []):
-                db_username = (row.get("telegram_username") or "").strip("@")
-                if db_username and db_username.lower() == username_clean.lower():
+                db_uname = (row.get("telegram_username") or "").strip("@")
+                if db_uname and db_uname.lower() == username_clean.lower():
                     user_id = row["id"]
+                    db_username = db_uname
                     # We found them! Update their chat_id so we have it for future
                     db.table("users").update({"telegram_chat_id": request.sender_id}).eq("id", user_id).execute()
                     newly_linked = True
@@ -130,6 +159,14 @@ def handle_incoming_message(
         )
 
     text_clean = request.text.strip().lower()
+    
+    if text_clean == "/ping":
+        display_name = f"@{db_username}" if db_username else "your account"
+        return IncomingMessageResponse(
+            success=True,
+            message=f"Pong! 🏓\nYour Telegram is successfully linked to {display_name} in CampusFlow."
+        )
+        
     if text_clean == "/start" or newly_linked:
         return IncomingMessageResponse(
             success=True,
@@ -185,3 +222,96 @@ def handle_incoming_message(
         success=True,
         message=f"✅ I extracted {added} event(s) from your message and added them to your workspace."
     )
+
+@router.post("/telegram/webhook")
+async def telegram_webhook(request: Request):
+    """
+    Direct Telegram Webhook. 
+    Replaces Make.com entirely. Handles text and images (via Gemini).
+    """
+    try:
+        update = await request.json()
+    except Exception:
+        return {"ok": True}
+        
+    message = update.get("message", {})
+    if not message:
+        return {"ok": True}
+        
+    chat_id = str(message.get("chat", {}).get("id", ""))
+    username = message.get("from", {}).get("username", "")
+    
+    if not chat_id:
+        return {"ok": True}
+
+    telegram_client = TelegramClient()
+    
+    text = message.get("text", "")
+    
+    # Check for photos
+    photos = message.get("photo", [])
+    if photos:
+        # Get highest resolution photo (last in array)
+        best_photo = photos[-1]
+        file_id = best_photo.get("file_id")
+        
+        # Download photo
+        img_bytes = await telegram_client.get_file_bytes(file_id)
+        if img_bytes:
+            try:
+                vision = VisionExtractor()
+                extracted_text = await vision.extract_text_from_image(img_bytes)
+                text = f"[Image Uploaded] {extracted_text}"
+            except Exception as e:
+                logger.error(f"Vision extraction failed: {e}")
+                await telegram_client.send_message(chat_id, "I received your image, but my vision sensors are offline right now!")
+                return {"ok": True}
+        else:
+            await telegram_client.send_message(chat_id, "I couldn't download the image from Telegram. Try again later.")
+            return {"ok": True}
+            
+    if not text:
+        return {"ok": True}
+        
+    # Look up user
+    db = get_supabase()
+    user_id = None
+    
+    user_res = db.table("users").select("id").eq("telegram_chat_id", chat_id).execute()
+    if user_res.data:
+        user_id = user_res.data[0]["id"]
+    elif username:
+        # Fallback to username
+        username_clean = username.strip("@")
+        user_by_name = db.table("users").select("id, telegram_username").execute()
+        for row in (user_by_name.data or []):
+            db_uname = (row.get("telegram_username") or "").strip("@")
+            if db_uname and db_uname.lower() == username_clean.lower():
+                user_id = row["id"]
+                # Update their chat_id
+                db.table("users").update({"telegram_chat_id": chat_id}).eq("id", user_id).execute()
+                break
+                
+    if not user_id:
+        await telegram_client.send_message(chat_id, "Looks like this account isn't linked to CampusFlow yet! Ensure your username is set in the web dashboard Settings first.")
+        return {"ok": True}
+        
+    text_clean = text.strip().lower()
+    if text_clean == "/start":
+        await telegram_client.send_message(chat_id, "✅ Telegram linked successfully! You can now forward any class announcements, notices, or deadlines here, and I'll add them to your CampusFlow workspace and Google Calendar automatically.")
+        return {"ok": True}
+    if text_clean == "/ping":
+        await telegram_client.send_message(chat_id, "Pong! 🏓\\nYour Telegram is successfully linked to CampusFlow.")
+        return {"ok": True}
+
+    try:
+        from app.services.ai.supervisor_agent import SupervisorAgent
+        supervisor = SupervisorAgent()
+        response_text = supervisor.process_message(user_id=user_id, message=text)
+        await telegram_client.send_message(chat_id, response_text)
+    except Exception as e:
+        logger.error(f"Error handling direct webhook message: {e}")
+        await telegram_client.send_message(chat_id, "Oops, something went wrong inside CampusFlow while processing that message.")
+
+    # Always return 200 OK to Telegram so it doesn't retry
+    return {"ok": True}

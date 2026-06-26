@@ -82,6 +82,40 @@ class GroqClient:
                 f"Fallback error: {fallback_error}."
             )
 
+    def generate_with_tools(
+        self,
+        messages: list,
+        tools: list,
+        tool_choice: str = "auto",
+        temperature: float = 0.3,
+    ) -> dict:
+        """
+        Sends a conversation history and a list of tools to Groq.
+        Returns the raw message response object which may contain tool_calls or content.
+        """
+        try:
+            response = self._client.chat.completions.create(
+                model=self.primary_model,
+                messages=messages,
+                tools=tools,
+                tool_choice=tool_choice,
+                temperature=temperature,
+                max_tokens=4096,
+            )
+            return response.choices[0].message
+        except Exception as e:
+            # Fallback to secondary if needed
+            logger.warning(f"Primary model tools failed: {e}. Trying fallback.")
+            response = self._client.chat.completions.create(
+                model=self.fallback_model,
+                messages=messages,
+                tools=tools,
+                tool_choice=tool_choice,
+                temperature=temperature,
+                max_tokens=4096,
+            )
+            return response.choices[0].message
+
     def generate_json(
         self,
         prompt: str,

@@ -15,6 +15,9 @@ function SettingsContent() {
   const [saving, setSaving] = useState(false);
   const [googleConnecting, setGoogleConnecting] = useState(false);
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
+  
+  const [testingTelegram, setTestingTelegram] = useState(false);
+  const [telegramTestResult, setTelegramTestResult] = useState<{success: boolean, message: string} | null>(null);
 
   const [googleStatus, setGoogleStatus] = useState<'success' | 'error' | null>(null);
 
@@ -43,6 +46,30 @@ function SettingsContent() {
     telegram_notifications_enabled: user?.telegram_notifications_enabled ?? false,
     telegram_username: user?.telegram_username || ''
   });
+
+  const testTelegramConnection = async () => {
+    if (!token) return;
+    setTestingTelegram(true);
+    setTelegramTestResult(null);
+    try {
+      // Create an API call directly using fetch since we might not want to add it to AuthService yet
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const response = await fetch(`${API_URL}/api/v1/automations/test-telegram`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ telegram_username: formData.telegram_username })
+      });
+      const data = await response.json();
+      setTelegramTestResult({ success: response.ok && data.success, message: data.message || (response.ok ? 'Test successful' : 'Test failed') });
+    } catch (err: any) {
+      setTelegramTestResult({ success: false, message: err.message || 'Failed to connect to backend' });
+    } finally {
+      setTestingTelegram(false);
+    }
+  };
 
   const handleConnectGoogle = async () => {
     try {
@@ -288,30 +315,44 @@ function SettingsContent() {
                     </label>
                   </div>
 
-                  <div className="flex items-center justify-between bg-vintage-paper border border-vintage-ink/10 p-4 rounded-md">
-                    <div>
-                      <h4 className="font-mono font-bold text-vintage-ink mb-1">Telegram Notifications</h4>
-                      <p className="text-xs text-vintage-ink/60 font-sans">Receive reminders and reports on Telegram.</p>
+                  <div className="flex flex-col bg-vintage-paper border border-vintage-ink/10 p-4 rounded-md space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-mono font-bold text-vintage-ink mb-1">Telegram Integration</h4>
+                        <p className="text-xs text-vintage-ink/60 font-sans">Receive reminders and push tasks via Telegram.</p>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" className="sr-only peer" checked={formData.telegram_notifications_enabled} onChange={(e) => handleInputChange('telegram_notifications_enabled', e.target.checked)} />
+                        <div className="w-11 h-6 bg-vintage-ink/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-vintage-crimson"></div>
+                      </label>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" className="sr-only peer" checked={formData.telegram_notifications_enabled} onChange={(e) => handleInputChange('telegram_notifications_enabled', e.target.checked)} />
-                      <div className="w-11 h-6 bg-vintage-ink/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-vintage-crimson"></div>
-                    </label>
-                  </div>
-                  
-                  {formData.telegram_notifications_enabled && (
-                    <div className="flex flex-col mt-4">
+                    
+                    <div className="flex flex-col pt-2 border-t border-vintage-ink/5">
                       <label className="text-xs font-mono font-bold text-vintage-ink/60 mb-2 uppercase tracking-widest">Telegram Username</label>
-                      <input 
-                        type="text" 
-                        value={formData.telegram_username}
-                        onChange={(e) => handleInputChange('telegram_username', e.target.value)}
-                        className="vintage-input"
-                        placeholder="@your_username"
-                      />
+                      <div className="flex gap-2">
+                        <input 
+                          type="text" 
+                          value={formData.telegram_username}
+                          onChange={(e) => handleInputChange('telegram_username', e.target.value)}
+                          className="vintage-input flex-1"
+                          placeholder="@your_username"
+                        />
+                        <button 
+                          onClick={testTelegramConnection}
+                          disabled={testingTelegram || !formData.telegram_username}
+                          className="px-4 py-2 bg-vintage-ink text-white font-mono text-xs uppercase tracking-wider rounded disabled:opacity-50 hover:bg-vintage-ink/80 transition-colors"
+                        >
+                          {testingTelegram ? 'Testing...' : 'Test Connection'}
+                        </button>
+                      </div>
                       <p className="text-xs text-vintage-ink/40 mt-2">Enter your Telegram username to allow CampusFlow to message you.</p>
+                      {telegramTestResult && (
+                        <div className={`mt-2 text-xs font-mono p-2 rounded ${telegramTestResult.success ? 'bg-green-100 text-green-800 border-green-200' : 'bg-red-100 text-red-800 border-red-200'} border`}>
+                          {telegramTestResult.success ? '✓ ' : '⚠ '}{telegramTestResult.message}
+                        </div>
+                      )}
                     </div>
-                  )}
+                  </div>
                 </div>
               </div>
             )}

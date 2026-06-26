@@ -82,6 +82,7 @@ next-env.d.ts
 
 .graphify
 graphifyy_output.txt
+graphify-out/
 
 # --- Local-only hackathon docs (keep locally, not in repo) ---
 supabase_migration.sql
