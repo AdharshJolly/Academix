@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { ShieldAlert, Target, Calendar, Plus, Save, Activity, Trash2, Zap } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import { AttendanceService } from '../../services/attendance.service';
 import { AttendanceRecord, AttendanceRecordCreate } from '../../types';
 import ErrorBoundary from '../../components/shared/ErrorBoundary';
@@ -54,7 +55,7 @@ function AttendanceContent() {
         setNewSubject(prev => ({ ...prev, subject_name: '', subject_code: '', hours_conducted: 0, hours_attended: 0, target_percentage: 75 }));
       }
     } catch (err: any) {
-      alert(err.message || "Failed to add subject");
+      toast.error(err.message || "Failed to add subject");
     }
   };
 
@@ -67,7 +68,7 @@ function AttendanceContent() {
     try {
       await AttendanceService.updateRecord(id, updates, token);
     } catch (err: any) {
-      alert(err.message || "Failed to update record");
+      toast.error(err.message || "Failed to update record");
       fetchRecords(); // rollback on error
     }
   };
@@ -80,7 +81,7 @@ function AttendanceContent() {
     try {
       await AttendanceService.deleteRecord(id, token);
     } catch (err: any) {
-      alert(err.message || "Failed to delete record");
+      toast.error(err.message || "Failed to delete record");
       fetchRecords();
     }
   };

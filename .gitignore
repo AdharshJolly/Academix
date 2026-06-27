@@ -84,3 +84,5 @@ next-env.d.ts
 .graphifyignore
 graphifyy_output.txt
 graphify-out/
+
+.temp
