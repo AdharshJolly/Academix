@@ -81,5 +81,6 @@ pnpm-debug.log*
 next-env.d.ts
 
 .graphify
+.graphifyignore
 graphifyy_output.txt
 graphify-out/

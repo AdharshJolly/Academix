@@ -98,6 +98,19 @@ CREATE INDEX IF NOT EXISTS idx_automation_status       ON automation_logs(status
 CREATE INDEX IF NOT EXISTS idx_automation_triggered_at ON automation_logs(triggered_at);
 
 -- ──────────────────────────────────────────────────────────────────────────
+-- TABLE: conversation_history
+-- ──────────────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS conversation_history (
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    role        VARCHAR(20) NOT NULL CHECK (role IN ('user', 'assistant')),
+    content     TEXT NOT NULL,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_conversation_history_user_id_created_at ON conversation_history(user_id, created_at);
+
+-- ──────────────────────────────────────────────────────────────────────────
 -- ROW LEVEL SECURITY
 -- Enable RLS on all tables
 -- ──────────────────────────────────────────────────────────────────────────
@@ -105,6 +118,7 @@ ALTER TABLE users                ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tasks                ENABLE ROW LEVEL SECURITY;
 ALTER TABLE intelligence_reports ENABLE ROW LEVEL SECURITY;
 ALTER TABLE automation_logs      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE conversation_history ENABLE ROW LEVEL SECURITY;
 
 -- ──────────────────────────────────────────────────────────────────────────
 -- RLS POLICIES
@@ -127,3 +141,7 @@ CREATE POLICY "Users can manage own reports" ON intelligence_reports
 -- Automation Logs are fully private
 CREATE POLICY "Users can manage own automation logs" ON automation_logs
   FOR ALL USING (auth.uid() = user_id);
+
+-- Conversation History is fully private
+CREATE POLICY "Users own their chat history" ON conversation_history
+    FOR ALL USING (auth.uid() = user_id);

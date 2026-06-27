@@ -25,13 +25,23 @@ from app.schemas.dashboard import (
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
-task_repo = TaskRepository()
-intelligence_repo = IntelligenceRepository()
-automation_repo = AutomationRepository()
+def get_task_repo() -> TaskRepository:
+    return TaskRepository()
+
+def get_intelligence_repo() -> IntelligenceRepository:
+    return IntelligenceRepository()
+
+def get_automation_repo() -> AutomationRepository:
+    return AutomationRepository()
 
 
 @router.get("", response_model=APIResponse[DashboardResponse])
-async def get_dashboard(user: dict = Depends(verify_token)):
+async def get_dashboard(
+    user: dict = Depends(verify_token),
+    task_repo: TaskRepository = Depends(get_task_repo),
+    intelligence_repo: IntelligenceRepository = Depends(get_intelligence_repo),
+    automation_repo: AutomationRepository = Depends(get_automation_repo)
+):
     """
     Aggregate and return the full dashboard presentation model.
     Assembles from: tasks, intelligence_reports, automation_logs.

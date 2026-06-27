@@ -13,21 +13,34 @@ import { TaskService } from '../../services/task.service';
 import { IntelligenceService } from '../../services/intelligence.service';
 import { useEffect } from 'react';
 
+import { IntelligenceResponse, ExtractedEvent, Recommendation, TaskResponse } from '../../types/index';
+
+interface WorkspaceTask {
+  id: string;
+  title: string;
+  subject: string;
+  type: string;
+  date: string;
+  priority: string;
+  status: string;
+  comments: any[];
+}
+
 // Fallback empty state
-const INITIAL_TASKS: any[] = [];
+const INITIAL_TASKS: WorkspaceTask[] = [];
 
 export default function WorkspacePage() {
   const { user, token } = useAuth();
   const [activeTab, setActiveTab] = useState<'tasks' | 'inbox' | 'completed'>('tasks');
-  const [tasks, setTasks] = useState<any[]>(INITIAL_TASKS);
-  const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [tasks, setTasks] = useState<WorkspaceTask[]>(INITIAL_TASKS);
+  const [selectedItem, setSelectedItem] = useState<WorkspaceTask | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   
   useEffect(() => {
     if (!token) return;
     TaskService.getTasks(token).then(res => {
       if (res.success && res.data) {
-        const fetchedTasks = res.data.map((t: any) => ({
+        const fetchedTasks = res.data.map((t: TaskResponse) => ({
           id: t.id,
           title: t.title,
           subject: t.description ? t.description.split(' - ')[0] : 'General',
@@ -58,12 +71,12 @@ export default function WorkspacePage() {
   // AI Inbox State
   const [noticeText, setNoticeText] = useState('');
   const [isProcessingNotice, setIsProcessingNotice] = useState(false);
-  const [noticeResult, setNoticeResult] = useState<any>(null);
+  const [noticeResult, setNoticeResult] = useState<IntelligenceResponse | null>(null);
   const [noticeError, setNoticeError] = useState<string | null>(null);
 
   // Task Edit/Delete State
   const [showEditModal, setShowEditModal] = useState(false);
-  const [editingTask, setEditingTask] = useState<any>(null);
+  const [editingTask, setEditingTask] = useState<WorkspaceTask | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [editSubject, setEditSubject] = useState('');
   const [editPriority, setEditPriority] = useState('medium');
@@ -142,9 +155,9 @@ export default function WorkspacePage() {
       } else {
         setNoticeError(res.message || 'AI processing failed. Please try again.');
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error(e);
-      setNoticeError(e?.message || 'Failed to reach the AI engine. Check your connection and try again.');
+      setNoticeError((e as Error)?.message || 'Failed to reach the AI engine. Check your connection and try again.');
     } finally {
       setIsProcessingNotice(false);
     }
@@ -164,7 +177,7 @@ export default function WorkspacePage() {
     }
   };
 
-  const openEditModal = (task: any) => {
+  const openEditModal = (task: WorkspaceTask) => {
     setEditingTask(task);
     setEditTitle(task.title);
     setEditSubject(task.subject);
@@ -336,7 +349,7 @@ export default function WorkspacePage() {
                         </div>
                         {noticeResult.extracted_events?.length > 0 ? (
                            <ul className="text-xs font-mono text-vintage-ink/80 space-y-1 mb-3">
-                             {noticeResult.extracted_events.map((ev: any, idx: number) => (
+                             {noticeResult.extracted_events.map((ev: ExtractedEvent, idx: number) => (
                                 <li key={idx} className="flex gap-2"><span className="text-vintage-crimson">◆</span> <span><strong>{ev.title}</strong> — {ev.date} ({ev.subject})</span></li>
                              ))}
                            </ul>
@@ -347,7 +360,7 @@ export default function WorkspacePage() {
                           <>
                             <h4 className="font-bold text-xs font-mono text-vintage-ink/60 uppercase tracking-widest mb-2">Recommendations</h4>
                             <ul className="text-xs font-mono text-vintage-ink/80 space-y-1">
-                              {noticeResult.recommendations.map((r: any, idx: number) => (
+                              {noticeResult.recommendations.map((r: Recommendation, idx: number) => (
                                  <li key={idx} className="flex gap-2"><span className="text-vintage-crimson">→</span> {r.action}</li>
                               ))}
                             </ul>

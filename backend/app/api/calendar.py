@@ -17,8 +17,11 @@ from app.schemas.common import APIResponse
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/calendar", tags=["calendar"])
-user_repo = UserRepository()
-calendar_client = GoogleCalendarClient()
+def get_user_repo() -> UserRepository:
+    return UserRepository()
+
+def get_calendar_client() -> GoogleCalendarClient:
+    return GoogleCalendarClient()
 
 
 class CreateEventRequest(BaseModel):
@@ -47,6 +50,8 @@ def get_calendar_events(
     year: int = Query(default=None, description="Year to fetch events for"),
     month: int = Query(default=None, description="Month to fetch events for (1-12)"),
     user: dict = Depends(verify_token),
+    user_repo: UserRepository = Depends(get_user_repo),
+    calendar_client: GoogleCalendarClient = Depends(get_calendar_client),
 ):
     """
     Fetch events from the user's connected Google Calendar.
@@ -111,6 +116,8 @@ def get_calendar_events(
 def create_calendar_event(
     request: CreateEventRequest,
     user: dict = Depends(verify_token),
+    user_repo: UserRepository = Depends(get_user_repo),
+    calendar_client: GoogleCalendarClient = Depends(get_calendar_client),
 ):
     """
     Create a new event in the user's connected Google Calendar.

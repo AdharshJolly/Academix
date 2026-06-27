@@ -6,6 +6,7 @@ No AI involved — pure date arithmetic and slot allocation.
 from datetime import date, timedelta
 from app.schemas.intelligence import ExtractedEvent, ScheduleBlock
 import logging
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +17,7 @@ class SchedulerEngine:
         try:
             from app.services.groq_client import GroqClient
             self.groq = GroqClient()
-        except:
+        except Exception:
             self.groq = None
 
     # How many study hours to plan per event type
@@ -43,7 +44,6 @@ class SchedulerEngine:
             
             output = self.groq.generate(prompt=prompt, system=system).strip()
             # Extract first integer found in response
-            import re
             match = re.search(r'\d+', output)
             if match:
                 estimated = float(match.group())

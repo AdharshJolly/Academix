@@ -12,6 +12,7 @@
 | tasks                | Academic tasks and deadlines           |
 | intelligence_reports | AI analysis outputs                    |
 | automation_logs      | Make.com workflow execution history         |
+| conversation_history | Workspace chat messages                     |
 
 All AI output is stored in `intelligence_reports`.
 No separate AI output tables exist.
@@ -82,9 +83,18 @@ erDiagram
         timestamptz completed_at
     }
 
+    conversation_history {
+        uuid id PK "DEFAULT gen_random_uuid()"
+        uuid user_id FK "NOT NULL → users.id"
+        varchar role "NOT NULL: user|assistant"
+        text content "NOT NULL"
+        timestamptz created_at "DEFAULT NOW()"
+    }
+
     users ||--o{ tasks : "user_id"
     users ||--o{ intelligence_reports : "user_id"
     users ||--o{ automation_logs : "user_id"
+    users ||--o{ conversation_history : "user_id"
     tasks ||--o{ intelligence_reports : "task_id"
     intelligence_reports ||--o{ automation_logs : "intelligence_report_id"
 ```
@@ -129,6 +139,13 @@ erDiagram
 | workflow_type | CHECK (workflow_type IN ('task','notice','schedule')) |
 | status      | CHECK (status IN ('pending','success','failed')) |
 
+### conversation_history
+| Column      | Constraint                                       |
+|-------------|--------------------------------------------------|
+| id          | PK, DEFAULT gen_random_uuid()                    |
+| user_id     | FK → users.id, ON DELETE CASCADE, NOT NULL       |
+| role        | CHECK (role IN ('user', 'assistant'))            |
+
 ---
 
 ## Indexes
@@ -147,6 +164,9 @@ CREATE INDEX idx_intelligence_created_at ON intelligence_reports(created_at);
 CREATE INDEX idx_automation_user_id ON automation_logs(user_id);
 CREATE INDEX idx_automation_status ON automation_logs(status);
 CREATE INDEX idx_automation_triggered_at ON automation_logs(triggered_at);
+
+-- conversation_history
+CREATE INDEX idx_conversation_history_user_id_created_at ON conversation_history(user_id, created_at);
 ```
 
 ---
