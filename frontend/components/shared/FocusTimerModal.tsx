@@ -2,16 +2,23 @@ import React, { useState, useEffect } from 'react';
 import { Play, Pause, RotateCcw, X, Target, Coffee } from 'lucide-react';
 import { motion } from 'framer-motion';
 
+import { useAuth } from '../../contexts/AuthContext';
+import { DashboardService } from '../../services/dashboard.service';
+import toast from 'react-hot-toast';
+
 interface FocusTimerModalProps {
   isOpen: boolean;
   onClose: () => void;
   taskTitle?: string;
+  taskId?: string;
 }
 
-export function FocusTimerModal({ isOpen, onClose, taskTitle }: FocusTimerModalProps) {
+export function FocusTimerModal({ isOpen, onClose, taskTitle, taskId }: FocusTimerModalProps) {
+  const { token } = useAuth();
   const [mode, setMode] = useState<'focus' | 'break'>('focus');
   const [timeLeft, setTimeLeft] = useState(25 * 60);
   const [isActive, setIsActive] = useState(false);
+  const [sessionDurationMinutes, setSessionDurationMinutes] = useState(25);
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
@@ -33,11 +40,24 @@ export function FocusTimerModal({ isOpen, onClose, taskTitle }: FocusTimerModalP
       }
 
       if (mode === 'focus') {
+        // Log the session to the backend
+        if (token) {
+          DashboardService.logStudySession({
+            duration_minutes: sessionDurationMinutes,
+            title: taskTitle || "Focus Session",
+            task_id: taskId
+          }, token).then(() => {
+            toast.success(`Logged ${sessionDurationMinutes} minutes of focus!`);
+          }).catch((err) => {
+            console.error('Failed to log session', err);
+          });
+        }
+        
         setMode('break');
         setTimeLeft(5 * 60);
       } else {
         setMode('focus');
-        setTimeLeft(25 * 60);
+        setTimeLeft(sessionDurationMinutes * 60);
       }
     }
 
@@ -50,13 +70,13 @@ export function FocusTimerModal({ isOpen, onClose, taskTitle }: FocusTimerModalP
 
   const resetTimer = () => {
     setIsActive(false);
-    setTimeLeft(mode === 'focus' ? 25 * 60 : 5 * 60);
+    setTimeLeft(mode === 'focus' ? sessionDurationMinutes * 60 : 5 * 60);
   };
 
   const switchMode = (newMode: 'focus' | 'break') => {
     setMode(newMode);
     setIsActive(false);
-    setTimeLeft(newMode === 'focus' ? 25 * 60 : 5 * 60);
+    setTimeLeft(newMode === 'focus' ? sessionDurationMinutes * 60 : 5 * 60);
   };
 
   const formatTime = (seconds: number) => {

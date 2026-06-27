@@ -9,9 +9,10 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from app.core.security import verify_token
 from app.repositories.task_repository import TaskRepository
 from app.schemas.common import APIResponse, PaginatedResponse
-from app.schemas.tasks import TaskCreate, TaskResponse, TaskUpdate
+from app.schemas.tasks import TaskCreate, TaskResponse, TaskUpdate, StudySessionCreate
 from app.services.automation_service import AutomationService
 from app.api.dependencies import get_task_repo, get_automation_service
+from app.db.client import get_supabase
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/tasks", tags=["tasks"])
@@ -107,3 +108,40 @@ def delete_task(
     if not deleted:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
     return APIResponse(success=True, message="Task deleted", data=None)
+
+@router.post("/{task_id}/study-sessions", response_model=APIResponse[dict])
+def create_study_session(
+    task_id: str,
+    request: StudySessionCreate,
+    user: dict = Depends(verify_token),
+    task_repo: TaskRepository = Depends(get_task_repo),
+):
+    """Log a completed focus timer study session."""
+    # Ensure task exists and belongs to user
+    task = task_repo.get_by_id(task_id, user["id"])
+    if not task:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+        
+    db = get_supabase()
+    try:
+        # Create study session record
+        session_data = {
+            "user_id": user["id"],
+            "task_id": task_id,
+            "title": request.title or task.title,
+            "duration_minutes": request.duration_minutes
+        }
+        res = db.table("study_sessions").insert(session_data).execute()
+        
+        # Increment total study hours for the user
+        hours = request.duration_minutes / 60.0
+        # Wait, there's no atomic increment in Supabase rest, so we read then write
+        user_res = db.table("users").select("study_hours").eq("id", user["id"]).execute()
+        if user_res.data:
+            current_hours = user_res.data[0].get("study_hours") or 0.0
+            db.table("users").update({"study_hours": current_hours + hours}).eq("id", user["id"]).execute()
+            
+        return APIResponse(success=True, message="Study session logged", data=res.data[0] if res.data else None)
+    except Exception as e:
+        logger.error(f"Error logging study session: {e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to log session")

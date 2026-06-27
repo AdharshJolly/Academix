@@ -136,3 +136,49 @@ async def upload_notice(
     report_id = str(uuid.uuid4())
     background_tasks.add_task(run_pipeline, report_id, request_schema, user["id"])
     return APIResponse(success=True, message="Processing started", data={"report_id": report_id, "status": "processing"})
+
+from pydantic import BaseModel
+class ChatMessage(BaseModel):
+    content: str
+
+@router.get("/chat/history")
+def get_chat_history(
+    user: dict = Depends(verify_token),
+):
+    """Retrieve the recent chat history."""
+    from app.repositories.chat_repository import ChatRepository
+    chat_repo = ChatRepository()
+    messages = chat_repo.get_recent_messages(user["id"], limit=50)
+    return APIResponse(success=True, message="Chat history retrieved", data=messages)
+
+@router.post("/chat")
+def post_chat_message(
+    message: ChatMessage,
+    user: dict = Depends(verify_token),
+):
+    """Post a new message and get an AI response."""
+    from app.repositories.chat_repository import ChatRepository
+    from app.services.groq_client import GroqClient
+    import os
+    
+    chat_repo = ChatRepository()
+    # Save user message
+    chat_repo.add_message(user["id"], "user", message.content)
+    
+    # Fetch recent context
+    history = chat_repo.get_recent_messages(user["id"], limit=10)
+    
+    # Format for Groq
+    groq_messages = [{"role": "system", "content": "You are Academix Copilot, a helpful AI academic assistant. Keep answers brief and conversational."}]
+    for msg in history:
+        groq_messages.append({"role": msg["role"], "content": msg["content"]})
+        
+    try:
+        groq_client = GroqClient(api_key=os.getenv("GROQ_API_KEY"))
+        ai_response_text = groq_client.generate_completion(groq_messages)
+        # Save AI response
+        chat_repo.add_message(user["id"], "assistant", ai_response_text)
+        return APIResponse(success=True, message="Success", data={"role": "assistant", "content": ai_response_text})
+    except Exception as e:
+        logger.error(f"Chat error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get AI response")

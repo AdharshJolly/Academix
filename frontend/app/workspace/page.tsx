@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Search, Plus, Filter, Calendar, Clock, Inbox, 
   CheckCircle, Archive, ChevronRight, MessageCircle, Heart, Share2, Sparkles, Send, Smile, Paperclip, MoreHorizontal, ArrowRight,
-  Pencil, Trash2, AlertTriangle, X
+  Pencil, Trash2, AlertTriangle, X, Target
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -14,6 +14,7 @@ import { IntelligenceService } from '../../services/intelligence.service';
 import { IntelligenceResponse, ExtractedEvent, Recommendation, TaskResponse } from '../../types/index';
 import ErrorBoundary from '../../components/shared/ErrorBoundary';
 import SkeletonCard from '../../components/shared/SkeletonCard';
+import { FocusTimerModal } from '../../components/shared/FocusTimerModal';
 
 interface WorkspaceTask {
   id: string;
@@ -118,22 +119,44 @@ function WorkspaceContent() {
   const [editPriority, setEditPriority] = useState('medium');
   const [editDueDate, setEditDueDate] = useState('');
   const [isDeletingTask, setIsDeletingTask] = useState<string | null>(null);
+  const [showWorkspaceFocusTimer, setShowWorkspaceFocusTimer] = useState(false);
   const filteredTasks = tasks.filter(task => 
     task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     task.subject.toLowerCase().includes(searchQuery.toLowerCase())
   );
   
-  // Instagram-style comment state
+  // Copilot Chat History
   const [newComment, setNewComment] = useState('');
   const [isLiked, setIsLiked] = useState(false);
-  const [comments, setComments] = useState<{user: string, text: string}[]>([
-    { user: 'ai_copilot', text: 'I have automatically synced this to your calendar and set a WhatsApp reminder 24h prior.' }
-  ]);
+  const [chatHistory, setChatHistory] = useState<{role: string, content: string}[]>([]);
+  const [isChatLoading, setIsChatLoading] = useState(false);
 
-  const handleAddComment = () => {
-    if (!newComment.trim()) return;
-    setComments([...comments, { user: user?.full_name || 'You', text: newComment }]);
+  useEffect(() => {
+    if (!token) return;
+    IntelligenceService.getChatHistory(token).then(res => {
+      if (res.success && res.data) {
+        setChatHistory(res.data);
+      }
+    }).catch(console.error);
+  }, [token]);
+
+  const handleAddComment = async () => {
+    if (!newComment.trim() || !token) return;
+    const userMsg = newComment;
     setNewComment('');
+    setChatHistory(prev => [...prev, { role: 'user', content: userMsg }]);
+    
+    setIsChatLoading(true);
+    try {
+      const res = await IntelligenceService.sendChatMessage(userMsg, token);
+      if (res.success && res.data) {
+        setChatHistory(prev => [...prev, res.data as {role: string, content: string}]);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsChatLoading(false);
+    }
   };
 
   const handleQuickCapture = async () => {
@@ -490,6 +513,12 @@ function WorkspaceContent() {
                     <button className="hover:scale-110 transition-transform">
                       <Share2 className="w-6 h-6 text-vintage-ink" />
                     </button>
+                    <button 
+                      onClick={() => setShowWorkspaceFocusTimer(true)}
+                      className="ml-2 px-3 py-1 bg-vintage-crimson text-white text-xs font-bold font-mono rounded-full hover:bg-vintage-crimsonDark flex items-center gap-1"
+                    >
+                      <Target className="w-3 h-3" /> Focus
+                    </button>
                   </div>
                   <BookmarkIcon />
                 </div>
@@ -503,21 +532,31 @@ function WorkspaceContent() {
 
                 {/* AI Insights & Comments */}
                 <div className="p-4 flex flex-col gap-4">
-                  {comments.map((c, i) => (
+                  {chatHistory.map((c, i) => (
                     <div key={i} className="flex items-start gap-3">
                       <div className="w-6 h-6 rounded-full bg-vintage-ink/10 flex items-center justify-center overflow-hidden shrink-0">
-                         {c.user === 'ai_copilot' ? (
+                         {c.role === 'assistant' ? (
                            <Sparkles className="w-3 h-3 text-neonBlue" />
                          ) : (
                            <img src={user?.avatar_url || '/avatars/doodle_dog.png'} alt="avatar" className="w-full h-full object-cover" />
                          )}
                       </div>
                       <p className="text-sm font-mono text-vintage-ink/80 leading-tight">
-                        <span className="font-bold text-vintage-ink mr-2">{c.user}</span>
-                        {c.text}
+                        <span className="font-bold text-vintage-ink mr-2">{c.role === 'assistant' ? 'ai_copilot' : (user?.full_name || 'You')}</span>
+                        {c.content}
                       </p>
                     </div>
                   ))}
+                  {isChatLoading && (
+                    <div className="flex items-start gap-3">
+                      <div className="w-6 h-6 rounded-full bg-vintage-ink/10 flex items-center justify-center overflow-hidden shrink-0">
+                         <Sparkles className="w-3 h-3 text-neonBlue animate-pulse" />
+                      </div>
+                      <p className="text-sm font-mono text-vintage-ink/80 leading-tight animate-pulse">
+                        Thinking...
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -539,8 +578,8 @@ function WorkspaceContent() {
                 </button>
                 <button 
                   onClick={handleAddComment}
-                  disabled={!newComment.trim()}
-                  className={`text-sm font-bold font-mono transition-colors ${newComment.trim() ? 'text-neonBlue' : 'text-neonBlue/40'}`}
+                  disabled={!newComment.trim() || isChatLoading}
+                  className={`text-sm font-bold font-mono transition-colors ${newComment.trim() && !isChatLoading ? 'text-neonBlue' : 'text-neonBlue/40'}`}
                 >
                   Post
                 </button>
@@ -750,6 +789,16 @@ function WorkspaceContent() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Focus Timer for Workspace Task */}
+      {selectedItem && (
+        <FocusTimerModal 
+          isOpen={showWorkspaceFocusTimer} 
+          onClose={() => setShowWorkspaceFocusTimer(false)} 
+          taskTitle={selectedItem.title}
+          taskId={selectedItem.id}
+        />
+      )}
     </div>
   );
 }

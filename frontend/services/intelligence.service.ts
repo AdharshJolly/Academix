@@ -100,5 +100,13 @@ export const IntelligenceService = {
     // Alias for compatibility
     process: function(data: IntelligenceRequest, token: string) {
         return this.processNotice(data, token);
+    },
+    
+    getChatHistory: (token: string): Promise<APIResponse<any[]>> => {
+        return apiClient.get('/intelligence/chat/history', token);
+    },
+    
+    sendChatMessage: (content: string, token: string): Promise<APIResponse<{role: string, content: string}>> => {
+        return apiClient.post('/intelligence/chat', { content }, token);
     }
 };

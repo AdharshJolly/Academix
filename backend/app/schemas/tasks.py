@@ -9,10 +9,14 @@ from datetime import date
 class TaskCreate(BaseModel):
     title: str
     description: Optional[str] = None
-    due_date: Optional[date] = None
-    priority: Optional[str] = "medium"  # low | medium | high | urgent
-    add_to_calendar: bool = True
+    due_date: Optional[str] = None
+    priority: Optional[str] = "medium"
+    add_to_calendar: Optional[bool] = True
     reminder_time: Optional[str] = "24h"
+
+class StudySessionCreate(BaseModel):
+    duration_minutes: int
+    title: Optional[str] = None
 
 
 class TaskUpdate(BaseModel):

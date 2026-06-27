@@ -29,6 +29,7 @@ const monoFont = Courier_Prime({
 export const metadata: Metadata = {
   title: 'Academix - Academic Copilot',
   description: 'Your intelligent academic copilot.',
+  manifest: '/manifest.json',
 };
 
 export default function RootLayout({

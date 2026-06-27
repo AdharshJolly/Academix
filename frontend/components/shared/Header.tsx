@@ -16,6 +16,19 @@ export function Header() {
   
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isOnline, setIsOnline] = useState(true);
+
+  useEffect(() => {
+    setIsOnline(navigator.onLine);
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
   
   // Dynamic tasks from Dashboard context
   const allTasks = useMemo(() => {
@@ -131,6 +144,13 @@ export function Header() {
   };
 
   return (
+    <>
+      {!isOnline && (
+        <div className="bg-yellow-500 text-black text-center py-1 font-mono text-sm z-[60] relative">
+          <AlertCircle className="w-4 h-4 inline mr-2 -mt-0.5" />
+          You are offline. Showing cached data.
+        </div>
+      )}
     <header className="h-24 bg-transparent flex items-center justify-between px-10 sticky top-0 z-50">
       
       <div className="flex items-center gap-4 flex-1">
@@ -312,5 +332,6 @@ export function Header() {
         </Link>
       </div>
     </header>
+    </>
   );
 }

@@ -24,8 +24,14 @@ from app.schemas.dashboard import (
     UpcomingDeadline,
     CrunchWindow,
 )
+from pydantic import BaseModel
+class GenericStudySessionCreate(BaseModel):
+    duration_minutes: int
+    title: str | None = None
+    task_id: str | None = None
 
-from app.api.dependencies import get_task_repo, get_intelligence_repo, get_automation_repo
+from app.api.dependencies import get_task_repo, get_intelligence_repo, get_automation_service, get_automation_repo
+from app.db.client import get_supabase
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
@@ -238,3 +244,31 @@ def _risk_summary(level: str, score: float) -> str:
         "critical": f"Critical academic risk ({pct}%)! Take action now to avoid falling behind.",
     }
     return summaries.get(level, f"Academic risk score: {pct}%")
+
+@router.post("/study-sessions", response_model=APIResponse[dict])
+def create_generic_study_session(
+    request: GenericStudySessionCreate,
+    user: dict = Depends(verify_token),
+):
+    db = get_supabase()
+    try:
+        session_data = {
+            "user_id": user["id"],
+            "title": request.title or "Uncategorized Session",
+            "duration_minutes": request.duration_minutes
+        }
+        if request.task_id:
+            session_data["task_id"] = request.task_id
+            
+        res = db.table("study_sessions").insert(session_data).execute()
+        
+        hours = request.duration_minutes / 60.0
+        user_res = db.table("users").select("study_hours").eq("id", user["id"]).execute()
+        if user_res.data:
+            current_hours = user_res.data[0].get("study_hours") or 0.0
+            db.table("users").update({"study_hours": current_hours + hours}).eq("id", user["id"]).execute()
+            
+        return APIResponse(success=True, message="Study session logged", data=res.data[0] if res.data else None)
+    except Exception as e:
+        logger.error(f"Error logging study session: {e}")
+        raise HTTPException(status_code=500, detail="Failed to log session")
