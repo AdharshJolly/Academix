@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { ShieldAlert, Target, Calendar, Plus, Save, Activity, Trash2, Zap } from 'lucide-react';
+import { ShieldAlert, Target, Calendar, Plus, Save, Activity, Trash2, Zap, LayoutGrid, List } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { AttendanceService } from '../../services/attendance.service';
 import { AttendanceRecord, AttendanceRecordCreate } from '../../types';
@@ -17,6 +17,7 @@ function AttendanceContent() {
   const [error, setError] = useState<string | null>(null);
 
   const [isAdding, setIsAdding] = useState(false);
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [newSubject, setNewSubject] = useState({
     semester: 'Semester 1',
     subject_code: '',
@@ -125,7 +126,7 @@ function AttendanceContent() {
       subject: r.subject_name.length > 15 ? r.subject_name.substring(0, 15) + '...' : r.subject_name,
       percentage: Math.round(computed * 10) / 10,
       target: r.target_percentage,
-      fill: computed < r.target_percentage ? '#E53E3E' : '#3182CE'
+      fill: computed < r.target_percentage ? '#73010b' : '#2b2b2b'
     };
   });
 
@@ -166,8 +167,8 @@ function AttendanceContent() {
                 <XAxis dataKey="subject" tick={{ fontSize: 12, fill: '#4a4a4a', fontFamily: 'monospace' }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 12, fill: '#4a4a4a', fontFamily: 'monospace' }} domain={[0, 100]} axisLine={false} tickLine={false} />
                 <Tooltip 
-                  cursor={{ fill: '#f8f8f8' }} 
-                  contentStyle={{ borderRadius: '8px', border: '1px solid #eee', fontFamily: 'monospace', fontSize: '12px' }}
+                  cursor={{ fill: 'rgba(43,43,43,0.05)' }} 
+                  contentStyle={{ backgroundColor: '#FDFBF7', borderRadius: '0px', border: '2px solid #2b2b2b', fontFamily: 'monospace', fontSize: '12px', color: '#2b2b2b', boxShadow: '4px 4px 0px rgba(43,43,43,0.1)' }}
                 />
                 <ReferenceLine y={75} stroke="#a0aec0" strokeDasharray="3 3" label={{ position: 'insideTopLeft', value: '75% Target', fill: '#a0aec0', fontSize: 10 }} />
                 <Bar dataKey="percentage" radius={[4, 4, 0, 0]} barSize={40} />
@@ -225,8 +226,28 @@ function AttendanceContent() {
 
       {Object.entries(groupedRecords).map(([semester, semRecords]) => (
         <div key={semester} className="mt-8">
-          <h2 className="font-mono font-bold text-xl text-vintage-ink mb-6 border-b border-vintage-ink/10 pb-2">{semester}</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="flex items-center justify-between mb-6 border-b border-vintage-ink/10 pb-2">
+            <h2 className="font-mono font-bold text-xl text-vintage-ink">{semester}</h2>
+            <div className="flex bg-vintage-ink/5 p-1 rounded-md border border-vintage-ink/10">
+              <button 
+                onClick={() => setViewMode('grid')} 
+                className={`p-1.5 rounded transition-colors ${viewMode === 'grid' ? 'bg-white shadow-sm text-vintage-ink' : 'text-vintage-ink/50 hover:text-vintage-ink'}`}
+                title="Grid View"
+              >
+                <LayoutGrid className="w-4 h-4" />
+              </button>
+              <button 
+                onClick={() => setViewMode('table')} 
+                className={`p-1.5 rounded transition-colors ${viewMode === 'table' ? 'bg-white shadow-sm text-vintage-ink' : 'text-vintage-ink/50 hover:text-vintage-ink'}`}
+                title="Table View"
+              >
+                <List className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+          
+          {viewMode === 'grid' ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {semRecords.map(record => {
               const currentPercent = record.hours_conducted === 0 ? 0 : (record.hours_attended / record.hours_conducted) * 100;
           const target = record.target_percentage;
@@ -311,7 +332,91 @@ function AttendanceContent() {
             </div>
           );
         })}
-          </div>
+            </div>
+          ) : (
+            <div className="overflow-x-auto vintage-panel">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b-2 border-vintage-ink font-mono text-sm uppercase text-vintage-ink">
+                    <th className="p-4 font-bold">Subject</th>
+                    <th className="p-4 font-bold text-center">Conducted</th>
+                    <th className="p-4 font-bold text-center">Attended</th>
+                    <th className="p-4 font-bold text-center">Target %</th>
+                    <th className="p-4 font-bold">Current %</th>
+                    <th className="p-4 font-bold text-center">Status</th>
+                    <th className="p-4"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-vintage-ink/10">
+                  {semRecords.map(record => {
+                    const currentPercent = record.hours_conducted === 0 ? 0 : (record.hours_attended / record.hours_conducted) * 100;
+                    const target = record.target_percentage;
+                    const isDanger = currentPercent < target;
+                    const isSafe = currentPercent >= target + 2;
+                    
+                    return (
+                      <tr key={record.id} className="hover:bg-vintage-ink/5 transition-colors group">
+                        <td className="p-4">
+                          <div className="font-display font-black text-vintage-ink">{record.subject_name}</div>
+                          {record.subject_code && <div className="font-mono text-xs text-vintage-ink/60 mt-0.5">{record.subject_code}</div>}
+                        </td>
+                        <td className="p-4">
+                          <div className="flex items-center justify-center gap-2">
+                            <button onClick={() => handleUpdate(record.id, { hours_conducted: Math.max(0, record.hours_conducted - 1) })} className="w-5 h-5 flex items-center justify-center bg-white border border-vintage-ink/20 rounded shadow-sm text-vintage-ink hover:text-vintage-crimson font-mono text-xs">-</button>
+                            <span className="font-mono font-bold w-6 text-center">{record.hours_conducted}</span>
+                            <button onClick={() => handleUpdate(record.id, { hours_conducted: record.hours_conducted + 1 })} className="w-5 h-5 flex items-center justify-center bg-white border border-vintage-ink/20 rounded shadow-sm text-vintage-ink font-mono text-xs">+</button>
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          <div className="flex items-center justify-center gap-2">
+                            <button onClick={() => handleUpdate(record.id, { hours_attended: Math.max(0, record.hours_attended - 1) })} className="w-5 h-5 flex items-center justify-center bg-white border border-vintage-ink/20 rounded shadow-sm text-vintage-ink hover:text-vintage-crimson font-mono text-xs">-</button>
+                            <span className="font-mono font-bold w-6 text-center">{record.hours_attended}</span>
+                            <button onClick={() => handleUpdate(record.id, { hours_attended: record.hours_attended + 1, hours_conducted: record.hours_conducted + (record.hours_attended >= record.hours_conducted ? 1 : 0) })} className="w-5 h-5 flex items-center justify-center bg-white border border-vintage-ink/20 rounded shadow-sm text-vintage-ink font-mono text-xs">+</button>
+                          </div>
+                        </td>
+                        <td className="p-4 text-center">
+                          <div className="inline-flex items-center gap-1 bg-white border border-vintage-ink/20 px-2 py-1 rounded">
+                            <input 
+                              type="number" min="1" max="100" 
+                              value={record.target_percentage} 
+                              onChange={(e) => handleUpdate(record.id, { target_percentage: Number(e.target.value) })}
+                              className="w-8 font-mono font-bold text-center text-sm focus:outline-none" 
+                            />
+                            <span className="font-mono text-xs text-vintage-ink/50">%</span>
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          <div className="flex items-center gap-3">
+                            <span className="font-display font-bold w-10 text-right">{currentPercent.toFixed(0)}%</span>
+                            <div className="w-24 h-2 bg-vintage-ink/10 rounded-full overflow-hidden">
+                              <div 
+                                className={`h-full ${isDanger ? 'bg-vintage-crimson' : 'bg-vintage-ink'}`} 
+                                style={{ width: `${Math.min(100, currentPercent)}%` }}
+                              />
+                            </div>
+                          </div>
+                        </td>
+                        <td className="p-4 text-center">
+                          <span className={`inline-block px-3 py-1 rounded-full font-mono text-xs font-bold ${
+                            isDanger ? 'bg-vintage-crimson/10 text-vintage-crimson' : 
+                            isSafe ? 'bg-green-100 text-green-800 border border-green-200' : 
+                            'bg-yellow-100 text-yellow-800 border border-yellow-200'
+                          }`}>
+                            {isDanger ? 'DANGER' : isSafe ? 'SAFE' : 'WARNING'}
+                          </span>
+                        </td>
+                        <td className="p-4 text-right">
+                          <button onClick={() => handleDelete(record.id)} className="text-vintage-ink/30 hover:text-vintage-crimson transition-colors p-1 opacity-0 group-hover:opacity-100">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       ))}
       
