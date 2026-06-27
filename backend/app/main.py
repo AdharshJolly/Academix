@@ -12,8 +12,8 @@ missing_settings = settings.validate()
 if missing_settings:
     raise RuntimeError(f"Missing critical environment variables: {', '.join(missing_settings)}")
 
-from app.core.logger import setup_logging, request_id_var
-import uuid
+from app.core.logging_setup import setup_logging
+from asgi_correlation_id import CorrelationIdMiddleware
 
 setup_logging()
 
@@ -62,18 +62,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-from fastapi import Request
-
-@app.middleware("http")
-async def add_request_id_and_log(request: Request, call_next):
-    req_id = str(uuid.uuid4())
-    token = request_id_var.set(req_id)
-    
-    response = await call_next(request)
-    response.headers["X-Request-ID"] = req_id
-    
-    request_id_var.reset(token)
-    return response
+app.add_middleware(CorrelationIdMiddleware)
 
 PREFIX = settings.API_V1_PREFIX  # /api/v1
 

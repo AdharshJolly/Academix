@@ -19,3 +19,6 @@ redis
 python-multipart
 apscheduler
 pydantic-settings
+structlog==24.1.0
+python-json-logger==2.0.7
+asgi-correlation-id==4.3.1
