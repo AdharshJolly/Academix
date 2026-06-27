@@ -5,7 +5,7 @@ Architecture: v1.2 (Frozen)
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import auth, dashboard, tasks, intelligence, automations, calendar
+from app.api import auth, dashboard, tasks, intelligence, automations, calendar, attendance
 from app.core.settings import settings
 
 from contextlib import asynccontextmanager
@@ -61,6 +61,7 @@ app.include_router(tasks.router,         prefix=PREFIX)
 app.include_router(intelligence.router,  prefix=PREFIX)
 app.include_router(automations.router,   prefix=PREFIX)
 app.include_router(calendar.router,      prefix=PREFIX)
+app.include_router(attendance.router,    prefix=PREFIX)
 
 
 @app.get("/", tags=["health"])

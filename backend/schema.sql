@@ -127,24 +127,53 @@ ALTER TABLE conversation_history ENABLE ROW LEVEL SECURITY;
 -- RLS POLICIES
 -- ──────────────────────────────────────────────────────────────────────────
 -- Users can only read and update their own profile
+DROP POLICY IF EXISTS "Users can view own profile" ON users;
 CREATE POLICY "Users can view own profile" ON users
   FOR SELECT USING (auth.uid() = id);
 
+DROP POLICY IF EXISTS "Users can update own profile" ON users;
 CREATE POLICY "Users can update own profile" ON users
   FOR UPDATE USING (auth.uid() = id);
 
 -- Tasks are fully private
+DROP POLICY IF EXISTS "Users can manage own tasks" ON tasks;
 CREATE POLICY "Users can manage own tasks" ON tasks
   FOR ALL USING (auth.uid() = user_id);
 
 -- Intelligence Reports are fully private
+DROP POLICY IF EXISTS "Users can manage own reports" ON intelligence_reports;
 CREATE POLICY "Users can manage own reports" ON intelligence_reports
   FOR ALL USING (auth.uid() = user_id);
 
 -- Automation Logs are fully private
+DROP POLICY IF EXISTS "Users can manage own automation logs" ON automation_logs;
 CREATE POLICY "Users can manage own automation logs" ON automation_logs
   FOR ALL USING (auth.uid() = user_id);
 
 -- Conversation History is fully private
+DROP POLICY IF EXISTS "Users own their chat history" ON conversation_history;
 CREATE POLICY "Users own their chat history" ON conversation_history
     FOR ALL USING (auth.uid() = user_id);
+
+-- ──────────────────────────────────────────────────────────────────────────
+-- TABLE: attendance_records
+-- Tracks per-subject attendance for students
+-- ──────────────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS attendance_records (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    subject_name VARCHAR(255) NOT NULL,
+    hours_conducted NUMERIC NOT NULL DEFAULT 0.0,
+    hours_attended NUMERIC NOT NULL DEFAULT 0.0,
+    target_percentage NUMERIC NOT NULL DEFAULT 75.0,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_attendance_records_user_id ON attendance_records(user_id);
+
+ALTER TABLE attendance_records ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can manage own attendance records" ON attendance_records;
+CREATE POLICY "Users can manage own attendance records" ON attendance_records
+  FOR ALL USING (auth.uid() = user_id);

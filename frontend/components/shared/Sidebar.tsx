@@ -3,12 +3,13 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, CheckSquare, Calendar, Zap, Settings, User } from 'lucide-react';
+import { LayoutDashboard, CheckSquare, Calendar, Zap, Settings, User, Activity } from 'lucide-react';
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/workspace', label: 'Workspace', icon: CheckSquare },
   { href: '/calendar', label: 'Calendar', icon: Calendar },
+  { href: '/attendance', label: 'Attendance', icon: Activity },
   { href: '/automation-center', label: 'Automations', icon: Zap },
 ];
 

@@ -213,3 +213,29 @@ export interface TriggerResponse {
     message: string;
 }
 
+// ── Attendance ────────────────────────────────────────────────────────────
+
+export interface AttendanceRecordCreate {
+    subject_name: string;
+    hours_conducted?: number;
+    hours_attended?: number;
+    target_percentage?: number;
+}
+
+export interface AttendanceRecordUpdate {
+    subject_name?: string;
+    hours_conducted?: number;
+    hours_attended?: number;
+    target_percentage?: number;
+}
+
+export interface AttendanceRecord {
+    id: string;
+    user_id: string;
+    subject_name: string;
+    hours_conducted: number;
+    hours_attended: number;
+    target_percentage: number;
+    created_at: string;
+    updated_at: string;
+}
