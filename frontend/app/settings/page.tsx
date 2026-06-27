@@ -6,6 +6,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { AuthService } from '../../services/auth.service';
 import { useSearchParams, useRouter } from 'next/navigation';
 import WhatsAppSetupModal from '../../components/shared/WhatsAppSetupModal';
+import { toast } from 'react-hot-toast';
 
 function SettingsContent() {
   const { user, token, updateUser } = useAuth();
@@ -52,20 +53,17 @@ function SettingsContent() {
     setTestingTelegram(true);
     setTelegramTestResult(null);
     try {
-      // Create an API call directly using fetch since we might not want to add it to AuthService yet
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-      const response = await fetch(`${API_URL}/api/v1/automations/test-telegram`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ telegram_username: formData.telegram_username })
-      });
-      const data = await response.json();
-      setTelegramTestResult({ success: response.ok && data.success, message: data.message || (response.ok ? 'Test successful' : 'Test failed') });
+      const response = await AuthService.testTelegramConnection(formData.telegram_username, token);
+      if (response.success) {
+        setTelegramTestResult({ success: true, message: response.message || 'Test successful' });
+        toast.success(response.message || 'Telegram connection tested successfully');
+      } else {
+        setTelegramTestResult({ success: false, message: response.message || 'Test failed' });
+        toast.error(response.message || 'Telegram test failed');
+      }
     } catch (err: any) {
       setTelegramTestResult({ success: false, message: err.message || 'Failed to connect to backend' });
+      toast.error(err.message || 'Failed to connect to backend');
     } finally {
       setTestingTelegram(false);
     }
@@ -75,13 +73,13 @@ function SettingsContent() {
     try {
       setGoogleConnecting(true);
       const t = token || localStorage.getItem('academix_token') || '';
-      if (!t) { alert('Please log in again.'); return; }
+      if (!t) { toast.error('Please log in again.'); return; }
       const res = await AuthService.connectGoogleCalendar(t);
       if (res.data?.authorization_url) {
         window.location.href = res.data.authorization_url;
       }
     } catch (err: any) {
-      alert('Failed to initiate Google connection: ' + err.message);
+      toast.error('Failed to initiate Google connection: ' + err.message);
       setGoogleConnecting(false);
     }
   };
@@ -108,14 +106,15 @@ function SettingsContent() {
         // Assume context has an updateUser method or just reload
         if (updateUser) {
             updateUser(res.data);
-            alert("Settings saved successfully.");
+            toast.success("Settings saved successfully.");
         } else {
             // Quick reload to reflect changes globally if context update is tricky
-            window.location.reload();
+            toast.success("Settings saved successfully.");
+            setTimeout(() => window.location.reload(), 1000);
         }
       }
     } catch (err) {
-      alert("Failed to save profile updates.");
+      toast.error("Failed to save profile updates.");
       console.error(err);
     } finally {
       setSaving(false);

@@ -2,52 +2,57 @@
 Application Settings
 Loads configuration from environment variables.
 """
+from pydantic import field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from typing import List, Union
 
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
-
-
-class Settings:
+class Settings(BaseSettings):
     # App
-    ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
-    SECRET_KEY: str = os.getenv("SECRET_KEY", "changeme-secret-key")
-    API_V1_PREFIX: str = os.getenv("API_V1_PREFIX", "/api/v1")
+    ENVIRONMENT: str = "development"
+    SECRET_KEY: str = ""
+    API_V1_PREFIX: str = "/api/v1"
+    TIMEZONE: str = "Asia/Kolkata"
 
     # Supabase
-    SUPABASE_URL: str = os.getenv("SUPABASE_URL", "")
-    SUPABASE_SERVICE_ROLE_KEY: str = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
+    SUPABASE_URL: str = ""
+    SUPABASE_SERVICE_ROLE_KEY: str = ""
 
     # Groq AI
-    GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
-    PRIMARY_MODEL: str = os.getenv("PRIMARY_MODEL", "moonshotai/kimi-k2-instruct")
-    FALLBACK_MODEL: str = os.getenv("FALLBACK_MODEL", "llama-3.3-70b-versatile")
+    GROQ_API_KEY: str = ""
+    PRIMARY_MODEL: str = "moonshotai/kimi-k2-instruct"
+    FALLBACK_MODEL: str = "llama-3.3-70b-versatile"
 
     # Make.com
-    MAKE_WEBHOOK_URL: str = os.getenv("MAKE_WEBHOOK_URL", "")
+    MAKE_WEBHOOK_URL: str = ""
 
     # Twilio
-    TWILIO_ACCOUNT_SID: str = os.getenv("TWILIO_ACCOUNT_SID", "")
-    TWILIO_AUTH_TOKEN: str = os.getenv("TWILIO_AUTH_TOKEN", "")
-    TWILIO_PHONE_NUMBER: str = os.getenv("TWILIO_PHONE_NUMBER", "")
+    TWILIO_ACCOUNT_SID: str = ""
+    TWILIO_AUTH_TOKEN: str = ""
+    TWILIO_PHONE_NUMBER: str = ""
 
     # Telegram
-    TELEGRAM_BOT_TOKEN: str = os.getenv("TELEGRAM_BOT_TOKEN", "")
+    TELEGRAM_BOT_TOKEN: str = ""
 
     # Google
-    GOOGLE_CLIENT_ID: str = os.getenv("GOOGLE_CLIENT_ID", "")
-    GOOGLE_CLIENT_SECRET: str = os.getenv("GOOGLE_CLIENT_SECRET", "")
-    GOOGLE_REDIRECT_URI: str = os.getenv("GOOGLE_REDIRECT_URI", "")
-    FRONTEND_URL: str = os.getenv("FRONTEND_URL", "http://localhost:3000")
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+    GOOGLE_REDIRECT_URI: str = ""
+    FRONTEND_URL: str = "http://localhost:3000"
 
     # Internal automation callback
-    AUTOMATION_CALLBACK_SECRET: str = os.getenv("AUTOMATION_CALLBACK_SECRET", "")
+    AUTOMATION_CALLBACK_SECRET: str = ""
 
     # CORS
-    CORS_ORIGINS: list[str] = os.getenv(
-        "CORS_ORIGINS", "http://localhost:3000,https://campus-flow-six-rho.vercel.app,*"
-    ).split(",")
+    CORS_ORIGINS: str = "http://localhost:3000"
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore"
+    )
+
+    def get_cors_origins_list(self) -> list[str]:
+        return [i.strip() for i in self.CORS_ORIGINS.split(",") if i.strip()]
 
     def validate(self) -> list[str]:
         """Return list of missing critical env vars."""
@@ -56,10 +61,17 @@ class Settings:
             ("SUPABASE_URL", self.SUPABASE_URL),
             ("SUPABASE_SERVICE_ROLE_KEY", self.SUPABASE_SERVICE_ROLE_KEY),
             ("GROQ_API_KEY", self.GROQ_API_KEY),
+            ("SECRET_KEY", self.SECRET_KEY),
         ]
         for name, val in critical:
             if not val:
                 missing.append(name)
+
+        if self.ENVIRONMENT == "production" and "*" in self.CORS_ORIGINS:
+            raise RuntimeError(
+                "CORS_ORIGINS cannot contain wildcard '*' in production."
+            )
+
         return missing
 
 

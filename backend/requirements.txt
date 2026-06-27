@@ -18,3 +18,4 @@ slowapi
 redis
 python-multipart
 apscheduler
+pydantic-settings

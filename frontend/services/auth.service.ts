@@ -22,5 +22,8 @@ export const AuthService = {
 
     updateProfile: (data: any, token: string): Promise<APIResponse<any>> =>
         apiClient.put('/auth/profile', data, token),
+
+    testTelegramConnection: (telegram_username: string, token: string): Promise<APIResponse<any>> =>
+        apiClient.post('/automations/test-telegram', { telegram_username }, token),
 };
 

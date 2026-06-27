@@ -28,6 +28,7 @@ export const API_ENDPOINTS = {
 
     // Calendar
     CALENDAR_EVENTS:         '/calendar/events',
+    CALENDAR_PREFETCH:       '/calendar/prefetch',
 } as const;
 
 

@@ -40,13 +40,20 @@ export const IntelligenceService = {
             }
             
             // Backup polling just in case WS fails or is blocked
+            let timeoutId: any;
             let pollInterval = setInterval(async () => {
                 try {
                     const statusRes = await apiClient.get<any>(`/intelligence/status/${reportId}`, token);
                     if (statusRes.data?.status === 'completed') {
                         clearInterval(pollInterval);
+                        clearTimeout(timeoutId);
                         if (ws) ws.close();
                         resolve({ success: true, data: statusRes.data.report, message: 'Completed' });
+                    } else if (statusRes.data?.status === 'failed') {
+                        clearInterval(pollInterval);
+                        clearTimeout(timeoutId);
+                        if (ws) ws.close();
+                        resolve({ success: false, data: null as any, message: 'Report processing failed.' });
                     }
                 } catch (e) {}
             }, 5000); 
@@ -58,10 +65,12 @@ export const IntelligenceService = {
                         if (msg.report_id === reportId) {
                             if (msg.type === 'INTELLIGENCE_REPORT_COMPLETE') {
                                 clearInterval(pollInterval);
+                                clearTimeout(timeoutId);
                                 ws!.close();
                                 resolve({ success: true, data: msg.report, message: 'Completed' });
                             } else if (msg.type === 'INTELLIGENCE_REPORT_FAILED') {
                                 clearInterval(pollInterval);
+                                clearTimeout(timeoutId);
                                 ws!.close();
                                 resolve({ success: false, data: null as any, message: msg.error });
                             }
@@ -71,6 +80,13 @@ export const IntelligenceService = {
                     }
                 };
             }
+            
+            // Timeout to prevent infinite polling
+            timeoutId = setTimeout(() => {
+                clearInterval(pollInterval);
+                if (ws) ws.close();
+                resolve({ success: false, data: null as any, message: 'Request timed out after 120 seconds.' });
+            }, 120000);
         });
     },
 

@@ -133,13 +133,17 @@ class SupervisorAgent:
                     "parameters": {
                         "type": "object",
                         "properties": {
+                            "subject_name": {
+                                "type": "string",
+                                "description": "The specific subject/course name the user is logging attendance for. If the user doesn't mention a subject, ask them for it."
+                            },
                             "hours_conducted_today": {
                                 "type": "number",
-                                "description": "Total hours conducted today."
+                                "description": "Total hours conducted today for this subject."
                             },
                             "hours_missed_today": {
                                 "type": "number",
-                                "description": "Hours missed today."
+                                "description": "Hours missed today for this subject."
                             },
                             "overall_percentage": {
                                 "type": "number",
@@ -287,8 +291,15 @@ class SupervisorAgent:
         hours_missed = args.get("hours_missed_today")
         overall_percentage = args.get("overall_percentage")
 
+        subject_name = args.get("subject_name")
+
         from app.repositories.user_repository import UserRepository
+        from app.repositories.attendance_repository import AttendanceRepository
+        from app.schemas.attendance import AttendanceRecordUpdate
+        
         user_repo = UserRepository()
+        attendance_repo = AttendanceRepository()
+        
         user = user_repo.get_by_id(user_id)
         if not user:
             return "I couldn't find your profile."
@@ -306,13 +317,31 @@ class SupervisorAgent:
             new_attended = current_attended + attended_today
             new_percent = round((new_attended / new_total) * 100, 1) if new_total > 0 else 0.0
 
+            # 1. Update Global Aggregate
             user_repo.update(user_id, {
                 "attendance_total_hours": new_total,
                 "attendance_attended_hours": new_attended,
                 "attendance_percent": new_percent
             })
             
-            return f"Logged! You attended {attended_today} out of {hours_conducted} hours today. Your new overall attendance is {new_percent}%."
+            # 2. Update Per-Subject Record (if provided)
+            subject_msg = ""
+            if subject_name:
+                records = attendance_repo.get_by_user(user_id)
+                # Simple case-insensitive matching
+                target = next((r for r in records if r["subject_name"].lower() == subject_name.lower()), None)
+                if target:
+                    old_conducted = target.get("hours_conducted", 0)
+                    old_attended = target.get("hours_attended", 0)
+                    attendance_repo.update(target["id"], user_id, AttendanceRecordUpdate(
+                        hours_conducted=old_conducted + hours_conducted,
+                        hours_attended=old_attended + attended_today
+                    ))
+                    subject_msg = f" Also updated your record for {target['subject_name']}."
+                else:
+                    subject_msg = f" (Warning: Could not find subject '{subject_name}' in your registered classes.)"
+            
+            return f"Logged! You attended {attended_today} out of {hours_conducted} hours today.{subject_msg} Your new overall attendance is {new_percent}%."
 
         return "Please tell me how many total hours you had today, and how many you missed. Or just tell me your current overall percentage!"
 

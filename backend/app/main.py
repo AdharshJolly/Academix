@@ -8,6 +8,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api import auth, dashboard, tasks, intelligence, automations, calendar, attendance
 from app.core.settings import settings
 
+missing_settings = settings.validate()
+if missing_settings:
+    raise RuntimeError(f"Missing critical environment variables: {', '.join(missing_settings)}")
+
+from app.core.logger import setup_logging, request_id_var
+import uuid
+
+setup_logging()
+
 from contextlib import asynccontextmanager
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from app.services.scheduler_jobs import send_weekly_attendance_check
@@ -47,11 +56,24 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
+    allow_origins=settings.get_cors_origins_list(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+from fastapi import Request
+
+@app.middleware("http")
+async def add_request_id_and_log(request: Request, call_next):
+    req_id = str(uuid.uuid4())
+    token = request_id_var.set(req_id)
+    
+    response = await call_next(request)
+    response.headers["X-Request-ID"] = req_id
+    
+    request_id_var.reset(token)
+    return response
 
 PREFIX = settings.API_V1_PREFIX  # /api/v1
 
@@ -87,7 +109,7 @@ async def ws_endpoint(websocket: WebSocket, token: str):
         while True:
             await websocket.receive_text()
     except WebSocketDisconnect:
-        manager.disconnect(user_id)
+        manager.disconnect(user_id, websocket)
     except Exception:
-        manager.disconnect(user_id)
+        manager.disconnect(user_id, websocket)
 

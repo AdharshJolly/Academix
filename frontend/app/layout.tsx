@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { Space_Grotesk, Fraunces, Caveat, Courier_Prime } from 'next/font/google';
 import { AppProvider } from '../providers/AppProvider';
 import { AppShell } from '../components/shared/AppShell';
+import { Toaster } from 'react-hot-toast';
 
 const sansFont = Space_Grotesk({
   subsets: ['latin'],
@@ -49,6 +50,13 @@ export default function RootLayout({
         <AppProvider>
           <div className="flex-1 flex flex-col relative z-10 w-full mx-auto h-screen">
             <AppShell>{children}</AppShell>
+            <Toaster position="bottom-right" toastOptions={{
+              className: 'font-mono text-sm border border-vintage-ink/10 shadow-sm rounded-md',
+              style: {
+                background: '#FDFBF7',
+                color: '#1a1a1a',
+              },
+            }} />
           </div>
         </AppProvider>
       </body>
