@@ -75,7 +75,7 @@ export const IntelligenceService = {
     },
 
     processNotice: async (data: IntelligenceRequest, token: string): Promise<APIResponse<IntelligenceResponse>> => {
-        const initial = await apiClient.post(API_ENDPOINTS.INTELLIGENCE_PROCESS, data, token);
+        const initial = await apiClient.post<any>(API_ENDPOINTS.INTELLIGENCE_PROCESS, data, token);
         if (!initial.success || !initial.data?.report_id) {
             return initial;
         }
