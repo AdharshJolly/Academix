@@ -8,6 +8,7 @@ import { AttendanceService } from '../../services/attendance.service';
 import { AttendanceRecord, AttendanceRecordCreate } from '../../types';
 import ErrorBoundary from '../../components/shared/ErrorBoundary';
 import SkeletonCard from '../../components/shared/SkeletonCard';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 
 function AttendanceContent() {
   const { user, token } = useAuth();
@@ -118,6 +119,16 @@ function AttendanceContent() {
     return acc;
   }, {} as Record<string, AttendanceRecord[]>);
 
+  const chartData = records.map(r => {
+    const computed = r.hours_conducted === 0 ? 0 : (r.hours_attended / r.hours_conducted) * 100;
+    return {
+      subject: r.subject_name.length > 15 ? r.subject_name.substring(0, 15) + '...' : r.subject_name,
+      percentage: Math.round(computed * 10) / 10,
+      target: r.target_percentage,
+      fill: computed < r.target_percentage ? '#E53E3E' : '#3182CE'
+    };
+  });
+
   return (
     <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700 max-w-6xl mx-auto py-10 px-8">
       
@@ -144,6 +155,27 @@ function AttendanceContent() {
           <p className="font-mono text-vintage-ink/50 text-sm mt-1">Total Classes Attended: <span className="font-bold text-vintage-ink">{overallAttended}</span></p>
         </div>
       </div>
+
+      {records.length > 0 && (
+        <div className="bg-white p-6 border border-vintage-ink/10 shadow-sm rounded-lg mb-8">
+          <h3 className="font-mono font-bold text-vintage-ink tracking-widest text-sm uppercase mb-6">Subject Comparison</h3>
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData} margin={{ top: 5, right: 30, left: -20, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+                <XAxis dataKey="subject" tick={{ fontSize: 12, fill: '#4a4a4a', fontFamily: 'monospace' }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 12, fill: '#4a4a4a', fontFamily: 'monospace' }} domain={[0, 100]} axisLine={false} tickLine={false} />
+                <Tooltip 
+                  cursor={{ fill: '#f8f8f8' }} 
+                  contentStyle={{ borderRadius: '8px', border: '1px solid #eee', fontFamily: 'monospace', fontSize: '12px' }}
+                />
+                <ReferenceLine y={75} stroke="#a0aec0" strokeDasharray="3 3" label={{ position: 'insideTopLeft', value: '75% Target', fill: '#a0aec0', fontSize: 10 }} />
+                <Bar dataKey="percentage" radius={[4, 4, 0, 0]} barSize={40} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
 
       {isAdding && (
         <form onSubmit={handleAdd} className="vintage-panel p-6 bg-white/50 border border-dashed border-vintage-crimson/50 animate-in fade-in zoom-in-95">

@@ -49,6 +49,12 @@ class RecentAutomation(BaseModel):
     triggered_at: str
 
 
+class CrunchWindow(BaseModel):
+    start_date: str
+    end_date: str
+    deadline_count: int
+    severity: str            # high | critical
+
 class DashboardResponse(BaseModel):
     """
     Aggregated, UI-ready model returned by GET /api/v1/dashboard.
@@ -57,6 +63,7 @@ class DashboardResponse(BaseModel):
     academic_health: AcademicHealthCard
     next_recommended_action: Optional[NextRecommendedAction] = None
     upcoming_deadlines: List[UpcomingDeadline]
+    crunch_windows: List[CrunchWindow] = []
     today_schedule: List[TodayScheduleItem]
     calendar_preview: List[CalendarEvent]
     recent_automations: List[RecentAutomation]

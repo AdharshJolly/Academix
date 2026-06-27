@@ -190,10 +190,18 @@ export interface RecentAutomation {
     triggered_at: string;
 }
 
+export interface CrunchWindow {
+    start_date: string;
+    end_date: string;
+    deadline_count: number;
+    severity: string;
+}
+
 export interface DashboardResponse {
     academic_health: AcademicHealthCard;
     next_recommended_action?: NextRecommendedAction;
     upcoming_deadlines: UpcomingDeadline[];
+    crunch_windows: CrunchWindow[];
     today_schedule: TodayScheduleItem[];
     calendar_preview: CalendarEvent[];
     recent_automations: RecentAutomation[];

@@ -22,6 +22,7 @@ from app.schemas.dashboard import (
     RecentAutomation,
     TodayScheduleItem,
     UpcomingDeadline,
+    CrunchWindow,
 )
 
 from app.api.dependencies import get_task_repo, get_intelligence_repo, get_automation_repo
@@ -156,10 +157,51 @@ async def get_dashboard(
             for log in automation_logs
         ]
 
+        # ── 7. Crunch Windows Detection ───────────────────────────────────
+        crunch_windows: list[CrunchWindow] = []
+        if upcoming_tasks:
+            # Filter tasks with due_dates and sort them
+            dated_tasks = []
+            for t in upcoming_tasks:
+                if t.due_date:
+                    try:
+                        d = t.due_date if isinstance(t.due_date, date) else date.fromisoformat(str(t.due_date))
+                        dated_tasks.append((d, t))
+                    except:
+                        pass
+            
+            dated_tasks.sort(key=lambda x: x[0])
+            
+            # Simple clustering: O(N^2) but N is small (limit=5 usually, but could be more)
+            i = 0
+            while i < len(dated_tasks):
+                cluster_start_date = dated_tasks[i][0]
+                cluster_tasks = [dated_tasks[i]]
+                
+                j = i + 1
+                while j < len(dated_tasks) and (dated_tasks[j][0] - cluster_start_date).days <= 3:
+                    cluster_tasks.append(dated_tasks[j])
+                    j += 1
+                
+                # Check for "multiple high-priority" or just multiple events
+                high_priority_in_cluster = sum(1 for _, t in cluster_tasks if t.priority in ['high', 'urgent'])
+                
+                if len(cluster_tasks) >= 2 and high_priority_in_cluster >= 1:
+                    crunch_windows.append(CrunchWindow(
+                        start_date=str(cluster_start_date),
+                        end_date=str(dated_tasks[j-1][0]),
+                        deadline_count=len(cluster_tasks),
+                        severity='critical' if high_priority_in_cluster >= 2 else 'high'
+                    ))
+                    i = j # skip the clustered items
+                else:
+                    i += 1
+
         dashboard = DashboardResponse(
             academic_health=academic_health,
             next_recommended_action=next_action,
             upcoming_deadlines=upcoming_deadlines,
+            crunch_windows=crunch_windows,
             today_schedule=today_schedule,
             calendar_preview=calendar_preview,
             recent_automations=recent_automations,

@@ -62,6 +62,24 @@ function DashboardContent() {
         </Link>
       </div>
 
+      {data.crunch_windows && data.crunch_windows.length > 0 && (
+        <div className="bg-vintage-crimson/10 border-l-4 border-l-vintage-crimson p-6 shadow-sm rounded-r-lg mb-8 animate-pulse">
+          <div className="flex items-start gap-4">
+            <ShieldAlert className="w-8 h-8 text-vintage-crimson flex-shrink-0" />
+            <div>
+              <h3 className="font-display font-black text-xl text-vintage-crimson tracking-tight">
+                CRUNCH WINDOW DETECTED
+              </h3>
+              <p className="font-mono text-sm text-vintage-ink/80 mt-1">
+                You have {data.crunch_windows[0].deadline_count} deadlines clustering between {data.crunch_windows[0].start_date} and {data.crunch_windows[0].end_date}. 
+                Severity: <span className="uppercase font-bold">{data.crunch_windows[0].severity}</span>. 
+                Please allocate extra study hours in this window.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         
         {/* Academic Health Card */}
