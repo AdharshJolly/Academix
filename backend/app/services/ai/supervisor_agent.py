@@ -10,6 +10,18 @@ from app.schemas.tasks import TaskCreate, TaskUpdate
 
 logger = logging.getLogger(__name__)
 
+# Keep strong references to background tasks so they aren't garbage collected
+_background_tasks = set()
+
+def _on_task_done(task):
+    _background_tasks.discard(task)
+    try:
+        exc = task.exception()
+        if exc:
+            logger.error(f"Background task failed with exception: {exc}")
+    except asyncio.CancelledError:
+        pass
+
 class SupervisorAgent:
     """
     Agentic Orchestrator for Academix.
@@ -214,9 +226,11 @@ class SupervisorAgent:
         if successful_events:
             try:
                 loop = asyncio.get_running_loop()
-                loop.create_task(
+                task = loop.create_task(
                     asyncio.to_thread(self.calendar_sync.sync_events_background, user_id, successful_events)
                 )
+                _background_tasks.add(task)
+                task.add_done_callback(_on_task_done)
             except Exception as e:
                 logger.error(f"Failed to dispatch calendar sync background task: {e}")
                 
@@ -251,9 +265,11 @@ class SupervisorAgent:
         # Background Calendar Sync
         try:
             loop = asyncio.get_running_loop()
-            loop.create_task(
+            task = loop.create_task(
                 asyncio.to_thread(self.calendar_sync.sync_schedules_background, user_id, schedule)
             )
+            _background_tasks.add(task)
+            task.add_done_callback(_on_task_done)
         except Exception as e:
             logger.error(f"Failed to dispatch schedule sync background task: {e}")
             

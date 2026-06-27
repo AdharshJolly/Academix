@@ -91,8 +91,6 @@ async def get_dashboard(
             high_priority_count=high_priority_count
         )
         
-        from app.api.dashboard import _risk_summary
-        
         academic_health = AcademicHealthCard(
             risk_level=risk.risk_level,
             risk_score=risk.risk_score,

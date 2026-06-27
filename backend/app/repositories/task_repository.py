@@ -4,7 +4,7 @@ Data access layer for the tasks table.
 Routers call this — never the database directly.
 """
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from app.db.client import get_supabase
 from app.schemas.tasks import TaskCreate, TaskUpdate, TaskResponse
 
@@ -83,7 +83,7 @@ class TaskRepository:
         payload = {k: v for k, v in data.model_dump().items() if v is not None}
         if "due_date" in payload and payload["due_date"]:
             payload["due_date"] = str(payload["due_date"])
-        payload["updated_at"] = datetime.utcnow().isoformat()
+        payload["updated_at"] = datetime.now(timezone.utc).isoformat()
 
         response = (
             db.table(TABLE)
