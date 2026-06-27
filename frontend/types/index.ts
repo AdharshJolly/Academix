@@ -216,6 +216,8 @@ export interface TriggerResponse {
 // ── Attendance ────────────────────────────────────────────────────────────
 
 export interface AttendanceRecordCreate {
+    semester?: string;
+    subject_code?: string;
     subject_name: string;
     hours_conducted?: number;
     hours_attended?: number;
@@ -223,6 +225,8 @@ export interface AttendanceRecordCreate {
 }
 
 export interface AttendanceRecordUpdate {
+    semester?: string;
+    subject_code?: string;
     subject_name?: string;
     hours_conducted?: number;
     hours_attended?: number;
@@ -232,6 +236,8 @@ export interface AttendanceRecordUpdate {
 export interface AttendanceRecord {
     id: string;
     user_id: string;
+    semester: string;
+    subject_code?: string;
     subject_name: string;
     hours_conducted: number;
     hours_attended: number;

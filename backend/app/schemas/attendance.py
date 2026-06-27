@@ -3,6 +3,8 @@ from typing import Optional
 from datetime import datetime
 
 class AttendanceRecordBase(BaseModel):
+    semester: str = Field(default="Current Semester", min_length=1, max_length=50)
+    subject_code: Optional[str] = Field(None, max_length=50)
     subject_name: str = Field(..., min_length=1, max_length=255)
     hours_conducted: float = Field(default=0.0, ge=0.0)
     hours_attended: float = Field(default=0.0, ge=0.0)
@@ -12,6 +14,8 @@ class AttendanceRecordCreate(AttendanceRecordBase):
     pass
 
 class AttendanceRecordUpdate(BaseModel):
+    semester: Optional[str] = Field(None, min_length=1, max_length=50)
+    subject_code: Optional[str] = Field(None, max_length=50)
     subject_name: Optional[str] = Field(None, min_length=1, max_length=255)
     hours_conducted: Optional[float] = Field(None, ge=0.0)
     hours_attended: Optional[float] = Field(None, ge=0.0)

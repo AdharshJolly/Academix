@@ -8,6 +8,7 @@ from datetime import datetime, timedelta, timezone
 import json
 from fastapi import APIRouter, Depends, HTTPException, Query, status, BackgroundTasks
 from typing import Optional
+from pydantic import BaseModel
 
 from app.core.security import verify_token
 from app.integrations.calendar import GoogleCalendarClient

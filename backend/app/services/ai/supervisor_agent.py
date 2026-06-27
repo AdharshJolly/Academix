@@ -147,6 +147,30 @@ class SupervisorAgent:
                         }
                     }
                 }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "register_timetable_subjects",
+                    "description": "Call this when the user sends a timetable, syllabus, or list of classes and wants to register them for attendance tracking.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "semester": {
+                                "type": "string",
+                                "description": "The semester for these subjects (e.g. 'Fall 2026', 'Semester 1'). If not specified, default to 'Current Semester'."
+                            },
+                            "subjects": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                },
+                                "description": "The list of subject names extracted from the timetable."
+                            }
+                        },
+                        "required": ["subjects"]
+                    }
+                }
             }
         ]
         
@@ -158,6 +182,7 @@ class SupervisorAgent:
             "You must use the 'search_study_materials' tool if they ask a question about their syllabus, classes, or uploaded documents. "
             "You must use 'reschedule_task' or 'delete_task' if they ask to modify or remove a task. "
             "You must use 'log_attendance' if the user reports missing classes, attending classes, or gives a daily/weekly attendance update. "
+            "You must use 'register_timetable_subjects' if the user sends their college timetable, schedule, or list of subjects so you can automatically register them for attendance tracking. "
             "If they just say hello or ask a general question, do not use tools—just reply nicely!"
         )
 
@@ -210,6 +235,9 @@ class SupervisorAgent:
                         
                     elif fn_name == "log_attendance":
                         reply_texts.append(self._handle_log_attendance(user_id, args))
+                        
+                    elif fn_name == "register_timetable_subjects":
+                        reply_texts.append(self._handle_register_subjects(user_id, args.get("subjects", []), args.get("semester", "Current Semester")))
                 
                 response_text = "\n\n".join(reply_texts)
                 
@@ -224,6 +252,33 @@ class SupervisorAgent:
         except Exception as e:
             logger.error(f"Supervisor error: {e}")
             return "Sorry, my brain encountered an error while thinking about that!"
+            
+    def _handle_register_subjects(self, user_id: str, subjects: list, semester: str) -> str:
+        if not subjects:
+            return "I couldn't find any clear subject names in that timetable."
+            
+        try:
+            from app.repositories.attendance_repository import AttendanceRepository
+            from app.schemas.attendance import AttendanceRecordCreate
+            
+            repo = AttendanceRepository()
+            added = 0
+            
+            for subject in subjects:
+                # Add each subject with default 0 hours and 75% target
+                repo.create(user_id, AttendanceRecordCreate(
+                    semester=semester,
+                    subject_name=subject,
+                    hours_conducted=0,
+                    hours_attended=0,
+                    target_percentage=75.0
+                ))
+                added += 1
+                
+            return f"✅ Awesome! I successfully extracted {added} subjects from your timetable ({', '.join(subjects)}) and registered them in your Attendance Tracker!"
+        except Exception as e:
+            logger.error(f"Error registering subjects: {e}")
+            return "Oops, I had trouble saving those subjects to your attendance tracker."
             
     def _handle_log_attendance(self, user_id: str, args: dict) -> str:
         hours_conducted = args.get("hours_conducted_today")

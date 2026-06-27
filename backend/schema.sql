@@ -162,6 +162,8 @@ CREATE POLICY "Users own their chat history" ON conversation_history
 CREATE TABLE IF NOT EXISTS attendance_records (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    semester VARCHAR(50) NOT NULL DEFAULT 'Current Semester',
+    subject_code VARCHAR(50),
     subject_name VARCHAR(255) NOT NULL,
     hours_conducted NUMERIC NOT NULL DEFAULT 0.0,
     hours_attended NUMERIC NOT NULL DEFAULT 0.0,

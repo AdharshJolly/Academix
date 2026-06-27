@@ -16,6 +16,8 @@ function AttendanceContent() {
 
   const [isAdding, setIsAdding] = useState(false);
   const [newSubject, setNewSubject] = useState({
+    semester: 'Semester 1',
+    subject_code: '',
     subject_name: '',
     hours_conducted: 0,
     hours_attended: 0,
@@ -49,7 +51,7 @@ function AttendanceContent() {
       if (res.success && res.data) {
         setRecords([res.data, ...records]);
         setIsAdding(false);
-        setNewSubject({ subject_name: '', hours_conducted: 0, hours_attended: 0, target_percentage: 75 });
+        setNewSubject(prev => ({ ...prev, subject_name: '', subject_code: '', hours_conducted: 0, hours_attended: 0, target_percentage: 75 }));
       }
     } catch (err: any) {
       alert(err.message || "Failed to add subject");
@@ -108,6 +110,13 @@ function AttendanceContent() {
   const overallConducted = records.reduce((sum, r) => sum + r.hours_conducted, 0);
   const overallPercentage = overallConducted === 0 ? 0 : (overallAttended / overallConducted) * 100;
 
+  const groupedRecords = records.reduce((acc, record) => {
+    const sem = record.semester || 'Current Semester';
+    if (!acc[sem]) acc[sem] = [];
+    acc[sem].push(record);
+    return acc;
+  }, {} as Record<string, AttendanceRecord[]>);
+
   return (
     <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700 max-w-6xl mx-auto py-10 px-8">
       
@@ -139,6 +148,14 @@ function AttendanceContent() {
         <form onSubmit={handleAdd} className="vintage-panel p-6 bg-white/50 border border-dashed border-vintage-crimson/50 animate-in fade-in zoom-in-95">
           <h3 className="font-mono font-bold text-vintage-ink mb-4">New Subject Record</h3>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+            <div className="col-span-1 md:col-span-2">
+              <label className="block text-xs font-mono font-bold text-vintage-ink/60 uppercase mb-1">Semester</label>
+              <input type="text" value={newSubject.semester} onChange={e => setNewSubject({...newSubject, semester: e.target.value})} className="w-full bg-white border-2 border-vintage-ink/10 rounded-md p-3 font-mono focus:border-vintage-crimson focus:outline-none" required placeholder="e.g. Fall 2026" />
+            </div>
+            <div className="col-span-1 md:col-span-2">
+              <label className="block text-xs font-mono font-bold text-vintage-ink/60 uppercase mb-1">Subject Code (Optional)</label>
+              <input type="text" value={newSubject.subject_code} onChange={e => setNewSubject({...newSubject, subject_code: e.target.value})} className="w-full bg-white border-2 border-vintage-ink/10 rounded-md p-3 font-mono focus:border-vintage-crimson focus:outline-none" placeholder="e.g. CS101" />
+            </div>
             <div className="col-span-1 md:col-span-4">
               <label className="block text-xs font-mono font-bold text-vintage-ink/60 uppercase mb-1">Subject Name</label>
               <input type="text" value={newSubject.subject_name} onChange={e => setNewSubject({...newSubject, subject_name: e.target.value})} className="w-full bg-white border-2 border-vintage-ink/10 rounded-md p-3 font-mono focus:border-vintage-crimson focus:outline-none" required placeholder="e.g. Data Structures" />
@@ -171,9 +188,14 @@ function AttendanceContent() {
             <p className="font-mono text-vintage-ink/40 text-sm mt-2">Click "Add Subject" to start tracking attendance.</p>
           </div>
         )}
+      </div>
 
-        {records.map(record => {
-          const currentPercent = record.hours_conducted === 0 ? 0 : (record.hours_attended / record.hours_conducted) * 100;
+      {Object.entries(groupedRecords).map(([semester, semRecords]) => (
+        <div key={semester} className="mt-8">
+          <h2 className="font-mono font-bold text-xl text-vintage-ink mb-6 border-b border-vintage-ink/10 pb-2">{semester}</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {semRecords.map(record => {
+              const currentPercent = record.hours_conducted === 0 ? 0 : (record.hours_attended / record.hours_conducted) * 100;
           const target = record.target_percentage;
           
           let insight = "";
@@ -196,7 +218,10 @@ function AttendanceContent() {
               <div className="absolute inset-0 pointer-events-none opacity-[0.03]" style={{ backgroundImage: 'linear-gradient(to right, #2b2b2b 1px, transparent 1px), linear-gradient(to bottom, #2b2b2b 1px, transparent 1px)', backgroundSize: '10px 10px' }}></div>
               
               <div className="flex justify-between items-start mb-6 relative z-10">
-                <h2 className="font-display font-black text-2xl text-vintage-ink tracking-tight">{record.subject_name}</h2>
+                <div>
+                  <h2 className="font-display font-black text-2xl text-vintage-ink tracking-tight">{record.subject_name}</h2>
+                  {record.subject_code && <span className="font-mono text-xs font-bold text-vintage-ink/60 bg-vintage-ink/5 px-2 py-0.5 rounded-md inline-block mt-1">{record.subject_code}</span>}
+                </div>
                 <button onClick={() => handleDelete(record.id)} className="text-vintage-ink/20 hover:text-vintage-crimson transition-colors">
                   <Trash2 className="w-5 h-5" />
                 </button>
@@ -253,7 +278,9 @@ function AttendanceContent() {
             </div>
           );
         })}
-      </div>
+          </div>
+        </div>
+      ))}
       
     </div>
   );
