@@ -24,17 +24,10 @@ from app.schemas.dashboard import (
     UpcomingDeadline,
 )
 
+from app.api.dependencies import get_task_repo, get_intelligence_repo, get_automation_repo
+
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
-
-def get_task_repo() -> TaskRepository:
-    return TaskRepository()
-
-def get_intelligence_repo() -> IntelligenceRepository:
-    return IntelligenceRepository()
-
-def get_automation_repo() -> AutomationRepository:
-    return AutomationRepository()
 
 
 @router.get("", response_model=APIResponse[DashboardResponse])

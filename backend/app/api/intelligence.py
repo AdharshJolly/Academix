@@ -32,14 +32,7 @@ limiter = Limiter(key_func=get_auth_token_or_ip)
 
 
 
-def get_intelligence_engine() -> AcademicIntelligenceEngine:
-    return AcademicIntelligenceEngine()
-
-def get_intelligence_repo() -> IntelligenceRepository:
-    return IntelligenceRepository()
-
-def get_automation_service() -> AutomationService:
-    return AutomationService()
+from app.api.dependencies import get_intelligence_engine, get_intelligence_repo, get_automation_service
 
 
 import asyncio
@@ -51,9 +44,9 @@ async def run_pipeline(
     user_id: str,
 ):
     try:
-        engine = AcademicIntelligenceEngine()
-        repo = IntelligenceRepository()
-        automation = AutomationService()
+        engine = get_intelligence_engine()
+        repo = get_intelligence_repo()
+        automation = get_automation_service()
         
         from app.repositories.user_repository import UserRepository
         user_repo = UserRepository()
@@ -91,8 +84,8 @@ async def run_pipeline(
 @router.post("/process")
 @limiter.limit("10/minute")
 def process_intelligence(
-    request_obj: Request,
-    request: IntelligenceRequest,
+    request: Request,
+    payload: IntelligenceRequest,
     background_tasks: BackgroundTasks,
     user: dict = Depends(verify_token),
 ):
@@ -100,7 +93,7 @@ def process_intelligence(
     Unified AI processing endpoint. Returns a report_id immediately.
     """
     report_id = str(uuid.uuid4())
-    background_tasks.add_task(run_pipeline, report_id, request, user["id"])
+    background_tasks.add_task(run_pipeline, report_id, payload, user["id"])
     return APIResponse(success=True, data={"report_id": report_id, "status": "processing"})
 
 @router.get("/status/{report_id}")
@@ -118,7 +111,7 @@ def get_report_status(
 @router.post("/upload")
 @limiter.limit("10/minute")
 async def upload_notice(
-    request_obj: Request,
+    request: Request,
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     user: dict = Depends(verify_token),

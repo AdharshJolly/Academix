@@ -24,16 +24,18 @@ from app.integrations.telegram import TelegramClient
 from app.services.ai.vision_extractor import VisionExtractor
 import logging
 
+from app.api.dependencies import get_automation_repo
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/automations", tags=["automations"])
-automation_repo = AutomationRepository()
 
 
 @router.post("/log", response_model=AutomationCallbackResponse)
 def log_automation_callback(
     request: AutomationLogCallback,
     authorization: str | None = Header(default=None),
+    automation_repo: AutomationRepository = Depends(get_automation_repo),
 ):
     """Callback endpoint called by Make.com after Twilio WhatsApp delivery."""
     expected = f"Bearer {settings.AUTOMATION_CALLBACK_SECRET}"
@@ -61,6 +63,7 @@ def log_automation_callback(
 def list_automation_logs(
     limit: int = 20,
     user: dict = Depends(verify_token),
+    automation_repo: AutomationRepository = Depends(get_automation_repo),
 ):
     """Return recent automation logs for the authenticated user."""
     safe_limit = max(1, min(limit, 100))

@@ -11,11 +11,10 @@ from app.repositories.task_repository import TaskRepository
 from app.schemas.common import APIResponse, PaginatedResponse
 from app.schemas.tasks import TaskCreate, TaskResponse, TaskUpdate
 from app.services.automation_service import AutomationService
+from app.api.dependencies import get_task_repo, get_automation_service
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/tasks", tags=["tasks"])
-task_repo = TaskRepository()
-automation_service = AutomationService()
 
 
 @router.get("", response_model=PaginatedResponse[TaskResponse])
@@ -25,6 +24,7 @@ async def get_tasks(
     status: str | None = None,
     priority: str | None = None,
     user: dict = Depends(verify_token),
+    task_repo: TaskRepository = Depends(get_task_repo),
 ):
     """List all tasks for the authenticated user with optional filters."""
     tasks, total = task_repo.get_all(
@@ -48,6 +48,8 @@ async def get_tasks(
 async def create_task(
     request: TaskCreate,
     user: dict = Depends(verify_token),
+    task_repo: TaskRepository = Depends(get_task_repo),
+    automation_service: AutomationService = Depends(get_automation_service),
 ):
     """Create a new academic task."""
     try:
@@ -71,6 +73,7 @@ async def create_task(
 def get_task(
     task_id: str,
     user: dict = Depends(verify_token),
+    task_repo: TaskRepository = Depends(get_task_repo),
 ):
     """Get a single task by ID."""
     task = task_repo.get_by_id(task_id, user["id"])
@@ -84,6 +87,7 @@ def update_task(
     task_id: str,
     request: TaskUpdate,
     user: dict = Depends(verify_token),
+    task_repo: TaskRepository = Depends(get_task_repo),
 ):
     """Update an existing task. Only provided fields are changed."""
     task = task_repo.update(task_id, user["id"], request)
@@ -96,6 +100,7 @@ def update_task(
 def delete_task(
     task_id: str,
     user: dict = Depends(verify_token),
+    task_repo: TaskRepository = Depends(get_task_repo),
 ):
     """Delete a task by ID."""
     deleted = task_repo.delete(task_id, user["id"])

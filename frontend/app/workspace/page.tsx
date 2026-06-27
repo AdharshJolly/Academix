@@ -11,9 +11,9 @@ import { useAuth } from '../../contexts/AuthContext';
 
 import { TaskService } from '../../services/task.service';
 import { IntelligenceService } from '../../services/intelligence.service';
-import { useEffect } from 'react';
-
 import { IntelligenceResponse, ExtractedEvent, Recommendation, TaskResponse } from '../../types/index';
+import ErrorBoundary from '../../components/shared/ErrorBoundary';
+import SkeletonCard from '../../components/shared/SkeletonCard';
 
 interface WorkspaceTask {
   id: string;
@@ -29,15 +29,17 @@ interface WorkspaceTask {
 // Fallback empty state
 const INITIAL_TASKS: WorkspaceTask[] = [];
 
-export default function WorkspacePage() {
+function WorkspaceContent() {
   const { user, token } = useAuth();
   const [activeTab, setActiveTab] = useState<'tasks' | 'inbox' | 'completed'>('tasks');
   const [tasks, setTasks] = useState<WorkspaceTask[]>(INITIAL_TASKS);
   const [selectedItem, setSelectedItem] = useState<WorkspaceTask | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
     if (!token) return;
+    setIsLoading(true);
     TaskService.getTasks(token).then(res => {
       if (res.success && res.data) {
         const fetchedTasks = res.data.map((t: TaskResponse) => ({
@@ -55,7 +57,11 @@ export default function WorkspacePage() {
           setSelectedItem(fetchedTasks[0]);
         }
       }
-    }).catch(console.error);
+      setIsLoading(false);
+    }).catch(err => {
+      console.error(err);
+      setIsLoading(false);
+    });
   }, [token]);
   
   // Quick Capture State
@@ -296,7 +302,13 @@ export default function WorkspacePage() {
                 <motion.div key="tasks" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
                   <h2 className="text-2xl font-black font-display text-vintage-ink mb-6">Today's Focus</h2>
                   <div className="space-y-3">
-                    {filteredTasks.length === 0 ? (
+                    {isLoading ? (
+                      <>
+                        <SkeletonCard />
+                        <SkeletonCard />
+                        <SkeletonCard />
+                      </>
+                    ) : filteredTasks.length === 0 ? (
                       <p className="text-vintage-ink/50 font-mono text-sm">No tasks found matching your search.</p>
                     ) : (
                       filteredTasks.map(task => (
@@ -739,6 +751,14 @@ export default function WorkspacePage() {
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+export default function WorkspacePage() {
+  return (
+    <ErrorBoundary>
+      <WorkspaceContent />
+    </ErrorBoundary>
   );
 }
 

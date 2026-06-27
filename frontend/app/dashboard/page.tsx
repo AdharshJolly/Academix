@@ -5,17 +5,23 @@ import { useDashboard } from '../../contexts/DashboardContext';
 import { ShieldAlert, Target, Calendar, Clock, Activity, ArrowRight, Zap } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '../../contexts/AuthContext';
+import ErrorBoundary from '../../components/shared/ErrorBoundary';
+import SkeletonCard from '../../components/shared/SkeletonCard';
 
-export default function DashboardPage() {
+function DashboardContent() {
   const { data, isLoading, error } = useDashboard();
   const { user } = useAuth();
 
   if (isLoading) {
     return (
-      <div className="flex h-[80vh] items-center justify-center">
-        <div className="flex flex-col items-center gap-6">
-          <div className="w-12 h-12 border-2 border-vintage-crimson border-t-transparent animate-spin rounded-full"></div>
-          <p className="text-sm font-mono font-bold tracking-widest text-vintage-crimson uppercase">Fetching Intel...</p>
+      <div className="max-w-6xl mx-auto py-10 px-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <SkeletonCard />
+          <SkeletonCard />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 pt-8 mt-12 border-t border-vintage-ink/10">
+          <div className="space-y-4"><SkeletonCard /><SkeletonCard /></div>
+          <div className="space-y-4"><SkeletonCard /><SkeletonCard /></div>
         </div>
       </div>
     );
@@ -204,5 +210,13 @@ export default function DashboardPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <ErrorBoundary>
+      <DashboardContent />
+    </ErrorBoundary>
   );
 }
