@@ -171,12 +171,16 @@ class AcademicIntelligenceEngine:
         system = self._prompt_manager.get_system_prompt()
         prompt = self._prompt_manager.get_notice_extraction_prompt(raw_text)
 
-        raw_output = self._groq.generate_json(prompt, system=system)
-        parsed = self._json_parser.safe_extract(raw_output, fallback={})
-        
-        events_data = parsed.get("extracted_events") or parsed.get("events") or []
-        if not isinstance(events_data, list):
-            events_data = []
+        try:
+            raw_output = self._groq.generate_json(prompt, system=system)
+            parsed = self._json_parser.safe_extract(raw_output, fallback={})
+            
+            events_data = parsed.get("extracted_events") or parsed.get("events") or []
+            if not isinstance(events_data, list):
+                events_data = []
+        except Exception as e:
+            logger.warning(f"Failed to extract events from AI: {e}")
+            return []
 
         # --- Self-Correcting Validation Loop ---
         try:

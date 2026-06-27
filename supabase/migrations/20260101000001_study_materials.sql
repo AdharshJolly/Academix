@@ -23,7 +23,7 @@ DROP FUNCTION IF EXISTS match_study_materials;
 DROP FUNCTION IF EXISTS match_study_materials(vector, float, int);
 DROP FUNCTION IF EXISTS match_study_materials(vector, float, int, uuid);
 
-CREATE OR REPLACE FUNCTION match_study_materials (
+CREATE OR REPLACE FUNCTION search_study_materials (
   query_embedding vector(384),
   match_threshold float,
   match_count int,

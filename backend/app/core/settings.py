@@ -17,8 +17,9 @@ class Settings(BaseSettings):
     SUPABASE_URL: str = ""
     SUPABASE_SERVICE_ROLE_KEY: str = ""
 
-    # Groq AI
+    # Groq AI & Gemini
     GROQ_API_KEY: str = ""
+    GEMINI_API_KEY: str = ""
     PRIMARY_MODEL: str = "moonshotai/kimi-k2-instruct"
     FALLBACK_MODEL: str = "llama-3.3-70b-versatile"
 

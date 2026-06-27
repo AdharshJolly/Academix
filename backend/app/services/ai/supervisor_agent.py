@@ -438,7 +438,7 @@ class SupervisorAgent:
             
             # 2. Search Supabase via the RPC function
             # Fetch more matches for reranking
-            res = self.task_repo.db.rpc("match_study_materials", {
+            res = self.task_repo.db.rpc("search_study_materials", {
                 "query_embedding": vector_literal,
                 "match_threshold": 0.3, # lower threshold for wider recall
                 "match_count": 10,

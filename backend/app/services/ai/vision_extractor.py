@@ -4,6 +4,7 @@ Because Groq decommissioned their vision models, we use Gemini 2.5 Flash
 to extract text and event details from images/posters.
 """
 import os
+from app.core.settings import settings
 import logging
 import httpx
 import base64
@@ -12,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 class VisionExtractor:
     def __init__(self):
-        self.api_key = os.getenv("GEMINI_API_KEY")
+        self.api_key = settings.GEMINI_API_KEY
         if not self.api_key:
             logger.warning("GEMINI_API_KEY is not set. Vision extraction will fail.")
         
