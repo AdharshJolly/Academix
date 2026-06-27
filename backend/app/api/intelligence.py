@@ -94,7 +94,7 @@ def process_intelligence(
     """
     report_id = str(uuid.uuid4())
     background_tasks.add_task(run_pipeline, report_id, payload, user["id"])
-    return APIResponse(success=True, data={"report_id": report_id, "status": "processing"})
+    return APIResponse(success=True, message="Processing started", data={"report_id": report_id, "status": "processing"})
 
 @router.get("/status/{report_id}")
 def get_report_status(
@@ -105,8 +105,8 @@ def get_report_status(
     # Wait for the background task to insert the report
     report = intelligence_repo.get_by_id(report_id, user["id"])
     if not report:
-        return APIResponse(success=True, data={"status": "processing"})
-    return APIResponse(success=True, data={"status": "completed", "report": report})
+        return APIResponse(success=True, message="Processing", data={"status": "processing"})
+    return APIResponse(success=True, message="Completed", data={"status": "completed", "report": report})
 
 @router.post("/upload")
 @limiter.limit("10/minute")
@@ -132,7 +132,7 @@ async def upload_notice(
         mime_type = file.content_type or "image/jpeg"
         text = await vision_extractor.extract_text_from_image(contents, mime_type)
         
-    request_schema = IntelligenceRequest(input_type="notice", data=text)
+    request_schema = IntelligenceRequest(input_type="notice", data={"text": text})
     report_id = str(uuid.uuid4())
     background_tasks.add_task(run_pipeline, report_id, request_schema, user["id"])
-    return APIResponse(success=True, data={"report_id": report_id, "status": "processing"})
+    return APIResponse(success=True, message="Processing started", data={"report_id": report_id, "status": "processing"})

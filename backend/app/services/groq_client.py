@@ -57,9 +57,10 @@ class GroqClient:
             logger.info(f"Groq [{self.primary_model}] responded successfully.")
             return content
 
-        except Exception as primary_error:
+        except Exception as e:
+            primary_error_msg = str(e)
             logger.warning(
-                f"Primary model [{self.primary_model}] failed: {primary_error}. "
+                f"Primary model [{self.primary_model}] failed: {primary_error_msg}. "
                 f"Falling back to [{self.fallback_model}]..."
             )
 
@@ -78,7 +79,7 @@ class GroqClient:
         except Exception as fallback_error:
             raise RuntimeError(
                 f"Both AI models failed. "
-                f"Primary error: {primary_error}. "
+                f"Primary error: {primary_error_msg}. "
                 f"Fallback error: {fallback_error}."
             )
 

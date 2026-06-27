@@ -45,8 +45,9 @@ class AutomationRepository:
         response: dict | None = None,
     ) -> None:
         """Update log status after Calendar, Make.com, or Twilio callback work."""
+        from typing import Any
         db = get_supabase()
-        update_payload = {"status": status}
+        update_payload: dict[str, Any] = {"status": status}
         if status in ("success", "failed"):
             update_payload["completed_at"] = self._now()
         if response is not None:

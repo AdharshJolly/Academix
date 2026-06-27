@@ -92,7 +92,7 @@ def trigger_automation(
     Manually trigger an automation from the frontend UI.
     """
     # Log the automation as pending
-    log_id = automation_repo.create_log(
+    log_id = automation_repo.log(
         user_id=user["id"],
         workflow_type=type,
         status="pending",

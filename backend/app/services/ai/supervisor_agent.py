@@ -11,7 +11,8 @@ from app.schemas.tasks import TaskCreate, TaskUpdate
 logger = logging.getLogger(__name__)
 
 # Keep strong references to background tasks so they aren't garbage collected
-_background_tasks = set()
+from typing import Set, Any
+_background_tasks: Set[Any] = set()
 
 def _on_task_done(task):
     _background_tasks.discard(task)
@@ -268,6 +269,7 @@ class SupervisorAgent:
                 # Add each subject with default 0 hours and 75% target
                 repo.create(user_id, AttendanceRecordCreate(
                     semester=semester,
+                    subject_code=None,
                     subject_name=subject,
                     hours_conducted=0,
                     hours_attended=0,
@@ -434,10 +436,11 @@ class SupervisorAgent:
             
             try:
                 rerank_res = self.groq.generate_json(prompt=rerank_prompt, system=rerank_system)
-                from app.services.ai.json_parser import JsonParser
-                parser = JsonParser()
+                from app.services.ai.json_parser import JSONParser
+                parser = JSONParser()
                 # Use safe_extract which handles json parsing
-                relevant_indices = parser.safe_extract(rerank_res, fallback=list(range(min(3, len(matches)))))
+                extracted = parser.safe_extract(rerank_res, fallback={"data": list(range(min(3, len(matches))))})
+                relevant_indices = extracted.get("data", list(range(min(3, len(matches)))))
                 if not isinstance(relevant_indices, list):
                     relevant_indices = list(range(min(3, len(matches))))
             except Exception as e:
@@ -465,3 +468,9 @@ class SupervisorAgent:
         except Exception as e:
             logger.error(f"Failed to search study materials: {e}")
             return "I ran into an issue searching your study materials!"
+
+    def _handle_reschedule(self, user_id: str, task_name: str, new_date: str) -> str:
+        return "Task rescheduling is not fully automated yet. Please update it manually on the dashboard."
+
+    def _handle_delete(self, user_id: str, task_name: str) -> str:
+        return "Task deletion via chat is not supported yet. Please delete it manually on the dashboard."

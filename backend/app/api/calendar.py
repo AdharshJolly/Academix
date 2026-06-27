@@ -192,7 +192,7 @@ def prefetch_calendar(
         now.month
     )
     
-    return APIResponse(success=True, data={"status": "prefetching"})
+    return APIResponse(success=True, message="Prefetching started", data={"status": "prefetching"})
 
 @router.post("/events", response_model=APIResponse[dict])
 def create_calendar_event(

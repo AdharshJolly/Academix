@@ -82,7 +82,7 @@ def verify_token(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-def verify_ws_token(token: str) -> dict:
+def verify_ws_token(token: str) -> dict | None:
     """Manually verify JWT token for WebSockets."""
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
