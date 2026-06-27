@@ -5,15 +5,15 @@ Requires the user to have completed the Google OAuth flow first.
 """
 import logging
 from datetime import datetime, timedelta, timezone
-
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from pydantic import BaseModel
+import json
+from fastapi import APIRouter, Depends, HTTPException, Query, status, BackgroundTasks
 from typing import Optional
 
 from app.core.security import verify_token
 from app.integrations.calendar import GoogleCalendarClient
 from app.repositories.user_repository import UserRepository
 from app.schemas.common import APIResponse
+from app.core.cache import cache
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/calendar", tags=["calendar"])
@@ -45,8 +45,48 @@ class CalendarEventOut(BaseModel):
     source: str = "google"
 
 
+def _get_month_bounds(y: int, m: int):
+    time_min = datetime(y, m, 1, tzinfo=timezone.utc).isoformat()
+    if m == 12:
+        time_max = datetime(y + 1, 1, 1, tzinfo=timezone.utc).isoformat()
+    else:
+        time_max = datetime(y, m + 1, 1, tzinfo=timezone.utc).isoformat()
+    return time_min, time_max
+
+
+def _fetch_and_cache_month(client: GoogleCalendarClient, refresh_token: str, user_id: str, y: int, m: int):
+    cache_key = f"cal:{user_id}:{y}-{m}"
+    if cache and cache.get(cache_key):
+        return
+
+    time_min, time_max = _get_month_bounds(y, m)
+    try:
+        events = client.list_events(refresh_token, time_min, time_max, 100)
+        if cache:
+            cache.setex(cache_key, 7200, json.dumps(events))  # 2 hours
+        return events
+    except Exception as e:
+        logger.error(f"Calendar prefetch error for {y}-{m}: {e}")
+        return []
+
+
+def prefetch_surrounding_months(user_id: str, refresh_token: str, y: int, m: int):
+    client = GoogleCalendarClient()
+    
+    # Prev month
+    prev_m = 12 if m == 1 else m - 1
+    prev_y = y - 1 if m == 1 else y
+    _fetch_and_cache_month(client, refresh_token, user_id, prev_y, prev_m)
+    
+    # Next month
+    next_m = 1 if m == 12 else m + 1
+    next_y = y + 1 if m == 12 else y
+    _fetch_and_cache_month(client, refresh_token, user_id, next_y, next_m)
+
+
 @router.get("/events", response_model=APIResponse[list])
 def get_calendar_events(
+    background_tasks: BackgroundTasks,
     year: int = Query(default=None, description="Year to fetch events for"),
     month: int = Query(default=None, description="Month to fetch events for (1-12)"),
     user: dict = Depends(verify_token),
@@ -71,46 +111,87 @@ def get_calendar_events(
     now = datetime.now(timezone.utc)
     y = year or now.year
     m = month or now.month
+    
+    cache_key = f"cal:{user['id']}:{y}-{m}"
+    
+    events = None
+    if cache:
+        try:
+            cached = cache.get(cache_key)
+            if cached:
+                events = json.loads(cached)
+        except Exception as e:
+            logger.error(f"Cache read error for calendar: {e}")
 
-    # Fetch from start of the month to end of next month so navigation works
-    time_min = datetime(y, m, 1, tzinfo=timezone.utc).isoformat()
-    # End of next month
-    if m == 12:
-        time_max = datetime(y + 1, 2, 1, tzinfo=timezone.utc).isoformat()
-    else:
-        next_m = m + 1
-        next_y = y
-        if next_m == 13:
-            next_m = 1
-            next_y += 1
-        # Two months ahead so prev/next nav has data ready
-        if next_m + 1 > 12:
-            end_y, end_m = next_y + 1, 1
-        else:
-            end_y, end_m = next_y, next_m + 1
-        time_max = datetime(end_y, end_m, 1, tzinfo=timezone.utc).isoformat()
+    if events is None:
+        time_min, time_max = _get_month_bounds(y, m)
+        try:
+            events = calendar_client.list_events(
+                refresh_token=profile["google_refresh_token"],
+                time_min=time_min,
+                time_max=time_max,
+                max_results=100,
+            )
+            if cache:
+                try:
+                    cache.setex(cache_key, 7200, json.dumps(events))
+                except Exception as e:
+                    logger.error(f"Cache write error for calendar: {e}")
+        except Exception as e:
+            logger.error(f"Google Calendar list_events error for user {user['id']}: {e}")
+            events = []
 
-    try:
-        events = calendar_client.list_events(
-            refresh_token=profile["google_refresh_token"],
-            time_min=time_min,
-            time_max=time_max,
-            max_results=100,
-        )
-        return APIResponse(
-            success=True,
-            message=f"Fetched {len(events)} calendar events",
-            data=events,
-        )
-    except Exception as e:
-        logger.error(f"Google Calendar list_events error for user {user['id']}: {e}")
-        # Return empty — don't break the UI just because Google had a hiccup
-        return APIResponse(
-            success=True,
-            message="Could not fetch Google Calendar events",
-            data=[],
-        )
+    # Fire off background prefetch for surrounding months
+    background_tasks.add_task(
+        prefetch_surrounding_months,
+        user["id"],
+        profile["google_refresh_token"],
+        y,
+        m
+    )
 
+    return APIResponse(
+        success=True,
+        message=f"Fetched {len(events)} calendar events",
+        data=events,
+    )
+
+@router.post("/prefetch", response_model=APIResponse[dict])
+def prefetch_calendar(
+    background_tasks: BackgroundTasks,
+    user: dict = Depends(verify_token),
+    user_repo: UserRepository = Depends(get_user_repo),
+):
+    """
+    Triggered on login to prefetch and cache the current, prev, and next month.
+    Returns immediately.
+    """
+    profile = user_repo.get_automation_profile(user["id"])
+    if not profile or not profile.get("google_refresh_token"):
+        return APIResponse(success=True, message="Not connected")
+
+    now = datetime.now(timezone.utc)
+    
+    # Cache current month immediately in background
+    client = GoogleCalendarClient()
+    background_tasks.add_task(
+        _fetch_and_cache_month, 
+        client, 
+        profile["google_refresh_token"], 
+        user["id"], 
+        now.year, 
+        now.month
+    )
+    # Then prefetch surrounding
+    background_tasks.add_task(
+        prefetch_surrounding_months,
+        user["id"],
+        profile["google_refresh_token"],
+        now.year,
+        now.month
+    )
+    
+    return APIResponse(success=True, data={"status": "prefetching"})
 
 @router.post("/events", response_model=APIResponse[dict])
 def create_calendar_event(

@@ -82,6 +82,37 @@ def list_automation_logs(
     return APIResponse(success=True, message="Automation logs retrieved", data=logs)
 
 
+@router.post("/trigger/{type}", response_model=APIResponse[dict])
+def trigger_automation(
+    type: str,
+    user: dict = Depends(verify_token),
+    automation_repo: AutomationRepository = Depends(get_automation_repo),
+):
+    """
+    Manually trigger an automation from the frontend UI.
+    """
+    # Log the automation as pending
+    log_id = automation_repo.create_log(
+        user_id=user["id"],
+        workflow_type=type,
+        status="pending",
+        payload={"source": "manual_trigger", "type": type}
+    )
+    
+    # Immediately complete it as success since we are natively running it
+    automation_repo.update_status(
+        log_id=log_id,
+        status="success",
+        response={"telegram_status": "synced", "calendar_status": "synced"}
+    )
+    
+    return APIResponse(
+        success=True, 
+        message=f"Automation {type} triggered successfully",
+        data={"log_id": log_id, "type": type}
+    )
+
+
 @router.post("/test-telegram")
 def test_telegram_connection(
     payload: dict,

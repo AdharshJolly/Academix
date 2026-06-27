@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Bell, Search, AlertCircle, Calendar, CheckSquare, Square, Trash2, Plus, Target } from 'lucide-react';
+import { Bell, Search, AlertCircle, Calendar, CheckSquare, Square, Trash2, Plus, Target, Zap } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useDashboard } from '../../contexts/DashboardContext';
 import { FocusTimerModal } from './FocusTimerModal';
@@ -38,6 +38,52 @@ export function Header() {
     t.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
     t.subject.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Dynamic notifications from Dashboard context
+  const notifications = useMemo(() => {
+    const items: { id: string, title: string, subtitle: string, icon: any, href: string, isUrgent: boolean }[] = [];
+    
+    // Add urgent deadlines
+    data?.upcoming_deadlines?.forEach(d => {
+      if (d.priority === 'high' || d.days_remaining <= 2) {
+        items.push({
+          id: `deadline-${d.task_id}`,
+          title: d.title,
+          subtitle: `Due in ${d.days_remaining} day(s)`,
+          icon: AlertCircle,
+          href: '/workspace',
+          isUrgent: true
+        });
+      }
+    });
+
+    // Add upcoming schedule block
+    if (data?.today_schedule && data.today_schedule.length > 0) {
+      const nextClass = data.today_schedule[0];
+      items.push({
+        id: `schedule-0`,
+        title: `${nextClass.subject || 'General'} ${nextClass.session_type}`,
+        subtitle: `Duration: ${nextClass.duration_hours}h`,
+        icon: Calendar,
+        href: '/calendar',
+        isUrgent: false
+      });
+    }
+
+    // Add recommendation if exists
+    if (data?.next_recommended_action) {
+      items.push({
+        id: 'recommendation',
+        title: data.next_recommended_action.action,
+        subtitle: `Priority ${data.next_recommended_action.priority}`,
+        icon: Zap,
+        href: '/dashboard',
+        isUrgent: data.next_recommended_action.priority >= 4
+      });
+    }
+
+    return items;
+  }, [data]);
 
   // Dynamic subjects based on schedule items
   const [subjects, setSubjects] = useState<{id: string, name: string, checked: boolean}[]>([]);
@@ -215,30 +261,36 @@ export function Header() {
               className="relative p-3 bg-white text-vintage-crimson rounded-full shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all"
             >
               <Bell className="w-6 h-6" />
-              <span className="absolute top-0 right-0 w-3 h-3 bg-vintage-crimson border-2 border-white rounded-full animate-pulse"></span>
+              {notifications.length > 0 && (
+                <span className="absolute top-0 right-0 w-3 h-3 bg-vintage-crimson border-2 border-white rounded-full animate-pulse"></span>
+              )}
             </button>
             
             {showNotifications && (
               <div className="absolute top-full right-0 mt-4 w-80 bg-white border border-vintage-ink/10 rounded-lg shadow-2xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-200">
                 <div className="bg-vintage-babyBlue/20 p-4 border-b border-vintage-ink/5 flex justify-between items-center">
                   <h4 className="font-mono font-bold text-vintage-ink uppercase tracking-wider text-sm">Action Items</h4>
-                  <span className="text-xs font-mono font-bold bg-vintage-crimson text-white px-2 py-0.5 rounded-full">2 New</span>
+                  <span className="text-xs font-mono font-bold bg-vintage-crimson text-white px-2 py-0.5 rounded-full">{notifications.length} New</span>
                 </div>
-                <div className="p-2">
-                  <Link href="/workspace" className="flex items-start gap-3 p-3 hover:bg-vintage-crimson/5 rounded-md transition-colors cursor-pointer group">
-                    <AlertCircle className="w-5 h-5 text-vintage-crimson mt-0.5" />
-                    <div>
-                      <p className="font-bold text-vintage-ink text-sm group-hover:text-vintage-crimson">Complete SWE Application</p>
-                      <p className="text-xs font-mono text-vintage-ink/50 mt-1">Due in 24 hours</p>
+                <div className="p-2 max-h-80 overflow-y-auto">
+                  {notifications.length > 0 ? (
+                    notifications.map((notif, index) => {
+                      const Icon = notif.icon;
+                      return (
+                        <Link key={notif.id} href={notif.href} className={`flex items-start gap-3 p-3 hover:bg-vintage-crimson/5 rounded-md transition-colors cursor-pointer group ${index > 0 ? 'border-t border-vintage-ink/5' : ''}`}>
+                          <Icon className={`w-5 h-5 mt-0.5 ${notif.isUrgent ? 'text-vintage-crimson' : 'text-vintage-babyBlue'}`} />
+                          <div>
+                            <p className="font-bold text-vintage-ink text-sm group-hover:text-vintage-crimson">{notif.title}</p>
+                            <p className="text-xs font-mono text-vintage-ink/50 mt-1">{notif.subtitle}</p>
+                          </div>
+                        </Link>
+                      );
+                    })
+                  ) : (
+                    <div className="p-4 text-center">
+                      <p className="text-sm font-mono text-vintage-ink/50">You're all caught up!</p>
                     </div>
-                  </Link>
-                  <Link href="/calendar" className="flex items-start gap-3 p-3 hover:bg-vintage-crimson/5 rounded-md transition-colors cursor-pointer group border-t border-vintage-ink/5">
-                    <Calendar className="w-5 h-5 text-vintage-babyBlue mt-0.5" />
-                    <div>
-                      <p className="font-bold text-vintage-ink text-sm group-hover:text-vintage-crimson">CS 301 Study Block</p>
-                      <p className="text-xs font-mono text-vintage-ink/50 mt-1">Starts at 2:00 PM</p>
-                    </div>
-                  </Link>
+                  )}
                 </div>
               </div>
             )}

@@ -8,7 +8,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import WhatsAppSetupModal from '../../components/shared/WhatsAppSetupModal';
 
 function SettingsContent() {
-  const { user, token } = useAuth();
+  const { user, token, updateUser } = useAuth();
   const searchParams = useSearchParams();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('account');
@@ -106,8 +106,9 @@ function SettingsContent() {
       const res = await AuthService.updateProfile(payload, token);
       if (res.success && res.data) {
         // Assume context has an updateUser method or just reload
-        if ((window as any).__updateUserContext) {
-            (window as any).__updateUserContext(res.data);
+        if (updateUser) {
+            updateUser(res.data);
+            alert("Settings saved successfully.");
         } else {
             // Quick reload to reflect changes globally if context update is tricky
             window.location.reload();
@@ -256,29 +257,24 @@ function SettingsContent() {
                     </button>
                   </div>
 
-                  {/* WhatsApp Sandbox Row */}
+                  {/* Telegram Integration Row */}
                   <div className="flex items-center justify-between p-4 border border-vintage-ink/10 rounded-lg bg-white/50 mt-3">
                     <div className="flex items-center gap-4">
-                      <div className="p-3 bg-green-50 text-green-500 rounded-full">
+                      <div className="p-3 bg-blue-50 text-blue-500 rounded-full">
                         <MessageCircle className="w-6 h-6" />
                       </div>
                       <div>
-                        <h4 className="font-bold text-vintage-ink">WhatsApp Notifications</h4>
-                        <p className="text-sm text-vintage-ink/60">Join the sandbox to receive deadline alerts on WhatsApp.</p>
+                        <h4 className="font-bold text-vintage-ink">Telegram Integration</h4>
+                        <p className="text-sm text-vintage-ink/60">Connect Telegram to receive deadline alerts and reminders.</p>
                       </div>
                     </div>
                     <button
-                      onClick={() => setShowWhatsAppModal(true)}
+                      onClick={() => setActiveTab('notifications')}
                       className="vintage-btn py-2 px-4 text-sm"
                     >
                       Setup
                     </button>
                   </div>
-
-                  <WhatsAppSetupModal
-                    isOpen={showWhatsAppModal}
-                    onClose={() => setShowWhatsAppModal(false)}
-                  />
                 </div>
               </div>
             )}

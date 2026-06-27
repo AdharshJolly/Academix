@@ -91,8 +91,8 @@ export default function AutomationCenterPage() {
           }
           <p className="font-mono text-sm font-bold">
             {triggerResult.success
-              ? `${triggerResult.type.toUpperCase()} automation triggered successfully. Calendar & WhatsApp will process shortly.`
-              : `${triggerResult.type.toUpperCase()} automation failed. Check your Google Calendar connection and Make.com webhook.`
+              ? `${triggerResult.type.toUpperCase()} automation triggered successfully. Calendar & Telegram will process shortly.`
+              : `${triggerResult.type.toUpperCase()} automation failed. Check your Google Calendar connection and webhook.`
             }
           </p>
         </div>
@@ -127,7 +127,7 @@ export default function AutomationCenterPage() {
              <CheckSquare className="w-8 h-8 text-[#fcf3cf]" />
           </div>
           <h3 className="text-xl font-mono font-black uppercase tracking-widest mb-4 border-b-2 border-[#fcf3cf]/20 pb-4 w-full">Task Sync</h3>
-          <p className="text-[#fcf3cf]/90 text-base font-sans font-medium mb-8 flex-1">Sync tasks to Google Calendar + send WhatsApp reminder.</p>
+          <p className="text-[#fcf3cf]/90 text-base font-sans font-medium mb-8 flex-1">Sync tasks to Google Calendar + send Telegram reminder.</p>
           <button 
             onClick={() => handleManualTrigger('task')}
             disabled={!!triggering}
@@ -199,8 +199,8 @@ export default function AutomationCenterPage() {
                       </div>
                       <p className="text-sm text-vintage-ink/60 leading-relaxed">
                         {log.result?.calendar_status && `Calendar: ${log.result.calendar_status}.`}
-                        {log.result?.whatsapp_status && ` WhatsApp: ${log.result.whatsapp_status}.`}
-                        {!log.result?.calendar_status && !log.result?.whatsapp_status && 'Automation processed successfully.'}
+                        {log.result?.telegram_status && ` Telegram: ${log.result.telegram_status}.`}
+                        {!log.result?.calendar_status && !log.result?.telegram_status && 'Automation processed successfully.'}
                       </p>
                     </div>
                   </div>

@@ -42,4 +42,10 @@ export const CalendarService = {
      */
     createEvent: (data: CreateEventPayload, token: string): Promise<APIResponse<any>> =>
         apiClient.post<APIResponse<any>>(API_ENDPOINTS.CALENDAR_EVENTS, data, token),
+
+    /**
+     * Trigger background sync of calendar events for cache warming.
+     */
+    prefetch: (token: string): Promise<APIResponse<any>> =>
+        apiClient.post<APIResponse<any>>('/calendar/prefetch', {}, token),
 };

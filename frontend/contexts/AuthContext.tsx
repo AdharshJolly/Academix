@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { UserOut, UserLoginRequest, UserRegisterRequest } from '../types';
 import { AuthService } from '../services/auth.service';
+import { CalendarService } from '../services/calendar.service';
 
 interface AuthContextType {
     user: UserOut | null;
@@ -43,8 +44,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                     localStorage.removeItem('academix_token');
                     localStorage.removeItem('academix_user');
                 } else {
+                    const parsedUser = JSON.parse(storedUser);
                     setToken(storedToken);
-                    setUser(JSON.parse(storedUser));
+                    setUser(parsedUser);
+                    
+                    if (parsedUser?.google_calendar_connected) {
+                        CalendarService.prefetch(storedToken).catch(e => console.error("Prefetch hydration error:", e));
+                    }
                 }
             }
         } catch (e) {
@@ -61,6 +67,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setUser(res.data.user);
             localStorage.setItem('academix_token', res.data.token);
             localStorage.setItem('academix_user', JSON.stringify(res.data.user));
+            
+            // Fire and forget prefetch for calendar caching
+            if (res.data.user?.google_calendar_connected) {
+                CalendarService.prefetch(res.data.token).catch(e => console.error("Prefetch error:", e));
+            }
+
             return res.data.user;
         } else {
             throw new Error(res.message || fallbackErrorMsg);
