@@ -42,7 +42,7 @@ export const IntelligenceService = {
             // Backup polling just in case WS fails or is blocked
             let pollInterval = setInterval(async () => {
                 try {
-                    const statusRes = await apiClient.get(`/intelligence/status/${reportId}`, token);
+                    const statusRes = await apiClient.get<any>(`/intelligence/status/${reportId}`, token);
                     if (statusRes.data?.status === 'completed') {
                         clearInterval(pollInterval);
                         if (ws) ws.close();
