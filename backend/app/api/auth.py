@@ -4,6 +4,7 @@ Custom email/password authentication — no Supabase Auth.
 Passwords are bcrypt-hashed and stored in the public.users table.
 JWTs are minted by our own security module.
 """
+
 import logging
 import uuid
 
@@ -17,7 +18,12 @@ from app.core.security import (
 )
 from app.integrations.calendar import GoogleCalendarClient
 from app.repositories.user_repository import UserRepository
-from app.schemas.auth import AuthResponse, UserLoginRequest, UserOut, UserRegisterRequest
+from app.schemas.auth import (
+    AuthResponse,
+    UserLoginRequest,
+    UserOut,
+    UserRegisterRequest,
+)
 from app.schemas.common import APIResponse
 
 logger = logging.getLogger(__name__)
@@ -118,7 +124,9 @@ async def login(request: UserLoginRequest):
             detail=f"Login failed: {str(e)}",
         )
 
+
 from app.schemas.auth import UserProfileUpdate
+
 
 @router.put("/profile", response_model=APIResponse[UserOut])
 async def update_profile(
@@ -129,15 +137,15 @@ async def update_profile(
     update_data = {k: v for k, v in request.model_dump().items() if v is not None}
     if not update_data:
         return APIResponse(
-            success=True, 
-            message="No fields to update", 
-            data=user_repo.get_by_id(user["id"])
+            success=True,
+            message="No fields to update",
+            data=user_repo.get_by_id(user["id"]),
         )
-        
+
     updated_user = user_repo.update(user["id"], update_data)
     if not updated_user:
         raise HTTPException(status_code=404, detail="User not found")
-        
+
     return APIResponse(
         success=True,
         message="Profile updated successfully",
@@ -169,7 +177,7 @@ def google_calendar_callback(code: str, state: str):
     from fastapi.responses import RedirectResponse
     from app.core.settings import settings
 
-    frontend_url = settings.FRONTEND_URL or "https://campus-flow-six-rho.vercel.app"
+    frontend_url = settings.FRONTEND_URL or "http://localhost:3000"
 
     try:
         refresh_token = calendar_client.exchange_code_for_refresh_token(code)

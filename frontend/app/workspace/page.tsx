@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Search, Plus, Filter, Calendar, Clock, Inbox, 
@@ -69,10 +69,40 @@ export default function WorkspacePage() {
   const [newTaskReminderTime, setNewTaskReminderTime] = useState('24h');
 
   // AI Inbox State
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [noticeText, setNoticeText] = useState('');
   const [isProcessingNotice, setIsProcessingNotice] = useState(false);
   const [noticeResult, setNoticeResult] = useState<IntelligenceResponse | null>(null);
   const [noticeError, setNoticeError] = useState<string | null>(null);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !token) return;
+    
+    setIsProcessingNotice(true);
+    setNoticeError(null);
+    setNoticeResult(null);
+    setNoticeText(`File uploaded: ${file.name}\nProcessing via Vision/PDF Extractor...`);
+    
+    try {
+      const res = await IntelligenceService.uploadNotice(file, token);
+      if (res.success && res.data) {
+        setNoticeResult(res.data);
+        setNoticeText(`File: ${file.name}\nExtracted successfully.`);
+      } else {
+        setNoticeError(res.message || 'AI processing failed. Please try again.');
+        setNoticeText('');
+      }
+    } catch (err: any) {
+      console.error(err);
+      setNoticeError(err?.message || 'Failed to process file. Check connection.');
+      setNoticeText('');
+    } finally {
+      setIsProcessingNotice(false);
+      // Reset input so the same file can be selected again
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
 
   // Task Edit/Delete State
   const [showEditModal, setShowEditModal] = useState(false);
@@ -384,13 +414,29 @@ export default function WorkspacePage() {
                       <div className="text-xs font-mono text-vintage-ink/40 flex items-center gap-2">
                         <Sparkles className="w-3 h-3" /> {isProcessingNotice ? 'AI is processing...' : 'AI is ready to extract tasks'}
                       </div>
-                      <button 
-                        onClick={handleProcessNotice}
-                        disabled={isProcessingNotice || !noticeText}
-                        className="bg-vintage-crimson text-white px-4 py-2 rounded-md text-sm font-bold font-mono hover:bg-vintage-crimsonDark flex items-center gap-2 disabled:opacity-50"
-                      >
-                        {isProcessingNotice ? 'Processing...' : 'Process Notice'} <ArrowRight className="w-4 h-4" />
-                      </button>
+                      <div className="flex gap-2">
+                        <input
+                          type="file"
+                          accept="image/*,.pdf"
+                          onChange={handleFileUpload}
+                          className="hidden"
+                          ref={fileInputRef}
+                        />
+                        <button 
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={isProcessingNotice}
+                          className="bg-white text-vintage-ink border border-vintage-ink/20 px-4 py-2 rounded-md text-sm font-bold font-mono hover:bg-vintage-ink/5 flex items-center gap-2 disabled:opacity-50"
+                        >
+                          <Paperclip className="w-4 h-4" /> Upload
+                        </button>
+                        <button 
+                          onClick={handleProcessNotice}
+                          disabled={isProcessingNotice || (!noticeText || noticeText.includes('File uploaded:'))}
+                          className="bg-vintage-crimson text-white px-4 py-2 rounded-md text-sm font-bold font-mono hover:bg-vintage-crimsonDark flex items-center gap-2 disabled:opacity-50"
+                        >
+                          {isProcessingNotice ? 'Processing...' : 'Process'} <ArrowRight className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </motion.div>

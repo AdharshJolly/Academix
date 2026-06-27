@@ -19,7 +19,7 @@ class UserRepository:
         db = get_supabase()
         response = (
             db.table(TABLE)
-            .select("id, email, full_name, avatar_url, google_calendar_connected, whatsapp_number, academic_year, major, gpa, study_hours, primary_objective, learning_protocols, telegram_chat_id, telegram_username, whatsapp_notifications_enabled, telegram_notifications_enabled")
+            .select("id, email, full_name, avatar_url, google_calendar_connected, whatsapp_number, academic_year, major, gpa, attendance_percent, attendance_total_hours, attendance_attended_hours, study_hours, primary_objective, learning_protocols, telegram_chat_id, telegram_username, whatsapp_notifications_enabled, telegram_notifications_enabled")
             .eq("id", user_id)
             .single()
             .execute()
@@ -33,7 +33,7 @@ class UserRepository:
         db = get_supabase()
         response = (
             db.table(TABLE)
-            .select("id, email, full_name, avatar_url, google_calendar_connected, whatsapp_number, academic_year, major, gpa, study_hours, primary_objective, learning_protocols, telegram_chat_id, telegram_username, whatsapp_notifications_enabled, telegram_notifications_enabled")
+            .select("id, email, full_name, avatar_url, google_calendar_connected, whatsapp_number, academic_year, major, gpa, attendance_percent, attendance_total_hours, attendance_attended_hours, study_hours, primary_objective, learning_protocols, telegram_chat_id, telegram_username, whatsapp_notifications_enabled, telegram_notifications_enabled")
             .eq("email", email)
             .execute()
         )
@@ -90,6 +90,9 @@ class UserRepository:
             academic_year=row.get("academic_year"),
             major=row.get("major"),
             gpa=row.get("gpa"),
+            attendance_percent=row.get("attendance_percent"),
+            attendance_total_hours=row.get("attendance_total_hours"),
+            attendance_attended_hours=row.get("attendance_attended_hours"),
             study_hours=row.get("study_hours"),
             primary_objective=row.get("primary_objective"),
             learning_protocols=row.get("learning_protocols"),
@@ -121,6 +124,9 @@ class UserRepository:
             academic_year=row.get("academic_year"),
             major=row.get("major"),
             gpa=row.get("gpa"),
+            attendance_percent=row.get("attendance_percent"),
+            attendance_total_hours=row.get("attendance_total_hours"),
+            attendance_attended_hours=row.get("attendance_attended_hours"),
             study_hours=row.get("study_hours"),
             primary_objective=row.get("primary_objective"),
             learning_protocols=row.get("learning_protocols"),

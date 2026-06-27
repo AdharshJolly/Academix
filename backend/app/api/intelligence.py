@@ -7,7 +7,7 @@ risk analysis, schedule generation, recommendations) are INTERNAL
 to AcademicIntelligenceEngine. Do NOT add more endpoints here.
 """
 import logging
-from fastapi import APIRouter, Depends, HTTPException, status, Request, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, status, Request, BackgroundTasks, UploadFile, File
 from slowapi import Limiter
 import uuid
 
@@ -42,7 +42,10 @@ def get_automation_service() -> AutomationService:
     return AutomationService()
 
 
-def run_pipeline(
+import asyncio
+from app.core.ws_manager import manager
+
+async def run_pipeline(
     report_id: str,
     request: IntelligenceRequest,
     user_id: str,
@@ -52,16 +55,39 @@ def run_pipeline(
         repo = IntelligenceRepository()
         automation = AutomationService()
         
-        result = engine.process_notice(request)
+        from app.repositories.user_repository import UserRepository
+        user_repo = UserRepository()
+        user_profile = await asyncio.to_thread(user_repo.get_by_id, user_id)
+        
+        if isinstance(request.data, str):
+            request.data = {"text": request.data}
+        elif request.data is None:
+            request.data = {}
+            
+        if user_profile and getattr(user_profile, 'attendance_percent', None) is not None:
+            request.data["attendance_percent"] = user_profile.attendance_percent
+        
+        result = await asyncio.to_thread(engine.process_notice, request)
         result.report_id = report_id # ensure ID matches what we returned
         
-        repo.save(user_id=user_id, response=result, raw_input=str(request.data))
-        automation.run_for_intelligence(user_id=user_id, report=result)
+        await asyncio.to_thread(repo.save, user_id=user_id, response=result, raw_input=str(request.data))
+        await asyncio.to_thread(automation.run_for_intelligence, user_id=user_id, report=result)
+        
+        # Push completed report to connected WebSocket clients
+        await manager.send(user_id, {
+            "type": "INTELLIGENCE_REPORT_COMPLETE",
+            "report_id": report_id,
+            "report": result.model_dump()
+        })
         
     except Exception as e:
         logger.error(f"Background AI pipeline failed: {e}")
-        # Ideally we'd save a failed status in the DB so the frontend knows it failed
-
+        # Send error to client via WS
+        await manager.send(user_id, {
+            "type": "INTELLIGENCE_REPORT_FAILED",
+            "report_id": report_id,
+            "error": str(e)
+        })
 @router.post("/process")
 @limiter.limit("10/minute")
 def process_intelligence(
@@ -88,3 +114,32 @@ def get_report_status(
     if not report:
         return APIResponse(success=True, data={"status": "processing"})
     return APIResponse(success=True, data={"status": "completed", "report": report})
+
+@router.post("/upload")
+@limiter.limit("10/minute")
+async def upload_notice(
+    request_obj: Request,
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...),
+    user: dict = Depends(verify_token),
+):
+    """
+    Process an uploaded image or PDF directly into an intelligence report.
+    Returns immediately, pushes result via WebSocket.
+    """
+    contents = await file.read()
+    
+    if file.content_type == "application/pdf":
+        from app.services.ai.document_processor import DocumentProcessor
+        doc_processor = DocumentProcessor()
+        text = doc_processor.extract_text_from_pdf(contents)
+    else:
+        from app.services.ai.vision_extractor import VisionExtractor
+        vision_extractor = VisionExtractor()
+        mime_type = file.content_type or "image/jpeg"
+        text = await vision_extractor.extract_text_from_image(contents, mime_type)
+        
+    request_schema = IntelligenceRequest(input_type="notice", data=text)
+    report_id = str(uuid.uuid4())
+    background_tasks.add_task(run_pipeline, report_id, request_schema, user["id"])
+    return APIResponse(success=True, data={"report_id": report_id, "status": "processing"})

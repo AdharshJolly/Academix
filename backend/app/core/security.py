@@ -81,3 +81,15 @@ def verify_token(
             detail=f"Invalid or expired token: {str(e)}",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+def verify_ws_token(token: str) -> dict:
+    """Manually verify JWT token for WebSockets."""
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id: str = payload.get("sub")
+        email: str = payload.get("email")
+        if not user_id:
+            raise JWTError("Missing subject")
+        return {"id": user_id, "email": email}
+    except Exception as e:
+        return None

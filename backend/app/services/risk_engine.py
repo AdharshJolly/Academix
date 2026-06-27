@@ -23,23 +23,14 @@ class RiskEngine:
         pending_task_count: int,
         event_count: int,
         high_priority_count: int,
+        attendance_percent: float | None = None,
     ) -> RiskAssessment:
         """
         Calculate academic risk score and return a full RiskAssessment.
-
-        Args:
-            days_to_nearest_deadline: Days until the soonest upcoming deadline
-            pending_task_count:       Total number of pending/in-progress tasks
-            event_count:              Number of upcoming academic events (exams, etc.)
-            high_priority_count:      Number of high/urgent priority tasks
-
-        Returns:
-            RiskAssessment with score (0.0–1.0), level, and contributing factors
         """
         factors: list[RiskFactor] = []
 
-        # --- Factor 1: Deadline density (weight 0.4) ---
-        # Closer deadlines = higher risk
+        # --- Factor 1: Deadline density (weight 0.35) ---
         if days_to_nearest_deadline <= 1:
             deadline_score = 1.0
         elif days_to_nearest_deadline <= 3:
@@ -53,31 +44,43 @@ class RiskEngine:
 
         factors.append(RiskFactor(
             factor=f"Nearest deadline in {days_to_nearest_deadline} day(s)",
-            weight=round(deadline_score * 0.4, 3),
+            weight=round(deadline_score * 0.35, 3),
         ))
 
-        # --- Factor 2: Task load (weight 0.4) ---
-        # More pending tasks = higher risk
-        task_score = min(pending_task_count / 10.0, 1.0)  # caps at 10 tasks = max risk
+        # --- Factor 2: Task load (weight 0.35) ---
+        task_score = min(pending_task_count / 10.0, 1.0)
         factors.append(RiskFactor(
             factor=f"{pending_task_count} pending task(s)",
-            weight=round(task_score * 0.4, 3),
+            weight=round(task_score * 0.35, 3),
         ))
 
-        # --- Factor 3: Event pressure (weight 0.2) ---
-        # More upcoming events (exams, quizzes) = higher risk
-        event_score = min(event_count / 5.0, 1.0)  # caps at 5 events = max
-        # High priority items amplify event pressure
+        # --- Factor 3: Event pressure (weight 0.15) ---
+        event_score = min(event_count / 5.0, 1.0)
         if high_priority_count > 0:
             event_score = min(event_score + (high_priority_count * 0.1), 1.0)
         factors.append(RiskFactor(
             factor=f"{event_count} upcoming event(s), {high_priority_count} high-priority",
-            weight=round(event_score * 0.2, 3),
+            weight=round(event_score * 0.15, 3),
         ))
+
+        # --- Factor 4: Attendance risk (weight 0.15) ---
+        attendance_score = 0.0
+        if attendance_percent is not None:
+            if attendance_percent < 75:
+                attendance_score = 1.0
+            elif attendance_percent < 85:
+                attendance_score = 0.5
+            else:
+                attendance_score = 0.1
+
+            factors.append(RiskFactor(
+                factor=f"Attendance at {attendance_percent:.0f}%",
+                weight=round(attendance_score * 0.15, 3),
+            ))
 
         # --- Final Score ---
         score = round(
-            (deadline_score * 0.4) + (task_score * 0.4) + (event_score * 0.2),
+            (deadline_score * 0.35) + (task_score * 0.35) + (event_score * 0.15) + (attendance_score * 0.15),
             3,
         )
         score = max(0.0, min(1.0, score))  # clamp to [0, 1]

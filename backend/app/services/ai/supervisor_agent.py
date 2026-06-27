@@ -123,6 +123,30 @@ class SupervisorAgent:
                         "required": ["task_name"]
                     }
                 }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "log_attendance",
+                    "description": "Call this when the user reports how many hours they attended or missed today, OR when they report their current overall attendance percentage.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "hours_conducted_today": {
+                                "type": "number",
+                                "description": "Total hours conducted today."
+                            },
+                            "hours_missed_today": {
+                                "type": "number",
+                                "description": "Hours missed today."
+                            },
+                            "overall_percentage": {
+                                "type": "number",
+                                "description": "The user's overall attendance percentage if they just tell you the final number."
+                            }
+                        }
+                    }
+                }
             }
         ]
         
@@ -133,6 +157,7 @@ class SupervisorAgent:
             "You must use the 'get_study_schedule' tool if they ask for a plan. "
             "You must use the 'search_study_materials' tool if they ask a question about their syllabus, classes, or uploaded documents. "
             "You must use 'reschedule_task' or 'delete_task' if they ask to modify or remove a task. "
+            "You must use 'log_attendance' if the user reports missing classes, attending classes, or gives a daily/weekly attendance update. "
             "If they just say hello or ask a general question, do not use tools—just reply nicely!"
         )
 
@@ -182,6 +207,9 @@ class SupervisorAgent:
                         
                     elif fn_name == "delete_task":
                         reply_texts.append(self._handle_delete(user_id, args.get("task_name")))
+                        
+                    elif fn_name == "log_attendance":
+                        reply_texts.append(self._handle_log_attendance(user_id, args))
                 
                 response_text = "\n\n".join(reply_texts)
                 
@@ -197,6 +225,40 @@ class SupervisorAgent:
             logger.error(f"Supervisor error: {e}")
             return "Sorry, my brain encountered an error while thinking about that!"
             
+    def _handle_log_attendance(self, user_id: str, args: dict) -> str:
+        hours_conducted = args.get("hours_conducted_today")
+        hours_missed = args.get("hours_missed_today")
+        overall_percentage = args.get("overall_percentage")
+
+        from app.repositories.user_repository import UserRepository
+        user_repo = UserRepository()
+        user = user_repo.get_by_id(user_id)
+        if not user:
+            return "I couldn't find your profile."
+
+        if overall_percentage is not None:
+            user_repo.update(user_id, {"attendance_percent": overall_percentage})
+            return f"Got it! I've updated your overall attendance to {overall_percentage}%."
+
+        if hours_conducted is not None and hours_missed is not None:
+            attended_today = hours_conducted - hours_missed
+            current_total = user.attendance_total_hours or 0.0
+            current_attended = user.attendance_attended_hours or 0.0
+            
+            new_total = current_total + hours_conducted
+            new_attended = current_attended + attended_today
+            new_percent = round((new_attended / new_total) * 100, 1) if new_total > 0 else 0.0
+
+            user_repo.update(user_id, {
+                "attendance_total_hours": new_total,
+                "attendance_attended_hours": new_attended,
+                "attendance_percent": new_percent
+            })
+            
+            return f"Logged! You attended {attended_today} out of {hours_conducted} hours today. Your new overall attendance is {new_percent}%."
+
+        return "Please tell me how many total hours you had today, and how many you missed. Or just tell me your current overall percentage!"
+
     def _handle_extract(self, user_id: str, text: str) -> str:
         events = self.intelligence.extract_event(text)
         if not events:

@@ -17,6 +17,7 @@ export default function AcademicProfileModal({ isOpen, token, onComplete }: Prop
     academic_year: '',
     major: '',
     gpa: '',
+    attendance_percent: '',
     study_hours: '',
     primary_objective: '',
     learning_protocols: ''
@@ -39,6 +40,7 @@ export default function AcademicProfileModal({ isOpen, token, onComplete }: Prop
         academic_year: formData.academic_year || null,
         major: formData.major || null,
         gpa: formData.gpa ? parseFloat(formData.gpa) : null,
+        attendance_percent: formData.attendance_percent ? parseFloat(formData.attendance_percent) : null,
         study_hours: formData.study_hours ? parseFloat(formData.study_hours) : null,
         primary_objective: formData.primary_objective || null,
         learning_protocols: formData.learning_protocols ? formData.learning_protocols.split(',').map(s => s.trim()).filter(Boolean) : null,
@@ -98,13 +100,17 @@ export default function AcademicProfileModal({ isOpen, token, onComplete }: Prop
             </div>
           </div>
           
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div className="flex flex-col">
               <label className="text-xs font-mono font-bold text-vintage-ink/60 mb-1 uppercase tracking-widest">Target GPA</label>
               <input type="number" step="0.1" value={formData.gpa} onChange={e => handleInputChange('gpa', e.target.value)} placeholder="e.g. 3.8" className="vintage-input" />
             </div>
             <div className="flex flex-col">
-              <label className="text-xs font-mono font-bold text-vintage-ink/60 mb-1 uppercase tracking-widest">Study Hrs / Wk</label>
+              <label className="text-xs font-mono font-bold text-vintage-ink/60 mb-1 uppercase tracking-widest">Attendance %</label>
+              <input type="number" step="0.1" value={formData.attendance_percent} onChange={e => handleInputChange('attendance_percent', e.target.value)} placeholder="e.g. 85" className="vintage-input" />
+            </div>
+            <div className="flex flex-col">
+              <label className="text-xs font-mono font-bold text-vintage-ink/60 mb-1 uppercase tracking-widest">Study Hrs/Wk</label>
               <input type="number" value={formData.study_hours} onChange={e => handleInputChange('study_hours', e.target.value)} placeholder="e.g. 15" className="vintage-input" />
             </div>
           </div>

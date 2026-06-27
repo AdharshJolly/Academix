@@ -89,7 +89,10 @@ class AcademicIntelligenceEngine:
 
         # Step 2: Calculate risk
         pending_tasks = int(data.get("pending_task_count", 3))
-        risk = self.analyze_risk(events, pending_tasks)
+        attendance_percent = data.get("attendance_percent")
+        if attendance_percent is not None:
+            attendance_percent = float(attendance_percent)
+        risk = self.analyze_risk(events, pending_tasks, attendance_percent)
 
         # Step 3: Generate study schedule
         schedule = self.generate_schedule(events)
@@ -112,12 +115,16 @@ class AcademicIntelligenceEngine:
         pending_tasks = int(data.get("pending_task_count", 0))
         event_count = int(data.get("event_count", 0))
         high_priority = int(data.get("high_priority_count", 0))
+        attendance_percent = data.get("attendance_percent")
+        if attendance_percent is not None:
+            attendance_percent = float(attendance_percent)
 
         risk = self._risk_engine.calculate_risk_score(
             days_to_nearest_deadline=days_to_deadline,
             pending_task_count=pending_tasks,
             event_count=event_count,
             high_priority_count=high_priority,
+            attendance_percent=attendance_percent,
         )
 
         recommendations = self.generate_recommendations(risk, [])
@@ -138,7 +145,10 @@ class AcademicIntelligenceEngine:
         days_ahead = int(data.get("days_ahead", 14))
 
         schedule = self._scheduler.generate_schedule(events, days_ahead=days_ahead)
-        risk = self.analyze_risk(events, pending_task_count=len(events))
+        attendance_percent = data.get("attendance_percent")
+        if attendance_percent is not None:
+            attendance_percent = float(attendance_percent)
+        risk = self.analyze_risk(events, pending_task_count=len(events), attendance_percent=attendance_percent)
         recommendations = self.generate_recommendations(risk, events)
 
         return IntelligenceResponse(
@@ -205,6 +215,7 @@ class AcademicIntelligenceEngine:
         self,
         events: list[ExtractedEvent],
         pending_task_count: int = 0,
+        attendance_percent: float | None = None,
     ) -> RiskAssessment:
         """
         Calculate deterministic academic risk score.
@@ -234,6 +245,7 @@ class AcademicIntelligenceEngine:
             pending_task_count=pending_task_count,
             event_count=len(events),
             high_priority_count=high_priority_count,
+            attendance_percent=attendance_percent,
         )
 
     def generate_schedule(
