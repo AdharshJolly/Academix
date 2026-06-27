@@ -108,5 +108,29 @@ export const IntelligenceService = {
     
     sendChatMessage: (content: string, token: string): Promise<APIResponse<{role: string, content: string}>> => {
         return apiClient.post('/intelligence/chat', { content }, token);
+    },
+    
+    uploadTimetable: async (file: File, token: string): Promise<APIResponse<{subjects: string[]}>> => {
+        const formData = new FormData();
+        formData.append('file', file);
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        const res = await fetch(`${apiUrl}/api/v1/intelligence/upload/timetable`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` },
+            body: formData
+        });
+        return res.json();
+    },
+
+    uploadStudyMaterial: async (file: File, token: string): Promise<APIResponse<any>> => {
+        const formData = new FormData();
+        formData.append('file', file);
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        const res = await fetch(`${apiUrl}/api/v1/intelligence/upload/material`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` },
+            body: formData
+        });
+        return res.json();
     }
 };

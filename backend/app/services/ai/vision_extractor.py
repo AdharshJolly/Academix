@@ -66,3 +66,59 @@ class VisionExtractor:
         except Exception as e:
             logger.error(f"Gemini Vision extraction failed: {e}")
             raise e
+
+    async def extract_timetable_subjects(self, image_bytes: bytes, mime_type: str = "image/jpeg") -> list:
+        """
+        Takes raw image bytes of a timetable (PDF or Image), sends it to Gemini 2.5 Flash, 
+        and extracts a unique list of subjects found in the timetable grid.
+        Returns a JSON array of strings.
+        """
+        if not self.api_key:
+            raise ValueError("GEMINI_API_KEY is missing.")
+            
+        try:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={self.api_key}"
+            
+            prompt = (
+                "You are an academic parser. The user has uploaded an image of their class timetable or schedule. "
+                "Extract all the unique subject/course names from the timetable grid. "
+                "Output ONLY a valid JSON array of strings containing the unique subject names. Do not include markdown or explanations."
+            )
+            
+            b64_img = base64.b64encode(image_bytes).decode("utf-8")
+            
+            payload = {
+                "contents": [{
+                    "parts": [
+                        {"text": prompt},
+                        {
+                            "inline_data": {
+                                "mime_type": mime_type,
+                                "data": b64_img
+                            }
+                        }
+                    ]
+                }]
+            }
+            
+            async with httpx.AsyncClient() as client:
+                response = await client.post(url, json=payload, timeout=30.0)
+                response.raise_for_status()
+                
+            data = response.json()
+            try:
+                text = data["candidates"][0]["content"]["parts"][0]["text"]
+                import json
+                # Try to parse the text directly, stripping markdown if present
+                text = text.replace("```json", "").replace("```", "").strip()
+                subjects = json.loads(text)
+                if isinstance(subjects, list):
+                    return subjects
+                return []
+            except Exception as e:
+                logger.error(f"Failed to parse Gemini timetable response: {e}")
+                return []
+            
+        except Exception as e:
+            logger.error(f"Gemini Vision timetable extraction failed: {e}")
+            raise e

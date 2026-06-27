@@ -42,22 +42,14 @@ class DocumentProcessor:
         return chunks
 
     async def get_embedding(self, text: str) -> List[float]:
-        """Get 768-dimensional embedding from Gemini."""
-        if not self.gemini_key:
-            raise ValueError("GEMINI_API_KEY is not set.")
+        """Get 384-dimensional embedding from fastembed (local)."""
+        from fastembed import TextEmbedding
+        if not hasattr(self, '_embedding_model'):
+            self._embedding_model = TextEmbedding(model_name="BAAI/bge-small-en-v1.5")
             
-        payload = {
-            "model": "models/text-embedding-004",
-            "content": {
-                "parts": [{"text": text}]
-            }
-        }
-        
-        async with httpx.AsyncClient() as client:
-            res = await client.post(self.embedding_url, json=payload, timeout=10.0)
-            res.raise_for_status()
-            data = res.json()
-            return data["embedding"]["values"]
+        # FastEmbed returns a generator of numpy arrays
+        embeddings = list(self._embedding_model.embed([text]))
+        return embeddings[0].tolist()
 
     async def process_and_store(self, user_id: str, filename: str, pdf_bytes: bytes) -> int:
         """

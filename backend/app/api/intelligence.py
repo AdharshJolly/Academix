@@ -137,6 +137,64 @@ async def upload_notice(
     background_tasks.add_task(run_pipeline, report_id, request_schema, user["id"])
     return APIResponse(success=True, message="Processing started", data={"report_id": report_id, "status": "processing"})
 
+@router.post("/upload/timetable")
+@limiter.limit("10/minute")
+async def upload_timetable(
+    request: Request,
+    file: UploadFile = File(...),
+    user: dict = Depends(verify_token),
+):
+    """
+    Parse a timetable image/PDF and register the subjects to the Attendance Tracker.
+    """
+    contents = await file.read()
+    from app.services.ai.vision_extractor import VisionExtractor
+    from app.repositories.attendance_repository import AttendanceRepository
+    from app.schemas.attendance import AttendanceRecordCreate
+    
+    vision = VisionExtractor()
+    mime = file.content_type or "image/jpeg"
+    subjects = await vision.extract_timetable_subjects(contents, mime)
+    
+    if not subjects:
+        return APIResponse(success=False, message="No subjects could be extracted from this image.")
+        
+    repo = AttendanceRepository()
+    for sub in subjects:
+        repo.create(user["id"], AttendanceRecordCreate(
+            semester="Current Semester",
+            subject_code=None,
+            subject_name=sub,
+            hours_conducted=0,
+            hours_attended=0,
+            target_percentage=75.0
+        ))
+    return APIResponse(success=True, message="Timetable processed", data={"subjects": subjects})
+
+@router.post("/upload/material")
+@limiter.limit("20/minute")
+async def upload_study_material(
+    request: Request,
+    file: UploadFile = File(...),
+    user: dict = Depends(verify_token),
+):
+    """
+    Process a PDF and embed chunks into pgvector study_materials table.
+    """
+    if file.content_type != "application/pdf":
+        raise HTTPException(400, "Only PDF files are supported for study materials right now.")
+        
+    contents = await file.read()
+    from app.services.ai.document_processor import DocumentProcessor
+    doc_processor = DocumentProcessor()
+    
+    try:
+        chunks_stored = await doc_processor.process_and_store(user["id"], file.filename or "unknown.pdf", contents)
+        return APIResponse(success=True, message=f"Processed and stored {chunks_stored} chunks.", data={"chunks": chunks_stored})
+    except Exception as e:
+        logger.error(f"Failed to process study material: {e}")
+        raise HTTPException(500, "Failed to process and store document.")
+
 from pydantic import BaseModel
 class ChatMessage(BaseModel):
     content: str
