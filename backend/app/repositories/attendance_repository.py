@@ -1,11 +1,11 @@
 from typing import List, Optional
 import uuid
-from app.db.client import get_supabase_client
+from app.db.client import get_supabase
 from app.schemas.attendance import AttendanceRecordCreate, AttendanceRecordUpdate
 
 class AttendanceRepository:
     def __init__(self):
-        self.client = get_supabase_client()
+        self.client = get_supabase()
         self.table = "attendance_records"
 
     def get_by_user(self, user_id: str) -> List[dict]:
