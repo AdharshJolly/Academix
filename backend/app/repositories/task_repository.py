@@ -7,6 +7,7 @@ import logging
 from datetime import datetime, timezone
 from app.db.client import get_supabase
 from app.schemas.tasks import TaskCreate, TaskUpdate, TaskResponse
+from app.core.cache import invalidate_dashboard_cache
 
 logger = logging.getLogger(__name__)
 
@@ -73,6 +74,7 @@ class TaskRepository:
             "status": "pending",
         }
         response = db.table(TABLE).insert(payload).execute()
+        invalidate_dashboard_cache(user_id)
         return TaskResponse(**response.data[0])
 
     def update(
@@ -94,6 +96,7 @@ class TaskRepository:
         )
         if not response.data:
             return None
+        invalidate_dashboard_cache(user_id)
         return TaskResponse(**response.data[0])
 
     def delete(self, task_id: str, user_id: str) -> bool:
@@ -106,6 +109,8 @@ class TaskRepository:
             .eq("user_id", user_id)
             .execute()
         )
+        if response.data:
+            invalidate_dashboard_cache(user_id)
         return bool(response.data)
 
     def get_upcoming(self, user_id: str, limit: int = 5) -> list[TaskResponse]:

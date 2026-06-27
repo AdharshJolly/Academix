@@ -8,6 +8,8 @@ from datetime import date, datetime
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.core.security import verify_token
+from app.core.cache import cache
+import json
 from app.repositories.automation_repository import AutomationRepository
 from app.repositories.intelligence_repository import IntelligenceRepository
 from app.repositories.task_repository import TaskRepository
@@ -48,6 +50,17 @@ async def get_dashboard(
     """
     try:
         user_id = user["id"]
+        
+        # ── 0. Check cache ──────────────────────────────────────────────────
+        if cache:
+            key = f"dashboard:{user_id}"
+            try:
+                cached = cache.get(key)
+                if cached:
+                    return APIResponse(success=True, message="Dashboard loaded (cached)", data=json.loads(cached))
+            except Exception as e:
+                logger.error(f"Redis cache get error: {e}")
+                
         today = date.today()
 
         # ── 1. Upcoming deadlines from tasks ──────────────────────────────
@@ -158,6 +171,13 @@ async def get_dashboard(
             calendar_preview=calendar_preview,
             recent_automations=recent_automations,
         )
+
+        if cache:
+            key = f"dashboard:{user_id}"
+            try:
+                cache.setex(key, 60, dashboard.model_dump_json())
+            except Exception as e:
+                logger.error(f"Redis cache set error: {e}")
 
         return APIResponse(
             success=True,

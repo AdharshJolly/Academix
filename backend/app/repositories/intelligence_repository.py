@@ -12,6 +12,8 @@ logger = logging.getLogger(__name__)
 TABLE = "intelligence_reports"
 
 
+from app.core.cache import invalidate_dashboard_cache
+
 class IntelligenceRepository:
 
     def save(
@@ -39,6 +41,7 @@ class IntelligenceRepository:
             "risk_score": response.risk_assessment.risk_score,
         }
         db.table(TABLE).insert(payload).execute()
+        invalidate_dashboard_cache(user_id)
         return response.report_id
 
     def get_latest_by_user(self, user_id: str) -> IntelligenceResponse | None:
