@@ -21,7 +21,10 @@ from app.core.security import (
     hash_password,
     verify_password,
     verify_token,
+    revoke_token,
+    bearer_scheme
 )
+from pydantic import BaseModel
 from app.integrations.calendar import GoogleCalendarClient
 from app.repositories.user_repository import UserRepository, row_to_user_out
 from app.schemas.auth import (
@@ -154,6 +157,28 @@ def refresh_token(request: RefreshRequest):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Refresh failed: {str(e)}",
         )
+
+
+class LogoutRequest(BaseModel):
+    refresh_token: str | None = None
+
+from fastapi import Security
+from fastapi.security import HTTPAuthorizationCredentials
+@router.post("/logout", response_model=APIResponse[None])
+def logout(
+    payload: LogoutRequest,
+    credentials: HTTPAuthorizationCredentials | None = Security(bearer_scheme)
+):
+    """
+    Invalidate both the access token and refresh token.
+    """
+    if credentials and credentials.credentials:
+        revoke_token(credentials.credentials)
+
+    if payload.refresh_token:
+        revoke_token(payload.refresh_token)
+
+    return APIResponse(success=True, message="Successfully logged out", data=None)
 
 
 from app.schemas.auth import UserProfileUpdate

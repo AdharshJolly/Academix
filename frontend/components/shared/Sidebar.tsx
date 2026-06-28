@@ -3,7 +3,8 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, CheckSquare, Calendar, Zap, Settings, User, Activity } from 'lucide-react';
+import { LayoutDashboard, CheckSquare, Calendar, Zap, Settings, User, Activity, LogOut } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -20,6 +21,7 @@ const bottomItems = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { logout } = useAuth();
 
   return (
     <aside className="w-64 bg-transparent h-full flex flex-col z-20">
@@ -79,6 +81,14 @@ export function Sidebar() {
               </Link>
             );
           })}
+          
+          <button 
+            onClick={logout}
+            className="flex items-center gap-3 px-4 py-3 rounded-md transition-all font-mono font-bold text-sm tracking-wider text-vintage-ink/70 hover:bg-vintage-crimson/5 hover:text-vintage-crimson w-full text-left mt-2"
+          >
+            <LogOut className="w-5 h-5" />
+            <span>Logout</span>
+          </button>
         </div>
       </div>
       

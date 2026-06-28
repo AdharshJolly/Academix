@@ -13,6 +13,7 @@ import bcrypt
 from fastapi import HTTPException, Security, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
+from app.core.cache import cache
 
 # ── Config ────────────────────────────────────────────────────────────────────
 from app.core.settings import settings
@@ -25,6 +26,35 @@ ACCESS_TOKEN_EXPIRE_HOURS = 72   # 3 days
 
 bcrypt_rounds = 12
 bearer_scheme = HTTPBearer(auto_error=False)
+
+def blacklist_token(token: str, expire_seconds: int):
+    """Add a token to the Redis blacklist until it naturally expires."""
+    if not cache:
+        return
+    token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+    # Add a small buffer to the expiration
+    cache.setex(f"jwt_blacklist:{token_hash}", max(1, expire_seconds), "1")
+
+def is_token_blacklisted(token: str) -> bool:
+    """Check if a token has been blacklisted."""
+    if not cache:
+        return False
+    token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+    return cache.exists(f"jwt_blacklist:{token_hash}") > 0
+
+def revoke_token(token: str):
+    """Decode a token without verification to get its expiration, then blacklist it."""
+    try:
+        payload = jwt.decode(token, options={"verify_signature": False})
+        exp = payload.get("exp")
+        if exp:
+            remaining = int(exp) - int(datetime.now(timezone.utc).timestamp())
+            if remaining > 0:
+                blacklist_token(token, remaining)
+    except Exception as e:
+        logger = logging.getLogger(__name__)
+        logger.warning(f"Failed to revoke token: {e}")
+
 
 
 def _sha256(plain: str) -> bytes:
@@ -68,6 +98,12 @@ def create_refresh_token(user_id: str) -> str:
 
 def verify_refresh_token(token: str) -> str:
     """Verify refresh token and return user_id."""
+    if is_token_blacklisted(token):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has been revoked",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id = payload.get("sub")
@@ -98,9 +134,17 @@ def verify_token(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+    token_str = credentials.credentials
+    if is_token_blacklisted(token_str):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has been revoked",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
     try:
         payload = jwt.decode(
-            credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM]
+            token_str, SECRET_KEY, algorithms=[ALGORITHM]
         )
         user_id: str = payload.get("sub")
         email: str = payload.get("email")
@@ -118,6 +162,8 @@ logger = logging.getLogger(__name__)
 
 def verify_ws_token(token: str) -> dict | None:
     """Manually verify JWT token for WebSockets."""
+    if is_token_blacklisted(token):
+        return None
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id: str = payload.get("sub")

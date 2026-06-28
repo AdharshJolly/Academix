@@ -108,7 +108,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
     };
 
-    const logout = () => {
+    const logout = async () => {
+        const currentToken = token || localStorage.getItem('academix_token');
+        const currentRefreshToken = localStorage.getItem('academix_refresh_token');
+        
+        if (currentToken) {
+            try {
+                await AuthService.logout(currentRefreshToken, currentToken);
+            } catch (e) {
+                console.error("Failed to call backend logout:", e);
+            }
+        }
+
         setToken(null);
         setUser(null);
         localStorage.removeItem('academix_token');

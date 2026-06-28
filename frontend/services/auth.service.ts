@@ -20,10 +20,12 @@ export const AuthService = {
     verifyGoogleCallback: (code: string, state: string, token: string): Promise<APIResponse<any>> =>
         apiClient.get(`/auth/google/callback?code=${code}&state=${state}`, token),
 
+    logout: (refreshToken: string | null, token: string | null): Promise<void> =>
+        apiClient.post('/auth/logout', { refresh_token: refreshToken }, token || undefined),
+
     updateProfile: (data: any, token: string): Promise<APIResponse<any>> =>
         apiClient.put('/auth/profile', data, token),
 
     testTelegramConnection: (telegram_username: string, token: string): Promise<APIResponse<any>> =>
         apiClient.post('/automations/test-telegram', { telegram_username }, token),
 };
-
