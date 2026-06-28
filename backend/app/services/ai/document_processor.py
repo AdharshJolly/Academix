@@ -10,8 +10,10 @@ logger = logging.getLogger(__name__)
 
 class DocumentProcessor:
     """
-    Handles extracting text from PDFs, chunking, embedding via Gemini,
-    and storing in Supabase (pgvector).
+    Processes PDFs and embeds them into the pgvector study_materials table.
+    Uses 'fastembed' with the default 'BAAI/bge-small-en-v1.5' or similar model which produces
+    384-dimensional vectors. (Equivalent to all-MiniLM-L6-v2). If this model is changed,
+    the database schema for study_materials.embedding MUST be migrated to match the new dimension.
     """
     def __init__(self):
         self.db = get_supabase()
