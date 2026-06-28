@@ -302,48 +302,35 @@ class SupervisorAgent:
         
         user = user_repo.get_by_id(user_id)
         if not user:
-            return "I couldn't find your profile."
-
+            return "I couldn't find your profile."        
         if overall_percentage is not None:
-            user_repo.update(user_id, {"attendance_percent": overall_percentage})
-            return f"Got it! I've updated your overall attendance to {overall_percentage}%."
+            return "Global attendance tracking is computed automatically from your subjects. Please log attendance for specific subjects."
 
         if hours_conducted is not None and hours_missed is not None:
             attended_today = hours_conducted - hours_missed
-            current_total = user.attendance_total_hours or 0.0
-            current_attended = user.attendance_attended_hours or 0.0
             
-            new_total = current_total + hours_conducted
-            new_attended = current_attended + attended_today
-            new_percent = round((new_attended / new_total) * 100, 1) if new_total > 0 else 0.0
-
-            # 1. Update Global Aggregate
-            user_repo.update(user_id, {
-                "attendance_total_hours": new_total,
-                "attendance_attended_hours": new_attended,
-                "attendance_percent": new_percent
-            })
+            if not subject_name:
+                return "Please specify which subject you attended or missed classes for (e.g., 'I missed 2 hours of Data Structures')."
+                
+            records = attendance_repo.get_by_user(user_id)
+            target = next((r for r in records if r["subject_name"].lower() == subject_name.lower()), None)
             
-            # 2. Update Per-Subject Record (if provided)
-            subject_msg = ""
-            if subject_name:
-                records = attendance_repo.get_by_user(user_id)
-                # Simple case-insensitive matching
-                target = next((r for r in records if r["subject_name"].lower() == subject_name.lower()), None)
-                if target:
-                    old_conducted = target.get("hours_conducted", 0)
-                    old_attended = target.get("hours_attended", 0)
-                    attendance_repo.update(target["id"], user_id, AttendanceRecordUpdate(
-                        hours_conducted=old_conducted + hours_conducted,
-                        hours_attended=old_attended + attended_today
-                    ))
-                    subject_msg = f" Also updated your record for {target['subject_name']}."
-                else:
-                    subject_msg = f" (Warning: Could not find subject '{subject_name}' in your registered classes.)"
+            if target:
+                old_conducted = target.get("hours_conducted", 0)
+                old_attended = target.get("hours_attended", 0)
+                attendance_repo.update(target["id"], user_id, AttendanceRecordUpdate(
+                    hours_conducted=old_conducted + hours_conducted,
+                    hours_attended=old_attended + attended_today
+                ))
+                
+                new_conducted = old_conducted + hours_conducted
+                new_attended = old_attended + attended_today
+                new_pct = round((new_attended / new_conducted * 100), 1) if new_conducted > 0 else 0
+                return f"Logged! Your attendance for {target['subject_name']} is now {new_pct}%."
+            else:
+                return f"I couldn't find '{subject_name}' in your registered classes. Please check your timetable."
             
-            return f"Logged! You attended {attended_today} out of {hours_conducted} hours today.{subject_msg} Your new overall attendance is {new_percent}%."
-
-        return "Please tell me how many total hours you had today, and how many you missed. Or just tell me your current overall percentage!"
+        return "I'm not sure how to update your attendance from that."
 
     def _handle_extract(self, user_id: str, text: str) -> str:
         events = self.intelligence.extract_event(text)

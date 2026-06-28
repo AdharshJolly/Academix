@@ -1,17 +1,10 @@
-DROP TABLE IF EXISTS attendance_records CASCADE;
-
-CREATE TABLE IF NOT EXISTS attendance_records (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    semester VARCHAR(50) NOT NULL DEFAULT 'Current Semester',
-    subject_code VARCHAR(50),
-    subject_name VARCHAR(255) NOT NULL,
-    hours_conducted NUMERIC NOT NULL DEFAULT 0.0,
-    hours_attended NUMERIC NOT NULL DEFAULT 0.0,
-    target_percentage NUMERIC NOT NULL DEFAULT 75.0,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+-- Add columns if they do not exist
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='attendance_records' AND column_name='semester') THEN
+        ALTER TABLE attendance_records ADD COLUMN semester VARCHAR(50) NOT NULL DEFAULT 'Current Semester';
+    END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS idx_attendance_records_user_id ON attendance_records(user_id);
 ALTER TABLE attendance_records ENABLE ROW LEVEL SECURITY;

@@ -29,9 +29,6 @@ class UserOut(BaseModel):
     academic_year: str | None = None
     major: str | None = None
     gpa: float | None = None
-    attendance_percent: float | None = None
-    attendance_total_hours: float | None = None
-    attendance_attended_hours: float | None = None
     study_hours: float | None = None
     primary_objective: str | None = None
     learning_protocols: list[str] | None = None
@@ -52,9 +49,6 @@ class UserProfileUpdate(BaseModel):
     academic_year: str | None = None
     major: str | None = None
     gpa: float | None = None
-    attendance_percent: float | None = None
-    attendance_total_hours: float | None = None
-    attendance_attended_hours: float | None = None
     study_hours: float | None = None
     primary_objective: str | None = None
     learning_protocols: list[str] | None = None

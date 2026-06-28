@@ -13,7 +13,7 @@ router = APIRouter(prefix="/attendance", tags=["Attendance"])
 from app.api.dependencies import get_attendance_repo
 
 @router.get("", response_model=APIResponse[List[AttendanceRecordOut]])
-async def get_attendance_records(
+def get_attendance_records(
     current_user: dict = Depends(verify_token),
     repo: AttendanceRepository = Depends(get_attendance_repo)
 ):
@@ -30,7 +30,7 @@ async def get_attendance_records(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("", response_model=APIResponse[AttendanceRecordOut])
-async def create_attendance_record(
+def create_attendance_record(
     record: AttendanceRecordCreate,
     current_user: dict = Depends(verify_token),
     repo: AttendanceRepository = Depends(get_attendance_repo)
@@ -48,7 +48,7 @@ async def create_attendance_record(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.put("/{record_id}", response_model=APIResponse[AttendanceRecordOut])
-async def update_attendance_record(
+def update_attendance_record(
     record_id: str,
     record: AttendanceRecordUpdate,
     current_user: dict = Depends(verify_token),
@@ -72,7 +72,7 @@ async def update_attendance_record(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.delete("/{record_id}", response_model=APIResponse[None])
-async def delete_attendance_record(
+def delete_attendance_record(
     record_id: str,
     current_user: dict = Depends(verify_token),
     repo: AttendanceRepository = Depends(get_attendance_repo)

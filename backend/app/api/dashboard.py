@@ -38,7 +38,7 @@ router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
 
 @router.get("", response_model=APIResponse[DashboardResponse])
-async def get_dashboard(
+def get_dashboard(
     user: dict = Depends(verify_token),
     task_repo: TaskRepository = Depends(get_task_repo),
     intelligence_repo: IntelligenceRepository = Depends(get_intelligence_repo),

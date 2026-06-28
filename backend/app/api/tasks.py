@@ -19,7 +19,7 @@ router = APIRouter(prefix="/tasks", tags=["tasks"])
 
 
 @router.get("", response_model=PaginatedResponse[TaskResponse])
-async def get_tasks(
+def get_tasks(
     page: int = 1,
     size: int = 20,
     status: str | None = None,
@@ -46,7 +46,7 @@ async def get_tasks(
 
 
 @router.post("", response_model=APIResponse[TaskResponse])
-async def create_task(
+def create_task(
     request: TaskCreate,
     user: dict = Depends(verify_token),
     task_repo: TaskRepository = Depends(get_task_repo),

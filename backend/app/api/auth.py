@@ -36,7 +36,7 @@ calendar_client = GoogleCalendarClient()
 
 
 @router.post("/register", response_model=APIResponse[AuthResponse])
-async def register(request: UserRegisterRequest):
+def register(request: UserRegisterRequest):
     """
     Register a new student account.
     1. Check email is not already taken
@@ -82,7 +82,7 @@ async def register(request: UserRegisterRequest):
 
 
 @router.post("/login", response_model=APIResponse[AuthResponse])
-async def login(request: UserLoginRequest):
+def login(request: UserLoginRequest):
     """
     Authenticate a student with email + password.
     Returns our own signed JWT on success.
@@ -119,7 +119,7 @@ from app.schemas.auth import UserProfileUpdate
 
 
 @router.put("/profile", response_model=APIResponse[UserOut])
-async def update_profile(
+def update_profile(
     request: UserProfileUpdate,
     user: dict = Depends(verify_token),
 ):

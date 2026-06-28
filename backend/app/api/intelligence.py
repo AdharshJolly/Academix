@@ -60,8 +60,13 @@ async def run_pipeline(
         elif request.data is None:
             request.data = {}
             
-        if user_profile and getattr(user_profile, 'attendance_percent', None) is not None:
-            request.data["attendance_percent"] = user_profile.attendance_percent
+        attendance_repo = AttendanceRepository()
+        records = await asyncio.to_thread(attendance_repo.get_by_user, user_id)
+        if records:
+            total_hours = sum(r.get("hours_conducted", 0) for r in records)
+            attended_hours = sum(r.get("hours_attended", 0) for r in records)
+            if total_hours > 0:
+                request.data["attendance_percent"] = round((attended_hours / total_hours) * 100, 1)
         
         result = await asyncio.to_thread(engine.process_notice, request)
         result.report_id = report_id # ensure ID matches what we returned
@@ -221,8 +226,10 @@ def post_chat_message(
     for msg in history:
         groq_messages.append({"role": msg["role"], "content": msg["content"]})
         
+    from app.core.settings import settings
+    
     try:
-        groq_client = GroqClient(api_key=os.getenv("GROQ_API_KEY"))
+        groq_client = GroqClient(api_key=settings.GROQ_API_KEY)
         ai_response_text = groq_client.generate_completion(groq_messages)
         # Save AI response
         chat_repo.add_message(user["id"], "assistant", ai_response_text)
