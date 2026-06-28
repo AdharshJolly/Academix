@@ -68,7 +68,7 @@ export interface UserRegisterRequest {
 
 // ── Tasks ─────────────────────────────────────────────────────────────────
 
-export type TaskStatus   = 'pending' | 'in_progress' | 'completed' | 'cancelled';
+export type TaskStatus   = 'pending' | 'in_progress' | 'completed' | 'cancelled' | 'pending_review';
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
 
 export interface TaskCreate {

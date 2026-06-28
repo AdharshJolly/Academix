@@ -13,6 +13,7 @@ class TaskCreate(BaseModel):
     priority: Optional[str] = "medium"
     add_to_calendar: Optional[bool] = True
     reminder_time: Optional[str] = "24h"
+    status: Optional[str] = "pending"
 
 class StudySessionCreate(BaseModel):
     duration_minutes: int

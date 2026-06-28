@@ -32,7 +32,7 @@ const INITIAL_TASKS: WorkspaceTask[] = [];
 
 function WorkspaceContent() {
   const { user, token } = useAuth();
-  const [activeTab, setActiveTab] = useState<'tasks' | 'inbox' | 'completed'>('tasks');
+  const [activeTab, setActiveTab] = useState<'tasks' | 'inbox' | 'extract' | 'completed'>('tasks');
   const [tasks, setTasks] = useState<WorkspaceTask[]>(INITIAL_TASKS);
   const [selectedItem, setSelectedItem] = useState<WorkspaceTask | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -120,10 +120,16 @@ function WorkspaceContent() {
   const [editDueDate, setEditDueDate] = useState('');
   const [isDeletingTask, setIsDeletingTask] = useState<string | null>(null);
   const [showWorkspaceFocusTimer, setShowWorkspaceFocusTimer] = useState(false);
-  const filteredTasks = tasks.filter(task => 
-    task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    task.subject.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredTasks = tasks.filter(task => {
+    const matchesSearch = task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          task.subject.toLowerCase().includes(searchQuery.toLowerCase());
+    if (activeTab === 'tasks') return matchesSearch && task.status !== 'completed' && task.status !== 'pending_review';
+    if (activeTab === 'inbox') return matchesSearch && task.status === 'pending_review';
+    if (activeTab === 'completed') return matchesSearch && task.status === 'completed';
+    return matchesSearch;
+  });
+
+  const inboxCount = tasks.filter(t => t.status === 'pending_review').length;
   
   // Copilot Chat History
   const [newComment, setNewComment] = useState('');
@@ -236,6 +242,20 @@ function WorkspaceContent() {
     }
   };
 
+  const handleApproveTask = async (task: WorkspaceTask) => {
+    if (!token) return;
+    try {
+      const res = await TaskService.updateTask(task.id, { status: 'pending' }, token);
+      if (res.success) {
+        const updated = { ...task, status: 'pending' };
+        setTasks(prev => prev.map(t => t.id === task.id ? updated : t));
+        if (selectedItem?.id === task.id) setSelectedItem(updated);
+      }
+    } catch (e) {
+      console.error('Approve failed', e);
+    }
+  };
+
   const openEditModal = (task: WorkspaceTask) => {
     setEditingTask(task);
     setEditTitle(task.title);
@@ -309,7 +329,8 @@ function WorkspaceContent() {
           <p className="font-accent text-vintage-crimson transform -rotate-2 mb-4 text-lg">navigation</p>
           
           <NavItem icon={<CheckCircle />} label="Tasks" active={activeTab === 'tasks'} onClick={() => setActiveTab('tasks')} />
-          <NavItem icon={<Inbox />} label="AI Inbox" active={activeTab === 'inbox'} onClick={() => setActiveTab('inbox')} badge="2" />
+          <NavItem icon={<Inbox />} label="AI Inbox" active={activeTab === 'inbox'} onClick={() => setActiveTab('inbox')} badge={inboxCount > 0 ? inboxCount.toString() : undefined} />
+          <NavItem icon={<Sparkles />} label="Scanner" active={activeTab === 'extract'} onClick={() => setActiveTab('extract')} />
           
           <div className="my-2 border-b border-vintage-ink/10"></div>
           
@@ -321,9 +342,11 @@ function WorkspaceContent() {
           <div className="p-6 max-w-3xl w-full mx-auto">
             
             <AnimatePresence mode="wait">
-              {activeTab === 'tasks' && (
-                <motion.div key="tasks" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-                  <h2 className="text-2xl font-black font-display text-vintage-ink mb-6">Today's Focus</h2>
+              {(activeTab === 'tasks' || activeTab === 'inbox' || activeTab === 'completed') && (
+                <motion.div key={activeTab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+                  <h2 className="text-2xl font-black font-display text-vintage-ink mb-6">
+                    {activeTab === 'tasks' ? "Today's Focus" : activeTab === 'inbox' ? "Pending Review" : "Completed Tasks"}
+                  </h2>
                   <div className="space-y-3">
                     {isLoading ? (
                       <>
@@ -359,6 +382,15 @@ function WorkspaceContent() {
                               }`}>
                                 {task.priority}
                               </div>
+                              {task.status === 'pending_review' && (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleApproveTask(task); }}
+                                  className="opacity-0 group-hover:opacity-100 p-1.5 rounded hover:bg-green-100 text-vintage-ink/40 hover:text-green-600 transition-all"
+                                  title="Approve task"
+                                >
+                                  <CheckCircle className="w-4 h-4" />
+                                </button>
+                              )}
                               <button
                                 onClick={(e) => { e.stopPropagation(); openEditModal(task); }}
                                 className="opacity-0 group-hover:opacity-100 p-1.5 rounded hover:bg-vintage-ink/10 text-vintage-ink/40 hover:text-vintage-ink transition-all"
@@ -383,9 +415,9 @@ function WorkspaceContent() {
                 </motion.div>
               )}
 
-              {activeTab === 'inbox' && (
-                <motion.div key="inbox" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-                  <h2 className="text-2xl font-black font-display text-vintage-ink mb-6">AI Notice Processor</h2>
+              {activeTab === 'extract' && (
+                <motion.div key="extract" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+                  <h2 className="text-2xl font-black font-display text-vintage-ink mb-6">AI Notice Scanner</h2>
                   <div className="bg-white rounded-xl border border-vintage-ink/10 p-4 shadow-sm">
                     <textarea 
                       placeholder="Paste your syllabus, notice, or email here..."

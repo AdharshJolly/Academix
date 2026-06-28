@@ -245,7 +245,8 @@ def handle_incoming_message(
                 title=event.title,
                 description=desc,
                 due_date=event.date if event.date and event.date != "unknown" else None,
-                priority="high" if event.type in ["exam", "assignment"] else "medium"
+                priority="high" if event.type in ["exam", "assignment"] else "medium",
+                status="pending_review"
             )
             task_repo.create(user_id=user_id, data=task_data)
             added += 1
