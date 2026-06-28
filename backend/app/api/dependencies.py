@@ -22,3 +22,8 @@ def get_intelligence_engine() -> AcademicIntelligenceEngine:
 
 def get_automation_service() -> AutomationService:
     return AutomationService()
+
+from app.repositories.attendance_repository import AttendanceRepository
+
+def get_attendance_repo() -> AttendanceRepository:
+    return AttendanceRepository()

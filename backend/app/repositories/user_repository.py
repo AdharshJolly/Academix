@@ -80,27 +80,7 @@ class UserRepository:
 
         response = db.table(TABLE).insert(payload).execute()
         row = response.data[0]
-        return UserOut(
-            id=row["id"],
-            email=row["email"],
-            full_name=row["full_name"],
-            avatar_url=row.get("avatar_url"),
-            google_calendar_connected=row.get("google_calendar_connected", False),
-            whatsapp_number=row.get("whatsapp_number"),
-            academic_year=row.get("academic_year"),
-            major=row.get("major"),
-            gpa=row.get("gpa"),
-            attendance_percent=row.get("attendance_percent"),
-            attendance_total_hours=row.get("attendance_total_hours"),
-            attendance_attended_hours=row.get("attendance_attended_hours"),
-            study_hours=row.get("study_hours"),
-            primary_objective=row.get("primary_objective"),
-            learning_protocols=row.get("learning_protocols"),
-            telegram_chat_id=row.get("telegram_chat_id"),
-            telegram_username=row.get("telegram_username"),
-            whatsapp_notifications_enabled=row.get("whatsapp_notifications_enabled", True),
-            telegram_notifications_enabled=row.get("telegram_notifications_enabled", False),
-        )
+        return UserOut.from_row(row)
 
     def update(self, user_id: str, data: dict) -> UserOut | None:
         """Partial update of user profile fields."""
@@ -114,23 +94,7 @@ class UserRepository:
         if not response.data:
             return None
         row = response.data[0]
-        return UserOut(
-            id=row["id"],
-            email=row["email"],
-            full_name=row["full_name"],
-            avatar_url=row.get("avatar_url"),
-            google_calendar_connected=row.get("google_calendar_connected", False),
-            whatsapp_number=row.get("whatsapp_number"),
-            academic_year=row.get("academic_year"),
-            major=row.get("major"),
-            gpa=row.get("gpa"),
-            attendance_percent=row.get("attendance_percent"),
-            attendance_total_hours=row.get("attendance_total_hours"),
-            attendance_attended_hours=row.get("attendance_attended_hours"),
-            study_hours=row.get("study_hours"),
-            primary_objective=row.get("primary_objective"),
-            learning_protocols=row.get("learning_protocols"),
-        )
+        return UserOut.from_row(row)
 
     def get_automation_profile(self, user_id: str) -> dict | None:
         """Fetch only fields needed by automation services."""

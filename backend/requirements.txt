@@ -15,11 +15,11 @@ python-dateutil==2.9.0.post0
 fastembed==0.8.0
 
 pytest==8.3.3
-slowapi
-redis
-python-multipart
-apscheduler
-pydantic-settings
+slowapi==0.1.9
+redis==5.0.8
+python-multipart==0.0.9
+apscheduler==3.10.4
+pydantic-settings==2.4.0
 structlog==24.1.0
 python-json-logger==2.0.7
 asgi-correlation-id==4.3.1

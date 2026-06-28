@@ -10,8 +10,7 @@ import logging
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/attendance", tags=["Attendance"])
 
-def get_attendance_repo() -> AttendanceRepository:
-    return AttendanceRepository()
+from app.api.dependencies import get_attendance_repo
 
 @router.get("", response_model=APIResponse[List[AttendanceRecordOut]])
 async def get_attendance_records(

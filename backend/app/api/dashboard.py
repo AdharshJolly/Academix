@@ -173,7 +173,7 @@ async def get_dashboard(
                     try:
                         d = t.due_date if isinstance(t.due_date, date) else date.fromisoformat(str(t.due_date))
                         dated_tasks.append((d, t))
-                    except:
+                    except (ValueError, TypeError):
                         pass
             
             dated_tasks.sort(key=lambda x: x[0])
@@ -263,10 +263,7 @@ def create_generic_study_session(
         res = db.table("study_sessions").insert(session_data).execute()
         
         hours = request.duration_minutes / 60.0
-        user_res = db.table("users").select("study_hours").eq("id", user["id"]).execute()
-        if user_res.data:
-            current_hours = user_res.data[0].get("study_hours") or 0.0
-            db.table("users").update({"study_hours": current_hours + hours}).eq("id", user["id"]).execute()
+        db.rpc("increment_study_hours", {"p_user_id": user["id"], "hours": hours}).execute()
             
         return APIResponse(success=True, message="Study session logged", data=res.data[0] if res.data else None)
     except Exception as e:

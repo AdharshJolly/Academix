@@ -98,20 +98,7 @@ async def login(request: UserLoginRequest):
 
         token = create_access_token(user_id=user["id"], email=user["email"])
 
-        user_profile = UserOut(
-            id=user["id"],
-            email=user["email"],
-            full_name=user["full_name"],
-            avatar_url=user.get("avatar_url"),
-            google_calendar_connected=user.get("google_calendar_connected", False),
-            whatsapp_number=user.get("whatsapp_number"),
-            academic_year=user.get("academic_year"),
-            major=user.get("major"),
-            gpa=user.get("gpa"),
-            study_hours=user.get("study_hours"),
-            primary_objective=user.get("primary_objective"),
-            learning_protocols=user.get("learning_protocols"),
-        )
+        user_profile = UserOut.from_row(user)
         return APIResponse(
             success=True,
             message="Login successful",

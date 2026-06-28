@@ -13,10 +13,20 @@ import uuid
 
 from app.core.security import verify_token
 from app.repositories.intelligence_repository import IntelligenceRepository
+from app.repositories.user_repository import UserRepository
+from app.repositories.attendance_repository import AttendanceRepository
+from app.repositories.chat_repository import ChatRepository
 from app.schemas.common import APIResponse
-from app.schemas.intelligence import IntelligenceRequest, IntelligenceResponse
+from app.schemas.intelligence import IntelligenceRequest, IntelligenceResponse, ChatMessage
 from app.services.automation_service import AutomationService
 from app.services.intelligence_engine import AcademicIntelligenceEngine
+from app.services.ai.document_processor import DocumentProcessor
+from app.services.ai.vision_extractor import VisionExtractor
+from app.services.groq_client import GroqClient
+from app.api.dependencies import get_intelligence_engine, get_intelligence_repo, get_automation_service
+import asyncio
+from app.core.ws_manager import manager
+import os
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/intelligence", tags=["intelligence"])
@@ -32,12 +42,6 @@ limiter = Limiter(key_func=get_auth_token_or_ip)
 
 
 
-from app.api.dependencies import get_intelligence_engine, get_intelligence_repo, get_automation_service
-
-
-import asyncio
-from app.core.ws_manager import manager
-
 async def run_pipeline(
     report_id: str,
     request: IntelligenceRequest,
@@ -48,7 +52,6 @@ async def run_pipeline(
         repo = get_intelligence_repo()
         automation = get_automation_service()
         
-        from app.repositories.user_repository import UserRepository
         user_repo = UserRepository()
         user_profile = await asyncio.to_thread(user_repo.get_by_id, user_id)
         
@@ -123,11 +126,9 @@ async def upload_notice(
     contents = await file.read()
     
     if file.content_type == "application/pdf":
-        from app.services.ai.document_processor import DocumentProcessor
         doc_processor = DocumentProcessor()
         text = doc_processor.extract_text_from_pdf(contents)
     else:
-        from app.services.ai.vision_extractor import VisionExtractor
         vision_extractor = VisionExtractor()
         mime_type = file.content_type or "image/jpeg"
         text = await vision_extractor.extract_text_from_image(contents, mime_type)
@@ -148,8 +149,6 @@ async def upload_timetable(
     Parse a timetable image/PDF and register the subjects to the Attendance Tracker.
     """
     contents = await file.read()
-    from app.services.ai.vision_extractor import VisionExtractor
-    from app.repositories.attendance_repository import AttendanceRepository
     from app.schemas.attendance import AttendanceRecordCreate
     
     vision = VisionExtractor()
@@ -185,7 +184,6 @@ async def upload_study_material(
         raise HTTPException(400, "Only PDF files are supported for study materials right now.")
         
     contents = await file.read()
-    from app.services.ai.document_processor import DocumentProcessor
     doc_processor = DocumentProcessor()
     
     try:
@@ -195,16 +193,12 @@ async def upload_study_material(
         logger.error(f"Failed to process study material: {e}")
         raise HTTPException(500, "Failed to process and store document.")
 
-from pydantic import BaseModel
-class ChatMessage(BaseModel):
-    content: str
 
 @router.get("/chat/history")
 def get_chat_history(
     user: dict = Depends(verify_token),
 ):
     """Retrieve the recent chat history."""
-    from app.repositories.chat_repository import ChatRepository
     chat_repo = ChatRepository()
     messages = chat_repo.get_recent_messages(user["id"], limit=50)
     return APIResponse(success=True, message="Chat history retrieved", data=messages)
@@ -215,10 +209,6 @@ def post_chat_message(
     user: dict = Depends(verify_token),
 ):
     """Post a new message and get an AI response."""
-    from app.repositories.chat_repository import ChatRepository
-    from app.services.groq_client import GroqClient
-    import os
-    
     chat_repo = ChatRepository()
     # Save user message
     chat_repo.add_message(user["id"], "user", message.content)

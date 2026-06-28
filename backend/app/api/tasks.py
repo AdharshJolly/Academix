@@ -135,11 +135,7 @@ def create_study_session(
         
         # Increment total study hours for the user
         hours = request.duration_minutes / 60.0
-        # Wait, there's no atomic increment in Supabase rest, so we read then write
-        user_res = db.table("users").select("study_hours").eq("id", user["id"]).execute()
-        if user_res.data:
-            current_hours = user_res.data[0].get("study_hours") or 0.0
-            db.table("users").update({"study_hours": current_hours + hours}).eq("id", user["id"]).execute()
+        db.rpc("increment_study_hours", {"p_user_id": user["id"], "hours": hours}).execute()
             
         return APIResponse(success=True, message="Study session logged", data=res.data[0] if res.data else None)
     except Exception as e:

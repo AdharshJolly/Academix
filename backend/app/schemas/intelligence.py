@@ -67,3 +67,6 @@ class IntelligenceResponse(BaseModel):
     recommendations: List[Recommendation]
     study_schedule: List[ScheduleBlock]
 
+class ChatMessage(BaseModel):
+    content: str
+

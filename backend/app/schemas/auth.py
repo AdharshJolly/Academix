@@ -40,6 +40,11 @@ class UserOut(BaseModel):
     whatsapp_notifications_enabled: bool = True
     telegram_notifications_enabled: bool = False
 
+    @classmethod
+    def from_row(cls, row: dict) -> "UserOut":
+        """Build UserOut safely from a database row, ignoring extra fields."""
+        return cls(**row)
+
 class UserProfileUpdate(BaseModel):
     full_name: str | None = None
     avatar_url: str | None = None
