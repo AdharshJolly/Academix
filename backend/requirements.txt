@@ -143,7 +143,7 @@ python-json-logger==4.1.0
 python-multipart==0.0.20
 python-slugify==8.0.4
 pytz==2025.2
-pywin32==311
+pywin32==311; sys_platform == 'win32'
 PyYAML==6.0.3
 qdrant-client==1.15.1
 RapidFuzz==3.14.5
@@ -235,5 +235,5 @@ wcwidth==0.6.0
 webencodings==0.5.1
 websockets==15.0.1
 Werkzeug==3.1.5
-win32_setctime==1.2.0
+win32_setctime==1.2.0; sys_platform == 'win32'
 wrapt==2.2.2
