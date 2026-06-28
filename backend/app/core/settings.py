@@ -23,8 +23,6 @@ class Settings(BaseSettings):
     PRIMARY_MODEL: str = "moonshotai/kimi-k2-instruct"
     FALLBACK_MODEL: str = "llama-3.3-70b-versatile"
 
-    # Make.com
-    MAKE_WEBHOOK_URL: str = ""
 
     # Twilio
     TWILIO_ACCOUNT_SID: str = ""
@@ -40,8 +38,8 @@ class Settings(BaseSettings):
     GOOGLE_REDIRECT_URI: str = ""
     FRONTEND_URL: str = "http://localhost:3000"
 
-    # Internal automation callback
-    AUTOMATION_CALLBACK_SECRET: str = ""
+    # Webhook Secret (Telegram, etc.)
+    WEBHOOK_SECRET: str = ""
 
     # CORS
     CORS_ORIGINS: str = "http://localhost:3000"
@@ -63,6 +61,7 @@ class Settings(BaseSettings):
             ("SUPABASE_SERVICE_ROLE_KEY", self.SUPABASE_SERVICE_ROLE_KEY),
             ("GROQ_API_KEY", self.GROQ_API_KEY),
             ("SECRET_KEY", self.SECRET_KEY),
+            ("WEBHOOK_SECRET", self.WEBHOOK_SECRET),
         ]
         for name, val in critical:
             if not val:

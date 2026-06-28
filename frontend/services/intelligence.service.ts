@@ -30,11 +30,14 @@ export const IntelligenceService = {
     _waitForWs: async (reportId: string, token: string): Promise<APIResponse<IntelligenceResponse>> => {
         return new Promise((resolve) => {
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-            const wsUrl = apiUrl.replace(/^http/, 'ws') + `/ws?token=${token}`;
+            const wsUrl = apiUrl.replace(/^http/, 'ws') + `/ws`;
             
             let ws: WebSocket | null = null;
             try {
                 ws = new WebSocket(wsUrl);
+                ws.onopen = () => {
+                    ws?.send(JSON.stringify({ token }));
+                };
             } catch (e) {
                 console.warn("Failed to connect WS", e);
             }

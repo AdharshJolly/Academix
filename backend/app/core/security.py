@@ -5,6 +5,7 @@ Passwords: SHA-256 pre-hash → bcrypt (eliminates the 72-byte bcrypt limit enti
 Tokens: python-jose HS256 JWTs.
 """
 import hashlib
+import logging
 import os
 from datetime import datetime, timedelta, timezone
 
@@ -14,7 +15,9 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 
 # ── Config ────────────────────────────────────────────────────────────────────
-SECRET_KEY = os.getenv("SECRET_KEY", "changeme-very-secret-key-replace-in-prod")
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    raise RuntimeError("SECRET_KEY environment variable must be set.")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_HOURS = 72   # 3 days
 
@@ -82,6 +85,8 @@ def verify_token(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+logger = logging.getLogger(__name__)
+
 def verify_ws_token(token: str) -> dict | None:
     """Manually verify JWT token for WebSockets."""
     try:
@@ -92,4 +97,5 @@ def verify_ws_token(token: str) -> dict | None:
             raise JWTError("Missing subject")
         return {"id": user_id, "email": email}
     except Exception as e:
+        logger.warning(f"WebSocket token verification failed: {e}")
         return None

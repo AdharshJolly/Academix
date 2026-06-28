@@ -38,8 +38,8 @@ def log_automation_callback(
     automation_repo: AutomationRepository = Depends(get_automation_repo),
 ):
     """Callback endpoint called by Make.com after Twilio WhatsApp delivery."""
-    expected = f"Bearer {settings.AUTOMATION_CALLBACK_SECRET}"
-    if not settings.AUTOMATION_CALLBACK_SECRET or authorization != expected:
+    expected = f"Bearer {settings.WEBHOOK_SECRET}"
+    if not settings.WEBHOOK_SECRET or authorization != expected:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid automation callback secret",
@@ -146,8 +146,8 @@ def handle_incoming_message(
     Webhook for incoming forwarded messages via Telegram/WhatsApp (via Make.com).
     Extracts events using Groq and creates tasks in the user's workspace.
     """
-    expected = f"Bearer {settings.AUTOMATION_CALLBACK_SECRET}"
-    if not settings.AUTOMATION_CALLBACK_SECRET or authorization != expected:
+    expected = f"Bearer {settings.WEBHOOK_SECRET}"
+    if not settings.WEBHOOK_SECRET or authorization != expected:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid webhook secret",
@@ -259,11 +259,19 @@ def handle_incoming_message(
     )
 
 @router.post("/telegram/webhook")
-async def telegram_webhook(request: Request):
+async def telegram_webhook(
+    request: Request,
+    x_telegram_bot_api_secret_token: str | None = Header(default=None)
+):
     """
     Direct Telegram Webhook. 
     Replaces Make.com entirely. Handles text and images (via Gemini).
     """
+    if not settings.WEBHOOK_SECRET or x_telegram_bot_api_secret_token != settings.WEBHOOK_SECRET:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid Telegram webhook secret",
+        )
     try:
         update = await request.json()
     except Exception:

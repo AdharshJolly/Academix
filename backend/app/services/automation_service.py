@@ -7,7 +7,8 @@ from __future__ import annotations
 import logging
 
 from app.integrations.calendar import GoogleCalendarClient
-from app.integrations.make import MakeClient
+import httpx
+import os
 from app.repositories.automation_repository import AutomationRepository
 from app.repositories.user_repository import UserRepository
 from app.schemas.intelligence import ExtractedEvent, IntelligenceResponse, ScheduleBlock
@@ -21,7 +22,7 @@ class AutomationService:
         self._automation_repo = AutomationRepository()
         self._user_repo = UserRepository()
         self._calendar = GoogleCalendarClient()
-        self._make = MakeClient()
+        self._telegram_token = os.getenv("TELEGRAM_BOT_TOKEN")
 
     def run_for_task(
         self, 
@@ -136,25 +137,21 @@ class AutomationService:
             self._automation_repo.update_status(log_id, "success", payload)
             return
 
-        whatsapp_number = profile.get("whatsapp_number")
-        if not whatsapp_number:
-            payload["whatsapp_status"] = "not_configured"
+        telegram_chat_id = profile.get("telegram_chat_id")
+        if not telegram_chat_id or not self._telegram_token:
+            payload["whatsapp_status"] = "not_configured"  # Legacy field name
             self._automation_repo.update_status(log_id, "success", payload)
             return
 
-        make_payload = {
-            "user_id": user_id,
-            "log_id": log_id,
-            "whatsapp_number": whatsapp_number,
-            "message": message,
-        }
         try:
-            make_response = self._make.send_whatsapp(workflow_type, make_payload)
-            payload["whatsapp_status"] = "sent_to_make"
-            payload["make_response"] = make_response
-            self._automation_repo.update_status(log_id, "pending", payload)
+            url = f"https://api.telegram.org/bot{self._telegram_token}/sendMessage"
+            res = httpx.post(url, json={"chat_id": telegram_chat_id, "text": message, "parse_mode": "Markdown"})
+            res.raise_for_status()
+            
+            payload["whatsapp_status"] = "sent"
+            self._automation_repo.update_status(log_id, "success", payload)
         except Exception as exc:
-            logger.error("Make.com automation failed [%s]: %s", workflow_type, exc)
+            logger.error("Telegram automation failed [%s]: %s", workflow_type, exc)
             payload["whatsapp_status"] = "failed"
             self._automation_repo.update_status(log_id, "failed", {**payload, "error": str(exc)})
 

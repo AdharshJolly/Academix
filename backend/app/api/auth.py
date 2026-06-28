@@ -7,8 +7,11 @@ JWTs are minted by our own security module.
 
 import logging
 import uuid
-
+import secrets
 from fastapi import APIRouter, Depends, HTTPException, status
+from app.core.cache import cache
+
+_oauth_nonce_store = {}
 
 from app.core.security import (
     create_access_token,
@@ -157,7 +160,13 @@ async def update_profile(
 def connect_google_calendar(user: dict = Depends(verify_token)):
     """Return the Google OAuth URL for connecting the user's calendar."""
     try:
-        authorization_url = calendar_client.build_authorization_url(state=user["id"])
+        nonce = secrets.token_urlsafe(32)
+        if cache:
+            cache.setex(f"oauth_nonce:{nonce}", 900, user["id"])
+        else:
+            _oauth_nonce_store[nonce] = user["id"]
+
+        authorization_url = calendar_client.build_authorization_url(state=nonce)
         return APIResponse(
             success=True,
             message="Google Calendar authorization URL generated",
@@ -179,9 +188,21 @@ def google_calendar_callback(code: str, state: str):
 
     frontend_url = settings.FRONTEND_URL or "http://localhost:3000"
 
+    user_id = None
+    if cache:
+        user_id = cache.get(f"oauth_nonce:{state}")
+        if user_id:
+            cache.delete(f"oauth_nonce:{state}")
+    else:
+        user_id = _oauth_nonce_store.pop(state, None)
+
+    if not user_id:
+        logger.error("Invalid or expired OAuth state parameter.")
+        return RedirectResponse(url=f"{frontend_url}/settings?google_error=Invalid+State")
+
     try:
         refresh_token = calendar_client.exchange_code_for_refresh_token(code)
-        user_repo.save_google_refresh_token(user_id=state, refresh_token=refresh_token)
+        user_repo.save_google_refresh_token(user_id=user_id, refresh_token=refresh_token)
         return RedirectResponse(url=f"{frontend_url}/settings?google_connected=true")
     except Exception as e:
         logger.error(f"Google OAuth callback error: {e}")

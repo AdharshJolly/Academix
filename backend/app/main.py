@@ -85,20 +85,34 @@ from fastapi import WebSocket, WebSocketDisconnect
 from app.core.ws_manager import manager
 from app.core.security import verify_ws_token
 
-@app.websocket("/ws")
-async def ws_endpoint(websocket: WebSocket, token: str):
-    user = verify_ws_token(token)
-    if not user:
-        await websocket.close(code=1008)
-        return
+import asyncio
 
-    user_id = user["id"]
-    await manager.connect(user_id, websocket)
+@app.websocket("/ws")
+async def ws_endpoint(websocket: WebSocket):
+    await websocket.accept()
     try:
+        token_msg = await asyncio.wait_for(websocket.receive_json(), timeout=5.0)
+        token = token_msg.get("token") if isinstance(token_msg, dict) else None
+        
+        user = verify_ws_token(token) if token else None
+        if not user:
+            await websocket.close(code=1008)
+            return
+
+        user_id = user["id"]
+        # Connect to manager but skip manager's internal accept
+        if user_id not in manager.connections:
+            manager.connections[user_id] = []
+        manager.connections[user_id].append(websocket)
+        
         while True:
             await websocket.receive_text()
-    except WebSocketDisconnect:
-        manager.disconnect(user_id, websocket)
     except Exception:
-        manager.disconnect(user_id, websocket)
+        if 'user_id' in locals():
+            manager.disconnect(user_id, websocket)
+        else:
+            try:
+                await websocket.close(code=1008)
+            except:
+                pass
 
