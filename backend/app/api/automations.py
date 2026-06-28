@@ -31,33 +31,6 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/automations", tags=["automations"])
 
 
-@router.post("/log", response_model=AutomationCallbackResponse)
-def log_automation_callback(
-    request: AutomationLogCallback,
-    authorization: str | None = Header(default=None),
-    automation_repo: AutomationRepository = Depends(get_automation_repo),
-):
-    """Callback endpoint called after WhatsApp delivery."""
-    expected = f"Bearer {settings.WEBHOOK_SECRET}"
-    if not settings.WEBHOOK_SECRET or authorization != expected:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid automation callback secret",
-        )
-
-    automation_repo.update_status(
-        log_id=request.log_id,
-        status=request.status,
-        response={
-            "workflow_type": request.workflow_type,
-            "user_id": request.user_id,
-            "whatsapp_status": request.status,
-            "whatsapp_message_id": request.whatsapp_message_id,
-            "error": request.error,
-        },
-    )
-    return AutomationCallbackResponse(logged=True)
-
 
 @router.get("/logs", response_model=APIResponse[list[AutomationLogResponse]])
 def list_automation_logs(
@@ -274,7 +247,8 @@ async def telegram_webhook(
         )
     try:
         update = await request.json()
-    except Exception:
+    except Exception as e:
+        logger.warning(f"Telegram webhook failed to parse JSON: {e}")
         return {"ok": True}
         
     message = update.get("message", {})

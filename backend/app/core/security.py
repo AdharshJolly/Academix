@@ -15,7 +15,9 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 
 # ── Config ────────────────────────────────────────────────────────────────────
-SECRET_KEY = os.getenv("SECRET_KEY")
+from app.core.settings import settings
+
+SECRET_KEY = settings.SECRET_KEY
 if not SECRET_KEY:
     raise RuntimeError("SECRET_KEY environment variable must be set.")
 ALGORITHM = "HS256"
@@ -39,7 +41,7 @@ def verify_password(plain: str, hashed: str) -> bool:
     """Verify plain password against a stored bcrypt hash."""
     try:
         return bcrypt.checkpw(_sha256(plain), hashed.encode("utf-8"))
-    except Exception:
+    except ValueError:
         return False
 
 

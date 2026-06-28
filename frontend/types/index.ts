@@ -76,6 +76,7 @@ export interface TaskCreate {
     description?: string;
     due_date?: string;       // ISO 8601: YYYY-MM-DD
     priority?: TaskPriority;
+    subject?: string;
 }
 
 export interface TaskUpdate {
@@ -84,6 +85,7 @@ export interface TaskUpdate {
     due_date?: string;
     status?: TaskStatus;
     priority?: TaskPriority;
+    subject?: string;
 }
 
 export interface TaskResponse {
@@ -93,6 +95,7 @@ export interface TaskResponse {
     description?: string;
     status: TaskStatus;
     priority: TaskPriority;
+    subject?: string;
     due_date?: string;
     created_at: string;
     updated_at: string;

@@ -21,6 +21,7 @@ import { ErrorState, EmptyState } from '../../components/shared/States';
 import { SortDesc, Zap, Link2, Check, ExternalLink, AlertCircle, Play, Pause } from 'lucide-react';
 import { useWebSocket } from '../../hooks/useWebSocket';
 import { PriorityBadge, StatusBadge } from '../../components/shared/Badges';
+import { WorkspaceTask } from '../../components/workspace/WorkspaceTask';
 
 interface WorkspaceTask {
   id: string;
@@ -389,52 +390,16 @@ function WorkspaceContent() {
                       <EmptyState icon={SortDesc} title="No tasks found" subtitle="No tasks matching your search." />
                     ) : (
                       filteredTasks.map(task => (
-                        <div 
+                        <WorkspaceTask
                           key={task.id}
-                          onClick={() => setSelectedItem(task)}
-                          className={`p-4 rounded-lg border cursor-pointer transition-all group ${
-                            selectedItem?.id === task.id 
-                              ? 'bg-white border-vintage-crimson shadow-sm scale-[1.01]' 
-                              : 'bg-white/50 border-vintage-ink/10 hover:border-vintage-ink/30 hover:bg-white'
-                          }`}
-                        >
-                          <div className="flex items-start justify-between">
-                            <div className="flex gap-3 flex-1 min-w-0">
-                              <div className="mt-1 w-5 h-5 rounded-md border-2 border-vintage-ink/20 flex items-center justify-center shrink-0"></div>
-                              <div className="min-w-0">
-                                <h3 className="font-bold text-vintage-ink font-mono truncate">{task.title}</h3>
-                                <p className="text-sm text-vintage-ink/60 font-mono mt-1">{task.subject} • {task.type}</p>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2 shrink-0 ml-2">
-                              <PriorityBadge priority={task.priority} />
-                              {task.status === 'pending_review' && (
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); handleApproveTask(task); }}
-                                  className="opacity-0 group-hover:opacity-100 p-1.5 rounded hover:bg-green-100 text-vintage-ink/40 hover:text-green-600 transition-all"
-                                  title="Approve task"
-                                >
-                                  <CheckCircle className="w-4 h-4" />
-                                </button>
-                              )}
-                              <button
-                                onClick={(e) => { e.stopPropagation(); openEditModal(task); }}
-                                className="opacity-0 group-hover:opacity-100 p-1.5 rounded hover:bg-vintage-ink/10 text-vintage-ink/40 hover:text-vintage-ink transition-all"
-                                title="Edit task"
-                              >
-                                <Pencil className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                onClick={(e) => { e.stopPropagation(); handleDeleteTask(task.id); }}
-                                disabled={isDeletingTask === task.id}
-                                className="opacity-0 group-hover:opacity-100 p-1.5 rounded hover:bg-vintage-crimson/10 text-vintage-ink/40 hover:text-vintage-crimson transition-all disabled:opacity-30"
-                                title="Delete task"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
+                          task={task}
+                          isSelected={selectedItem?.id === task.id}
+                          isDeleting={isDeletingTask === task.id}
+                          onSelect={setSelectedItem}
+                          onApprove={(t, e) => { e.stopPropagation(); handleApproveTask(t); }}
+                          onEdit={(t, e) => { e.stopPropagation(); openEditModal(t); }}
+                          onDelete={(id, e) => { e.stopPropagation(); handleDeleteTask(id); }}
+                        />
                       ))
                     )}
                   </div>

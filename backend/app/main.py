@@ -2,15 +2,19 @@
 Academix FastAPI Application Entry Point
 Architecture: v1.2 (Frozen)
 """
+import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import auth, dashboard, tasks, intelligence, automations, calendar, attendance
+logger = logging.getLogger(__name__)
+
 from app.core.settings import settings
 
 missing_settings = settings.validate()
 if missing_settings:
     raise RuntimeError(f"Missing critical environment variables: {', '.join(missing_settings)}")
+
+from app.api import auth, dashboard, tasks, intelligence, automations, calendar, attendance
 
 from app.core.logging_setup import setup_logging
 from asgi_correlation_id import CorrelationIdMiddleware
@@ -107,12 +111,13 @@ async def ws_endpoint(websocket: WebSocket):
         
         while True:
             await websocket.receive_text()
-    except Exception:
+    except Exception as e:
+        logger.debug(f"WebSocket connection closed or error: {e}")
         if 'user_id' in locals():
             manager.disconnect(user_id, websocket)
         else:
             try:
                 await websocket.close(code=1008)
-            except:
-                pass
+            except Exception as close_err:
+                logger.debug(f"Failed to close unauthenticated WebSocket: {close_err}")
 

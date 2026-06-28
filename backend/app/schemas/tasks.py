@@ -17,6 +17,7 @@ class TaskCreate(BaseModel):
     add_to_calendar: Optional[bool] = True
     reminder_time: Optional[str] = "24h"
     status: TaskStatus = "pending"
+    subject: Optional[str] = None
 
 class StudySessionCreate(BaseModel):
     duration_minutes: int
@@ -30,6 +31,7 @@ class TaskUpdate(BaseModel):
     due_date: Optional[date] = None
     status: Optional[TaskStatus] = None
     priority: Optional[TaskPriority] = None
+    subject: Optional[str] = None
 
 
 class TaskResponse(BaseModel):
@@ -40,6 +42,7 @@ class TaskResponse(BaseModel):
     description: Optional[str] = None
     status: TaskStatus
     priority: TaskPriority
+    subject: Optional[str] = None
     due_date: Optional[date] = None
     created_at: str
     updated_at: str

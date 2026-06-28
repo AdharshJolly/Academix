@@ -101,8 +101,8 @@ class CalendarSyncService:
                 b_end = datetime.fromisoformat(b["end"].replace('Z', '+00:00'))
                 # Just comparing local naive time for simplicity
                 all_busy.append((b_start.replace(tzinfo=None), b_end.replace(tzinfo=None)))
-            except:
-                pass
+            except Exception as e:
+                logger.warning(f"Failed to parse busy slot time: {e}")
                 
         all_busy.extend(already_scheduled)
         all_busy.sort(key=lambda x: x[0])

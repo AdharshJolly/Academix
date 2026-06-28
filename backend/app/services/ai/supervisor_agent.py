@@ -486,7 +486,25 @@ class SupervisorAgent:
             return "I ran into an issue searching your study materials!"
 
     def _handle_reschedule(self, user_id: str, task_name: str, new_date: str) -> str:
-        return "Task rescheduling is not fully automated yet. Please update it manually on the dashboard."
+        tasks, _ = self.task_repo.get_all(user_id=user_id, size=100)
+        target = next((t for t in tasks if task_name and task_name.lower() in t.title.lower()), None)
+        if not target:
+            return f"I couldn't find a task matching '{task_name}'."
+        from datetime import datetime
+        try:
+            # simple validation, assume new_date is valid or pydantic will handle it
+            self.task_repo.update(target.id, user_id, TaskUpdate(due_date=new_date))
+            return f"Successfully rescheduled '{target.title}' to {new_date}."
+        except Exception as e:
+            logger.error(f"Failed to reschedule task: {e}")
+            return f"Failed to reschedule '{target.title}'. Please ensure the date format is valid (YYYY-MM-DD)."
 
     def _handle_delete(self, user_id: str, task_name: str) -> str:
-        return "Task deletion via chat is not supported yet. Please delete it manually on the dashboard."
+        tasks, _ = self.task_repo.get_all(user_id=user_id, size=100)
+        target = next((t for t in tasks if task_name and task_name.lower() in t.title.lower()), None)
+        if not target:
+            return f"I couldn't find a task matching '{task_name}'."
+        success = self.task_repo.delete(target.id, user_id)
+        if success:
+            return f"Deleted task '{target.title}'."
+        return "Failed to delete the task."

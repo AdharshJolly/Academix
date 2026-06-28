@@ -7,6 +7,7 @@ os.environ["SECRET_KEY"] = "test-secret-key-32-chars-minimum!!"
 os.environ["SUPABASE_URL"] = "https://fake.supabase.co"
 os.environ["SUPABASE_SERVICE_ROLE_KEY"] = "fake-service-role-key"
 os.environ["GROQ_API_KEY"] = "fake-groq-key"
+os.environ["WEBHOOK_SECRET"] = "fake-webhook-secret"
 
 @pytest.fixture
 def mock_supabase():

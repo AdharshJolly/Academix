@@ -31,7 +31,7 @@ class TaskRepository:
         db = ScopedTable(TABLE, user_id)
         offset = (page - 1) * size
 
-        query = db.select("*", count="exact")
+        query = db.select("*", count="exact").is_("deleted_at", "null")
         if status:
             query = query.eq("status", status)
         if priority:
@@ -53,6 +53,7 @@ class TaskRepository:
         response = (
             db.select("*")
             .eq("id", task_id)
+            .is_("deleted_at", "null")
             .single()
             .execute()
         )
@@ -69,6 +70,7 @@ class TaskRepository:
             "due_date": data.due_date.isoformat() if data.due_date else None,
             "priority": data.priority or "medium",
             "status": "pending",
+            "subject": data.subject,
         }
         response = db.insert(payload).execute()
         invalidate_dashboard_cache(user_id)
@@ -95,10 +97,10 @@ class TaskRepository:
         return TaskResponse(**response.data[0])
 
     def delete(self, task_id: str, user_id: str) -> bool:
-        """Delete a task. Returns True if a row was deleted."""
+        """Soft-delete a task. Returns True if a row was updated."""
         db = ScopedTable(TABLE, user_id)
         response = (
-            db.delete()
+            db.update({"deleted_at": datetime.now(timezone.utc).isoformat()})
             .eq("id", task_id)
             .execute()
         )
@@ -113,6 +115,7 @@ class TaskRepository:
             db.select("*")
             .in_("status", ["pending", "in_progress"])
             .not_.is_("due_date", "null")
+            .is_("deleted_at", "null")
             .order("due_date", desc=False)
             .limit(limit)
             .execute()

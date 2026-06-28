@@ -17,7 +17,8 @@ class SchedulerEngine:
         try:
             from app.services.groq_client import GroqClient
             self.groq = GroqClient()
-        except Exception:
+        except Exception as e:
+            logger.warning(f"Failed to initialize GroqClient in SchedulerEngine: {e}")
             self.groq = None
 
     # How many study hours to plan per event type

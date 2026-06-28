@@ -3,12 +3,12 @@ import pytest
 class TestTasksAPI:
     def test_get_tasks_returns_list(self, client, auth_headers, mock_supabase):
         # Setup mock return data
-        mock_supabase.table.return_value.select.return_value.eq.return_value.order.return_value.range.return_value.execute.return_value.data = [
+        mock_supabase.table.return_value.select.return_value.eq.return_value.is_.return_value.order.return_value.range.return_value.execute.return_value.data = [
             {"id": "t1", "title": "Math Homework", "user_id": "test-user-id", "status": "pending", "priority": "high", "created_at": "2026-06-28", "updated_at": "2026-06-28"},
             {"id": "t2", "title": "Science Project", "user_id": "test-user-id", "status": "completed", "priority": "low", "created_at": "2026-06-28", "updated_at": "2026-06-28"}
         ]
         # Mock total count return
-        mock_supabase.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [
+        mock_supabase.table.return_value.select.return_value.eq.return_value.is_.return_value.execute.return_value.data = [
             {"count": 2}
         ]
         
@@ -46,13 +46,13 @@ class TestTasksAPI:
         assert response.status_code == 404
 
     def test_delete_task_success(self, client, auth_headers, mock_supabase):
-        mock_supabase.table.return_value.delete.return_value.eq.return_value.eq.return_value.execute.return_value.data = [
+        mock_supabase.table.return_value.update.return_value.eq.return_value.eq.return_value.execute.return_value.data = [
             {"id": "t1", "title": "Deleted"}
         ]
         response = client.delete("/api/v1/tasks/t1", headers=auth_headers)
         assert response.status_code == 200
 
     def test_delete_task_not_found(self, client, auth_headers, mock_supabase):
-        mock_supabase.table.return_value.delete.return_value.eq.return_value.eq.return_value.execute.return_value.data = []
+        mock_supabase.table.return_value.update.return_value.eq.return_value.eq.return_value.execute.return_value.data = []
         response = client.delete("/api/v1/tasks/missing-id", headers=auth_headers)
         assert response.status_code == 404
