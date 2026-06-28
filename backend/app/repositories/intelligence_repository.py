@@ -4,7 +4,7 @@ Data access layer for the intelligence_reports table.
 All AI pipeline outputs are stored here.
 """
 import logging
-from app.db.client import get_supabase
+from app.db.client import get_supabase, ScopedTable
 from app.schemas.intelligence import IntelligenceResponse
 
 logger = logging.getLogger(__name__)
@@ -27,10 +27,9 @@ class IntelligenceRepository:
         Persist a full IntelligenceResponse to the database.
         Returns the report_id.
         """
-        db = get_supabase()
+        db = ScopedTable(TABLE, user_id)
         payload = {
             "id": response.report_id,
-            "user_id": user_id,
             "task_id": task_id,
             "input_type": response.input_type,
             "raw_input": raw_input,
@@ -40,17 +39,15 @@ class IntelligenceRepository:
             "study_schedule": [s.model_dump() for s in response.study_schedule],
             "risk_score": response.risk_assessment.risk_score,
         }
-        db.table(TABLE).insert(payload).execute()
+        db.insert(payload).execute()
         invalidate_dashboard_cache(user_id)
         return response.report_id
 
     def get_latest_by_user(self, user_id: str) -> IntelligenceResponse | None:
         """Fetch the most recent intelligence report for a user."""
-        db = get_supabase()
+        db = ScopedTable(TABLE, user_id)
         response = (
-            db.table(TABLE)
-            .select("*")
-            .eq("user_id", user_id)
+            db.select("*")
             .order("created_at", desc=True)
             .limit(1)
             .execute()
@@ -61,12 +58,10 @@ class IntelligenceRepository:
 
     def get_by_id(self, report_id: str, user_id: str) -> IntelligenceResponse | None:
         """Fetch a specific intelligence report by ID, scoped to user."""
-        db = get_supabase()
+        db = ScopedTable(TABLE, user_id)
         response = (
-            db.table(TABLE)
-            .select("*")
+            db.select("*")
             .eq("id", report_id)
-            .eq("user_id", user_id)
             .single()
             .execute()
         )

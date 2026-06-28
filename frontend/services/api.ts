@@ -90,16 +90,17 @@ async function request<T>(
     token?: string
 ): Promise<T> {
     const url = `${BASE_URL}${endpoint}`;
-    const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-    };
+    const headers: Record<string, string> = {};
+    if (!(data instanceof FormData)) {
+        headers['Content-Type'] = 'application/json';
+    }
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
     try {
         const response = await fetch(url, {
             method,
             headers,
-            body: data ? JSON.stringify(data) : undefined,
+            body: data instanceof FormData ? data : (data ? JSON.stringify(data) : undefined),
         });
 
         // 401 = token expired or invalid → force logout and redirect to /auth

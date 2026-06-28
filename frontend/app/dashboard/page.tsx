@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { useAuth } from '../../contexts/AuthContext';
 import ErrorBoundary from '../../components/shared/ErrorBoundary';
 import SkeletonCard from '../../components/shared/SkeletonCard';
+import { ErrorState } from '../../components/shared/States';
 
 function DashboardContent() {
   const { data, isLoading, error } = useDashboard();
@@ -28,18 +29,7 @@ function DashboardContent() {
   }
 
   if (error) {
-    return (
-      <div className="flex h-[80vh] items-center justify-center">
-        <div className="vintage-panel p-8 max-w-md text-center">
-          <ShieldAlert className="w-12 h-12 text-vintage-crimson mx-auto mb-6" />
-          <h2 className="text-2xl font-display font-black text-vintage-crimson mb-4">Sync Error</h2>
-          <p className="text-vintage-ink/80 mb-8 font-mono text-sm tracking-tight">{error}</p>
-          <button className="vintage-btn w-full">
-            Retry Connection
-          </button>
-        </div>
-      </div>
-    );
+    return <ErrorState title="Sync Error" message={error} onRetry={() => window.location.reload()} />;
   }
 
   if (!data) return null;

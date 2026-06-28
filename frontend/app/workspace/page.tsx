@@ -17,8 +17,10 @@ import SkeletonCard from '../../components/shared/SkeletonCard';
 import { FocusTimerModal } from '../../components/shared/FocusTimerModal';
 import { ModalShell } from '../../components/shared/ModalShell';
 import { FormField } from '../../components/forms/FormField';
+import { ErrorState, EmptyState } from '../../components/shared/States';
 import { SortDesc, Zap, Link2, Check, ExternalLink, AlertCircle, Play, Pause } from 'lucide-react';
 import { useWebSocket } from '../../hooks/useWebSocket';
+import { PriorityBadge, StatusBadge } from '../../components/shared/Badges';
 
 interface WorkspaceTask {
   id: string;
@@ -384,7 +386,7 @@ function WorkspaceContent() {
                         <SkeletonCard />
                       </>
                     ) : filteredTasks.length === 0 ? (
-                      <p className="text-vintage-ink/50 font-mono text-sm">No tasks found matching your search.</p>
+                      <EmptyState icon={SortDesc} title="No tasks found" subtitle="No tasks matching your search." />
                     ) : (
                       filteredTasks.map(task => (
                         <div 
@@ -405,12 +407,7 @@ function WorkspaceContent() {
                               </div>
                             </div>
                             <div className="flex items-center gap-2 shrink-0 ml-2">
-                              <div className={`px-2 py-0.5 rounded text-xs font-mono font-bold ${
-                                task.priority === 'high' || task.priority === 'High' ? 'bg-vintage-crimsonLight/20 text-vintage-crimson' : 
-                                'bg-vintage-ink/5 text-vintage-ink/60'
-                              }`}>
-                                {task.priority}
-                              </div>
+                              <PriorityBadge priority={task.priority} />
                               {task.status === 'pending_review' && (
                                 <button
                                   onClick={(e) => { e.stopPropagation(); handleApproveTask(task); }}
@@ -587,7 +584,7 @@ function WorkspaceContent() {
                 {/* Details Section */}
                 <div className="p-4 border-b border-vintage-ink/5">
                   <p className="text-sm font-mono text-vintage-ink">
-                    <span className="font-bold">{user?.full_name || 'Demo User'}</span> Need to finish this before the weekend. Priority is set to <span className="font-bold text-vintage-crimson">{selectedItem.priority}</span>.
+                    <span className="font-bold">{user?.full_name || 'Demo User'}</span> Need to finish this before the weekend. Priority is set to <PriorityBadge priority={selectedItem.priority} />.
                   </p>
                 </div>
 

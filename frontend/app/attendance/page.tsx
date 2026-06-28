@@ -4,10 +4,12 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { ShieldAlert, Target, Calendar, Plus, Save, Activity, Trash2, Zap, LayoutGrid, List } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { toastError } from '../../lib/toast';
 import { AttendanceService } from '../../services/attendance.service';
 import { AttendanceRecord, AttendanceRecordCreate } from '../../types';
 import ErrorBoundary from '../../components/shared/ErrorBoundary';
 import SkeletonCard from '../../components/shared/SkeletonCard';
+import { ErrorState, EmptyState } from '../../components/shared/States';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { useAttendanceCalc } from '../../hooks/useAttendanceCalc';
 import { CounterControl } from '../../components/shared/CounterControl';
@@ -60,7 +62,7 @@ function AttendanceContent() {
         setNewSubject(prev => ({ ...prev, subject_name: '', subject_code: '', hours_conducted: 0, hours_attended: 0, target_percentage: 75 }));
       }
     } catch (err: any) {
-      toast.error(err.message || "Failed to add subject");
+      toastError(err, "Failed to add subject");
     }
   };
 
@@ -73,7 +75,7 @@ function AttendanceContent() {
     try {
       await AttendanceService.updateRecord(id, updates, token);
     } catch (err: any) {
-      toast.error(err.message || "Failed to update record");
+      toastError(err, "Failed to update record");
       fetchRecords(); // rollback on error
     }
   };
@@ -86,7 +88,7 @@ function AttendanceContent() {
     try {
       await AttendanceService.deleteRecord(id, token);
     } catch (err: any) {
-      toast.error(err.message || "Failed to delete record");
+      toastError(err, "Failed to delete record");
       fetchRecords();
     }
   };
@@ -100,16 +102,7 @@ function AttendanceContent() {
   }
 
   if (error) {
-    return (
-      <div className="flex h-[80vh] items-center justify-center">
-        <div className="vintage-panel p-8 max-w-md text-center">
-          <ShieldAlert className="w-12 h-12 text-vintage-crimson mx-auto mb-6" />
-          <h2 className="text-2xl font-display font-black text-vintage-crimson mb-4">Error Loading Attendance</h2>
-          <p className="text-vintage-ink/80 mb-8 font-mono text-sm tracking-tight">{error}</p>
-          <button onClick={fetchRecords} className="vintage-btn w-full">Retry</button>
-        </div>
-      </div>
-    );
+    return <ErrorState title="Error Loading Attendance" message={error} onRetry={fetchRecords} />;
   }
 
   const overallAttended = records.reduce((sum, r) => sum + r.hours_attended, 0);
@@ -209,10 +202,12 @@ function AttendanceContent() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {records.length === 0 && !isAdding && (
-          <div className="col-span-1 md:col-span-2 text-center py-16 border border-dashed border-vintage-ink/20 rounded-xl bg-white/40">
-            <Calendar className="w-12 h-12 text-vintage-ink/20 mx-auto mb-4" />
-            <p className="font-mono text-vintage-ink/60 font-medium">No subjects tracked yet.</p>
-            <p className="font-mono text-vintage-ink/40 text-sm mt-2">Click "Add Subject" to start tracking attendance.</p>
+          <div className="col-span-1 md:col-span-2">
+            <EmptyState 
+              icon={Calendar} 
+              title="No subjects tracked yet" 
+              subtitle="Click 'Add Subject' to start tracking attendance." 
+            />
           </div>
         )}
       </div>

@@ -10,14 +10,7 @@ export const IntelligenceService = {
     uploadNotice: async (file: File, token: string): Promise<APIResponse<IntelligenceResponse>> => {
         const formData = new FormData();
         formData.append('file', file);
-        
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-        const initialRes = await fetch(`${apiUrl}/api/v1/intelligence/upload`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${token}` },
-            body: formData
-        });
-        const initial = await initialRes.json();
+        const initial = await apiClient.post<any>('/intelligence/upload', formData, token);
         
         if (!initial.success || !initial.data?.report_id) {
             return initial;
@@ -46,24 +39,12 @@ export const IntelligenceService = {
     uploadTimetable: async (file: File, token: string): Promise<APIResponse<{subjects: string[]}>> => {
         const formData = new FormData();
         formData.append('file', file);
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-        const res = await fetch(`${apiUrl}/api/v1/intelligence/upload/timetable`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${token}` },
-            body: formData
-        });
-        return res.json();
+        return apiClient.post<any>('/intelligence/upload/timetable', formData, token);
     },
 
     uploadStudyMaterial: async (file: File, token: string): Promise<APIResponse<any>> => {
         const formData = new FormData();
         formData.append('file', file);
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-        const res = await fetch(`${apiUrl}/api/v1/intelligence/upload/material`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${token}` },
-            body: formData
-        });
-        return res.json();
+        return apiClient.post<any>('/intelligence/upload/material', formData, token);
     }
 };

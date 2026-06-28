@@ -1,6 +1,6 @@
 import logging
 from typing import List, Dict
-from app.db.client import get_supabase
+from app.db.client import get_supabase, ScopedTable
 
 logger = logging.getLogger(__name__)
 
@@ -10,7 +10,7 @@ class ChatRepository:
     Table: conversation_history
     """
     def __init__(self):
-        self.db = get_supabase()
+        self.table = "conversation_history"
 
     def add_message(self, user_id: str, role: str, content: str) -> None:
         """
@@ -21,8 +21,8 @@ class ChatRepository:
             raise ValueError("Role must be 'user' or 'assistant'")
             
         try:
-            self.db.table("conversation_history").insert({
-                "user_id": user_id,
+            db = ScopedTable(self.table, user_id)
+            db.insert({
                 "role": role,
                 "content": content
             }).execute()
@@ -37,9 +37,8 @@ class ChatRepository:
         try:
             # We fetch ordering by created_at DESC to get the latest,
             # then we must reverse the list so they are in chronological order for the LLM.
-            res = self.db.table("conversation_history")\
-                .select("role, content")\
-                .eq("user_id", user_id)\
+            db = ScopedTable(self.table, user_id)
+            res = db.select("role, content")\
                 .order("created_at", desc=True)\
                 .limit(limit)\
                 .execute()

@@ -7,6 +7,7 @@ import { AuthService } from '../../services/auth.service';
 import { useSearchParams, useRouter } from 'next/navigation';
 import WhatsAppSetupModal from '../../components/shared/WhatsAppSetupModal';
 import { toast } from 'react-hot-toast';
+import { toastError } from '../../lib/toast';
 
 function SettingsContent() {
   const { user, token, updateUser } = useAuth();
@@ -59,11 +60,11 @@ function SettingsContent() {
         toast.success(response.message || 'Telegram connection tested successfully');
       } else {
         setTelegramTestResult({ success: false, message: response.message || 'Test failed' });
-        toast.error(response.message || 'Telegram test failed');
+        toastError(new Error(response.message || 'Telegram test failed'), 'Telegram test failed');
       }
     } catch (err: any) {
       setTelegramTestResult({ success: false, message: err.message || 'Failed to connect to backend' });
-      toast.error(err.message || 'Failed to connect to backend');
+      toastError(err, 'Failed to connect to backend');
     } finally {
       setTestingTelegram(false);
     }
@@ -73,13 +74,13 @@ function SettingsContent() {
     try {
       setGoogleConnecting(true);
       const t = token || localStorage.getItem('academix_token') || '';
-      if (!t) { toast.error('Please log in again.'); return; }
+      if (!t) { toastError(new Error('Please log in again.'), 'Please log in again.'); return; }
       const res = await AuthService.connectGoogleCalendar(t);
       if (res.data?.authorization_url) {
         window.location.href = res.data.authorization_url;
       }
     } catch (err: any) {
-      toast.error('Failed to initiate Google connection: ' + err.message);
+      toastError(err, 'Failed to initiate Google connection');
       setGoogleConnecting(false);
     }
   };
@@ -114,7 +115,7 @@ function SettingsContent() {
         }
       }
     } catch (err) {
-      toast.error("Failed to save profile updates.");
+      toastError(new Error("Failed to save profile updates."), "Failed to save profile updates.");
       console.error(err);
     } finally {
       setSaving(false);
