@@ -15,6 +15,10 @@ import { IntelligenceResponse, ExtractedEvent, Recommendation, TaskResponse } fr
 import ErrorBoundary from '../../components/shared/ErrorBoundary';
 import SkeletonCard from '../../components/shared/SkeletonCard';
 import { FocusTimerModal } from '../../components/shared/FocusTimerModal';
+import { ModalShell } from '../../components/shared/ModalShell';
+import { FormField } from '../../components/forms/FormField';
+import { SortDesc, Zap, Link2, Check, ExternalLink, AlertCircle, Play, Pause } from 'lucide-react';
+import { useWebSocket } from '../../hooks/useWebSocket';
 
 interface WorkspaceTask {
   id: string;
@@ -93,19 +97,19 @@ function WorkspaceContent() {
     
     try {
       const res = await IntelligenceService.uploadNotice(file, token);
-      if (res.success && res.data) {
-        setNoticeResult(res.data);
-        setNoticeText(`File: ${file.name}\nExtracted successfully.`);
+      if (res.success && res.data?.report_id) {
+        setPendingReportId(res.data.report_id);
       } else {
+        setIsProcessingNotice(false);
         setNoticeError(res.message || 'AI processing failed. Please try again.');
         setNoticeText('');
       }
     } catch (err: any) {
       console.error(err);
+      setIsProcessingNotice(false);
       setNoticeError(err?.message || 'Failed to process file. Check connection.');
       setNoticeText('');
     } finally {
-      setIsProcessingNotice(false);
       // Reset input so the same file can be selected again
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
@@ -134,7 +138,32 @@ function WorkspaceContent() {
   // Copilot Chat History
   const [newComment, setNewComment] = useState('');
   const [isLiked, setIsLiked] = useState(false);
-  const [chatHistory, setChatHistory] = useState<{role: string, content: string}[]>([]);
+  const [chatHistory, setChatHistory] = useState<Array<{role: string, content: string}>>([]);
+  const [pendingReportId, setPendingReportId] = useState<string | null>(null);
+  
+  const { subscribe } = useWebSocket(token);
+
+  useEffect(() => {
+    if (!pendingReportId) return;
+
+    const unsubscribe = subscribe((msg: any) => {
+      if (msg.report_id === pendingReportId) {
+        if (msg.type === 'INTELLIGENCE_REPORT_COMPLETE') {
+          setNoticeResult(msg.report);
+          setNoticeText(`Processed successfully.`);
+          setIsProcessingNotice(false);
+          setPendingReportId(null);
+        } else if (msg.type === 'INTELLIGENCE_REPORT_FAILED') {
+          setNoticeError(msg.error || 'AI processing failed.');
+          setIsProcessingNotice(false);
+          setPendingReportId(null);
+        }
+      }
+    });
+
+    return unsubscribe;
+  }, [subscribe, pendingReportId]);
+
   const [isChatLoading, setIsChatLoading] = useState(false);
 
   useEffect(() => {
@@ -215,16 +244,16 @@ function WorkspaceContent() {
         input_type: 'notice',
         data: { text: noticeText }
       }, token);
-      if (res.success && res.data) {
-        setNoticeResult(res.data);
+      if (res.success && res.data?.report_id) {
+        setPendingReportId(res.data.report_id);
       } else {
+        setIsProcessingNotice(false);
         setNoticeError(res.message || 'AI processing failed. Please try again.');
       }
     } catch (e: unknown) {
       console.error(e);
-      setNoticeError((e as Error)?.message || 'Failed to reach the AI engine. Check your connection and try again.');
-    } finally {
       setIsProcessingNotice(false);
+      setNoticeError((e as Error)?.message || 'Failed to reach the AI engine. Check your connection and try again.');
     }
   };
 
@@ -630,26 +659,19 @@ function WorkspaceContent() {
       {/* Quick Capture Modal */}
       <AnimatePresence>
         {showQuickCapture && (
-          <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 border border-vintage-ink/10"
-            >
+          <ModalShell onClose={() => setShowQuickCapture(false)}>
               <h3 className="font-display font-black text-xl text-vintage-ink mb-4">Quick Capture</h3>
               
               <div className="space-y-4">
                 <div>
-                  <label className="block text-xs font-bold font-mono text-vintage-ink/60 mb-1">Subject *</label>
-                  <input 
+                  <FormField 
+                    label="Subject *"
                     type="text" 
                     list="workspace-subjects"
                     placeholder="e.g. CS 301"
                     value={newTaskSubject}
                     onChange={(e) => setNewTaskSubject(e.target.value)}
                     className="w-full bg-vintage-paper border border-vintage-ink/10 rounded p-2 text-sm font-mono focus:border-vintage-crimson outline-none"
-                    autoFocus
                   />
                   <datalist id="workspace-subjects">
                     {Array.from(new Set(INITIAL_TASKS.map(t => t.subject))).map(sub => (
@@ -657,16 +679,13 @@ function WorkspaceContent() {
                     ))}
                   </datalist>
                 </div>
-                <div>
-                  <label className="block text-xs font-bold font-mono text-vintage-ink/60 mb-1">Title *</label>
-                  <input 
-                    type="text" 
-                    placeholder="Task name"
-                    value={newTaskTitle}
-                    onChange={(e) => setNewTaskTitle(e.target.value)}
-                    className="w-full bg-vintage-paper border border-vintage-ink/10 rounded p-2 text-sm font-mono focus:border-vintage-crimson outline-none"
-                  />
-                </div>
+                <FormField 
+                  label="Title *"
+                  type="text" 
+                  placeholder="Task name"
+                  value={newTaskTitle}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewTaskTitle(e.target.value)}
+                />
                 <div className="flex gap-4">
                   <div className="flex-1">
                     <label className="block text-xs font-bold font-mono text-vintage-ink/60 mb-1">Type</label>
@@ -737,21 +756,14 @@ function WorkspaceContent() {
                   Save Task
                 </button>
               </div>
-            </motion.div>
-          </div>
+          </ModalShell>
         )}
       </AnimatePresence>
 
       {/* Edit Task Modal */}
       <AnimatePresence>
         {showEditModal && editingTask && (
-          <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 border border-vintage-ink/10"
-            >
+          <ModalShell onClose={() => setShowEditModal(false)}>
               <div className="flex items-center justify-between mb-5">
                 <h3 className="font-display font-black text-xl text-vintage-ink">Edit Task</h3>
                 <button onClick={() => setShowEditModal(false)} className="text-vintage-ink/40 hover:text-vintage-ink">
@@ -759,25 +771,20 @@ function WorkspaceContent() {
                 </button>
               </div>
               <div className="space-y-4">
-                <div>
-                  <label className="block text-xs font-bold font-mono text-vintage-ink/60 mb-1">Title *</label>
-                  <input
-                    type="text"
+                <FormField
+                  label="Title *"
+                  type="text"
                     value={editTitle}
                     onChange={(e) => setEditTitle(e.target.value)}
                     className="w-full bg-vintage-paper border border-vintage-ink/10 rounded p-2 text-sm font-mono focus:border-vintage-crimson outline-none"
-                    autoFocus
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold font-mono text-vintage-ink/60 mb-1">Subject</label>
-                  <input
-                    type="text"
-                    value={editSubject}
-                    onChange={(e) => setEditSubject(e.target.value)}
-                    className="w-full bg-vintage-paper border border-vintage-ink/10 rounded p-2 text-sm font-mono focus:border-vintage-crimson outline-none"
-                  />
-                </div>
+                  autoFocus
+                />
+                <FormField
+                  label="Subject"
+                  type="text"
+                  value={editSubject}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditSubject(e.target.value)}
+                />
                 <div className="flex gap-4">
                   <div className="flex-1">
                     <label className="block text-xs font-bold font-mono text-vintage-ink/60 mb-1">Priority</label>
@@ -817,8 +824,7 @@ function WorkspaceContent() {
                   Save Changes
                 </button>
               </div>
-            </motion.div>
-          </div>
+          </ModalShell>
         )}
       </AnimatePresence>
 

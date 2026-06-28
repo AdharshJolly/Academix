@@ -3,6 +3,7 @@ import { UserOut } from '../../types';
 import { AuthService } from '../../services/auth.service';
 import { useAuth } from '../../contexts/AuthContext';
 import { Loader2, GraduationCap, ArrowRight } from 'lucide-react';
+import { FormField } from '../forms/FormField';
 
 interface Props {
   isOpen: boolean;
@@ -90,35 +91,17 @@ export default function AcademicProfileModal({ isOpen, token, onComplete }: Prop
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <div className="flex flex-col">
-              <label className="text-xs font-mono font-bold text-vintage-ink/60 mb-1 uppercase tracking-widest">Academic Year</label>
-              <input type="text" value={formData.academic_year} onChange={e => handleInputChange('academic_year', e.target.value)} placeholder="e.g. Freshman" className="vintage-input" required />
-            </div>
-            <div className="flex flex-col">
-              <label className="text-xs font-mono font-bold text-vintage-ink/60 mb-1 uppercase tracking-widest">Major</label>
-              <input type="text" value={formData.major} onChange={e => handleInputChange('major', e.target.value)} placeholder="e.g. Comp Sci" className="vintage-input" required />
-            </div>
+            <FormField label="Academic Year" type="text" value={formData.academic_year} onChange={e => handleInputChange('academic_year', e.target.value)} placeholder="e.g. Freshman" required />
+            <FormField label="Major" type="text" value={formData.major} onChange={e => handleInputChange('major', e.target.value)} placeholder="e.g. Comp Sci" required />
           </div>
           
           <div className="grid grid-cols-3 gap-4">
-            <div className="flex flex-col">
-              <label className="text-xs font-mono font-bold text-vintage-ink/60 mb-1 uppercase tracking-widest">Target GPA</label>
-              <input type="number" step="0.1" value={formData.gpa} onChange={e => handleInputChange('gpa', e.target.value)} placeholder="e.g. 3.8" className="vintage-input" />
-            </div>
-            <div className="flex flex-col">
-              <label className="text-xs font-mono font-bold text-vintage-ink/60 mb-1 uppercase tracking-widest">Attendance %</label>
-              <input type="number" step="0.1" value={formData.attendance_percent} onChange={e => handleInputChange('attendance_percent', e.target.value)} placeholder="e.g. 85" className="vintage-input" />
-            </div>
-            <div className="flex flex-col">
-              <label className="text-xs font-mono font-bold text-vintage-ink/60 mb-1 uppercase tracking-widest">Study Hrs/Wk</label>
-              <input type="number" value={formData.study_hours} onChange={e => handleInputChange('study_hours', e.target.value)} placeholder="e.g. 15" className="vintage-input" />
-            </div>
+            <FormField label="Target GPA" type="number" step="0.1" value={formData.gpa} onChange={e => handleInputChange('gpa', e.target.value)} placeholder="e.g. 3.8" />
+            <FormField label="Attendance %" type="number" step="0.1" value={formData.attendance_percent} onChange={e => handleInputChange('attendance_percent', e.target.value)} placeholder="e.g. 85" />
+            <FormField label="Study Hrs/Wk" type="number" value={formData.study_hours} onChange={e => handleInputChange('study_hours', e.target.value)} placeholder="e.g. 15" />
           </div>
 
-          <div className="flex flex-col">
-            <label className="text-xs font-mono font-bold text-vintage-ink/60 mb-1 uppercase tracking-widest">Primary Objective</label>
-            <input type="text" value={formData.primary_objective} onChange={e => handleInputChange('primary_objective', e.target.value)} placeholder="e.g. Get an internship at Google" className="vintage-input" required />
-          </div>
+          <FormField label="Primary Objective" type="text" value={formData.primary_objective} onChange={e => handleInputChange('primary_objective', e.target.value)} placeholder="e.g. Get an internship at Google" required />
 
           <button 
             type="submit" 

@@ -9,6 +9,9 @@ import { AttendanceRecord, AttendanceRecordCreate } from '../../types';
 import ErrorBoundary from '../../components/shared/ErrorBoundary';
 import SkeletonCard from '../../components/shared/SkeletonCard';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
+import { useAttendanceCalc } from '../../hooks/useAttendanceCalc';
+import { CounterControl } from '../../components/shared/CounterControl';
+import { FormField } from '../../components/forms/FormField';
 
 function AttendanceContent() {
   const { user, token } = useAuth();
@@ -183,28 +186,18 @@ function AttendanceContent() {
           <h3 className="font-mono font-bold text-vintage-ink mb-4">New Subject Record</h3>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
             <div className="col-span-1 md:col-span-2">
-              <label className="block text-xs font-mono font-bold text-vintage-ink/60 uppercase mb-1">Semester</label>
-              <input type="text" value={newSubject.semester} onChange={e => setNewSubject({...newSubject, semester: e.target.value})} className="w-full bg-white border-2 border-vintage-ink/10 rounded-md p-3 font-mono focus:border-vintage-crimson focus:outline-none" required placeholder="e.g. Fall 2026" />
+              <FormField label="Semester" type="text" value={newSubject.semester} onChange={e => setNewSubject({...newSubject, semester: e.target.value})} required placeholder="e.g. Fall 2026" />
             </div>
             <div className="col-span-1 md:col-span-2">
-              <label className="block text-xs font-mono font-bold text-vintage-ink/60 uppercase mb-1">Subject Code (Optional)</label>
-              <input type="text" value={newSubject.subject_code} onChange={e => setNewSubject({...newSubject, subject_code: e.target.value})} className="w-full bg-white border-2 border-vintage-ink/10 rounded-md p-3 font-mono focus:border-vintage-crimson focus:outline-none" placeholder="e.g. CS101" />
+              <FormField label="Subject Code" type="text" value={newSubject.subject_code} onChange={e => setNewSubject({...newSubject, subject_code: e.target.value})} placeholder="e.g. CS101" />
             </div>
-            <div className="col-span-1 md:col-span-4">
-              <label className="block text-xs font-mono font-bold text-vintage-ink/60 uppercase mb-1">Subject Name</label>
-              <input type="text" value={newSubject.subject_name} onChange={e => setNewSubject({...newSubject, subject_name: e.target.value})} className="w-full bg-white border-2 border-vintage-ink/10 rounded-md p-3 font-mono focus:border-vintage-crimson focus:outline-none" required placeholder="e.g. Data Structures" />
-            </div>
-            <div>
-              <label className="block text-xs font-mono font-bold text-vintage-ink/60 uppercase mb-1">Hours Conducted</label>
-              <input type="number" min="0" value={newSubject.hours_conducted} onChange={e => setNewSubject({...newSubject, hours_conducted: Number(e.target.value)})} className="w-full bg-white border-2 border-vintage-ink/10 rounded-md p-3 font-mono focus:border-vintage-crimson focus:outline-none" />
-            </div>
-            <div>
-              <label className="block text-xs font-mono font-bold text-vintage-ink/60 uppercase mb-1">Hours Attended</label>
-              <input type="number" min="0" value={newSubject.hours_attended} onChange={e => setNewSubject({...newSubject, hours_attended: Number(e.target.value)})} className="w-full bg-white border-2 border-vintage-ink/10 rounded-md p-3 font-mono focus:border-vintage-crimson focus:outline-none" />
-            </div>
+          </div>
+          <FormField label="Subject Name" type="text" value={newSubject.subject_name} onChange={e => setNewSubject({...newSubject, subject_name: e.target.value})} required placeholder="e.g. Data Structures" />
+          <div className="grid grid-cols-2 gap-4">
+            <FormField label="Hours Conducted" type="number" min="0" value={newSubject.hours_conducted} onChange={e => setNewSubject({...newSubject, hours_conducted: Number(e.target.value)})} />
+            <FormField label="Hours Attended" type="number" min="0" value={newSubject.hours_attended} onChange={e => setNewSubject({...newSubject, hours_attended: Number(e.target.value)})} />
             <div className="col-span-2">
-              <label className="block text-xs font-mono font-bold text-vintage-ink/60 uppercase mb-1">Target %</label>
-              <input type="number" min="1" max="100" value={newSubject.target_percentage} onChange={e => setNewSubject({...newSubject, target_percentage: Number(e.target.value)})} className="w-full bg-white border-2 border-vintage-ink/10 rounded-md p-3 font-mono focus:border-vintage-crimson focus:outline-none" />
+              <FormField label="Target %" type="number" min="1" max="100" value={newSubject.target_percentage} onChange={e => setNewSubject({...newSubject, target_percentage: Number(e.target.value)})} />
             </div>
           </div>
           <div className="flex justify-end gap-3">
@@ -249,23 +242,7 @@ function AttendanceContent() {
           {viewMode === 'grid' ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {semRecords.map(record => {
-              const currentPercent = record.hours_conducted === 0 ? 0 : (record.hours_attended / record.hours_conducted) * 100;
-          const target = record.target_percentage;
-          
-          let insight = "";
-          let isDanger = currentPercent < target;
-          
-          if (currentPercent < target) {
-              const needed = Math.ceil((target * record.hours_conducted - 100 * record.hours_attended) / (100 - target));
-              insight = `You need to attend the next ${needed} class${needed > 1 ? 'es' : ''} to reach your ${target}% target.`;
-          } else {
-              const skippable = Math.floor((100 * record.hours_attended - target * record.hours_conducted) / target);
-              if (skippable > 0) {
-                insight = `You can safely skip the next ${skippable} class${skippable > 1 ? 'es' : ''}.`;
-              } else {
-                insight = `You are exactly on track. Do not skip the next class.`;
-              }
-          }
+          const { currentPercent, isDanger, insight } = useAttendanceCalc(record);
 
           return (
             <div key={record.id} className="vintage-panel p-6 bg-white relative overflow-hidden group">
@@ -291,23 +268,19 @@ function AttendanceContent() {
                 </div>
                 
                 <div className="flex-1 space-y-4">
-                  <div className="flex items-center justify-between bg-vintage-ink/5 p-2 rounded-md border border-vintage-ink/10">
-                    <span className="font-mono text-xs font-bold text-vintage-ink/60 uppercase">Conducted</span>
-                    <div className="flex items-center gap-3">
-                      <button onClick={() => handleUpdate(record.id, { hours_conducted: Math.max(0, record.hours_conducted - 1) })} className="w-6 h-6 flex items-center justify-center bg-white rounded shadow-sm text-vintage-ink hover:text-vintage-crimson font-mono font-bold">-</button>
-                      <span className="font-mono font-bold text-vintage-ink w-6 text-center">{record.hours_conducted}</span>
-                      <button onClick={() => handleUpdate(record.id, { hours_conducted: record.hours_conducted + 1 })} className="w-6 h-6 flex items-center justify-center bg-white rounded shadow-sm text-vintage-ink hover:text-vintage-babyBlue font-mono font-bold">+</button>
-                    </div>
-                  </div>
+                  <CounterControl
+                    label="Conducted"
+                    value={record.hours_conducted}
+                    onDecrement={() => handleUpdate(record.id, { hours_conducted: Math.max(0, record.hours_conducted - 1) })}
+                    onIncrement={() => handleUpdate(record.id, { hours_conducted: record.hours_conducted + 1 })}
+                  />
                   
-                  <div className="flex items-center justify-between bg-vintage-ink/5 p-2 rounded-md border border-vintage-ink/10">
-                    <span className="font-mono text-xs font-bold text-vintage-ink/60 uppercase">Attended</span>
-                    <div className="flex items-center gap-3">
-                      <button onClick={() => handleUpdate(record.id, { hours_attended: Math.max(0, record.hours_attended - 1) })} className="w-6 h-6 flex items-center justify-center bg-white rounded shadow-sm text-vintage-ink hover:text-vintage-crimson font-mono font-bold">-</button>
-                      <span className="font-mono font-bold text-vintage-ink w-6 text-center">{record.hours_attended}</span>
-                      <button onClick={() => handleUpdate(record.id, { hours_attended: record.hours_attended + 1, hours_conducted: record.hours_conducted + (record.hours_attended >= record.hours_conducted ? 1 : 0) })} className="w-6 h-6 flex items-center justify-center bg-white rounded shadow-sm text-vintage-ink hover:text-vintage-babyBlue font-mono font-bold">+</button>
-                    </div>
-                  </div>
+                  <CounterControl
+                    label="Attended"
+                    value={record.hours_attended}
+                    onDecrement={() => handleUpdate(record.id, { hours_attended: Math.max(0, record.hours_attended - 1) })}
+                    onIncrement={() => handleUpdate(record.id, { hours_attended: record.hours_attended + 1, hours_conducted: record.hours_conducted + (record.hours_attended >= record.hours_conducted ? 1 : 0) })}
+                  />
                 </div>
               </div>
 
