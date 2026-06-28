@@ -3,10 +3,10 @@ Tasks Router
 CRUD operations for academic tasks.
 All endpoints require authentication.
 """
-import logging
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.core.security import verify_token
+from app.core.utils import handle_db_errors
 from app.repositories.task_repository import TaskRepository
 from app.schemas.common import APIResponse, PaginatedResponse
 from app.schemas.tasks import TaskCreate, TaskResponse, TaskUpdate, StudySessionCreate
@@ -14,7 +14,6 @@ from app.services.automation_service import AutomationService
 from app.api.dependencies import get_task_repo, get_automation_service
 from app.db.client import get_supabase
 
-logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
 
@@ -46,6 +45,7 @@ def get_tasks(
 
 
 @router.post("", response_model=APIResponse[TaskResponse])
+@handle_db_errors("Create task")
 def create_task(
     request: TaskCreate,
     user: dict = Depends(verify_token),
@@ -53,21 +53,14 @@ def create_task(
     automation_service: AutomationService = Depends(get_automation_service),
 ):
     """Create a new academic task."""
-    try:
-        task = task_repo.create(user_id=user["id"], data=request)
-        automation_service.run_for_task(
-            user_id=user["id"], 
-            task=task,
-            add_to_calendar=request.add_to_calendar,
-            reminder_time=request.reminder_time
-        )
-        return APIResponse(success=True, message="Task created", data=task)
-    except Exception as e:
-        logger.error(f"Create task error: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to create task: {str(e)}",
-        )
+    task = task_repo.create(user_id=user["id"], data=request)
+    automation_service.run_for_task(
+        user_id=user["id"],
+        task=task,
+        add_to_calendar=request.add_to_calendar,
+        reminder_time=request.reminder_time
+    )
+    return APIResponse(success=True, message="Task created", data=task)
 
 
 @router.get("/{task_id}", response_model=APIResponse[TaskResponse])
@@ -110,6 +103,7 @@ def delete_task(
     return APIResponse(success=True, message="Task deleted", data=None)
 
 @router.post("/{task_id}/study-sessions", response_model=APIResponse[dict])
+@handle_db_errors("Log study session")
 def create_study_session(
     task_id: str,
     request: StudySessionCreate,
@@ -121,23 +115,17 @@ def create_study_session(
     task = task_repo.get_by_id(task_id, user["id"])
     if not task:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
-        
+
     db = get_supabase()
-    try:
-        # Create study session record
-        session_data = {
-            "user_id": user["id"],
-            "task_id": task_id,
-            "title": request.title or task.title,
-            "duration_minutes": request.duration_minutes
-        }
-        res = db.table("study_sessions").insert(session_data).execute()
-        
-        # Increment total study hours for the user
-        hours = request.duration_minutes / 60.0
-        db.rpc("increment_study_hours", {"p_user_id": user["id"], "hours": hours}).execute()
-            
-        return APIResponse(success=True, message="Study session logged", data=res.data[0] if res.data else None)
-    except Exception as e:
-        logger.error(f"Error logging study session: {e}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to log session")
+    session_data = {
+        "user_id": user["id"],
+        "task_id": task_id,
+        "title": request.title or task.title,
+        "duration_minutes": request.duration_minutes
+    }
+    res = db.table("study_sessions").insert(session_data).execute()
+
+    hours = request.duration_minutes / 60.0
+    db.rpc("increment_study_hours", {"p_user_id": user["id"], "hours": hours}).execute()
+
+    return APIResponse(success=True, message="Study session logged", data=res.data[0] if res.data else None)

@@ -12,6 +12,28 @@ logger = logging.getLogger(__name__)
 TABLE = "users"
 
 
+def row_to_user_out(row: dict) -> UserOut:
+    """Build UserOut from a database row while dropping sensitive/extra fields."""
+    return UserOut(
+        id=row["id"],
+        email=row["email"],
+        full_name=row["full_name"],
+        avatar_url=row.get("avatar_url"),
+        google_calendar_connected=row.get("google_calendar_connected", False),
+        whatsapp_number=row.get("whatsapp_number"),
+        academic_year=row.get("academic_year"),
+        major=row.get("major"),
+        gpa=row.get("gpa"),
+        study_hours=row.get("study_hours"),
+        primary_objective=row.get("primary_objective"),
+        learning_protocols=row.get("learning_protocols"),
+        telegram_chat_id=row.get("telegram_chat_id"),
+        telegram_username=row.get("telegram_username"),
+        whatsapp_notifications_enabled=row.get("whatsapp_notifications_enabled", True),
+        telegram_notifications_enabled=row.get("telegram_notifications_enabled", False),
+    )
+
+
 class UserRepository:
 
     def get_by_id(self, user_id: str) -> UserOut | None:
@@ -26,7 +48,7 @@ class UserRepository:
         )
         if not response.data:
             return None
-        return UserOut(**response.data)
+        return row_to_user_out(response.data)
 
     def get_by_email(self, email: str) -> UserOut | None:
         """Fetch safe user profile by email (no password_hash)."""
@@ -39,7 +61,7 @@ class UserRepository:
         )
         if not response.data:
             return None
-        return UserOut(**response.data[0])
+        return row_to_user_out(response.data[0])
 
     def get_by_email_with_password(self, email: str) -> dict | None:
         """
@@ -80,7 +102,7 @@ class UserRepository:
 
         response = db.table(TABLE).insert(payload).execute()
         row = response.data[0]
-        return UserOut.from_row(row)
+        return row_to_user_out(row)
 
     def update(self, user_id: str, data: dict) -> UserOut | None:
         """Partial update of user profile fields."""
@@ -94,7 +116,7 @@ class UserRepository:
         if not response.data:
             return None
         row = response.data[0]
-        return UserOut.from_row(row)
+        return row_to_user_out(row)
 
     def get_automation_profile(self, user_id: str) -> dict | None:
         """Fetch only fields needed by automation services."""

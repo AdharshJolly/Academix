@@ -1,11 +1,15 @@
 import pytest
 
+RECORD_ID = "11111111-1111-4111-8111-111111111111"
+USER_ID = "22222222-2222-4222-8222-222222222222"
+
+
 class TestAttendanceAPI:
     def test_get_attendance_records(self, client, auth_headers, mock_supabase):
-        mock_supabase.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [
+        mock_supabase.table.return_value.select.return_value.eq.return_value.order.return_value.execute.return_value.data = [
             {
-                "id": "rec1",
-                "user_id": "test-user-id",
+                "id": RECORD_ID,
+                "user_id": USER_ID,
                 "semester": "Fall 2026",
                 "subject_code": "CS101",
                 "subject_name": "Intro to CS",
@@ -29,8 +33,8 @@ class TestAttendanceAPI:
     def test_create_attendance_record(self, client, auth_headers, mock_supabase):
         mock_supabase.table.return_value.insert.return_value.execute.return_value.data = [
             {
-                "id": "rec2",
-                "user_id": "test-user-id",
+                "id": RECORD_ID,
+                "user_id": USER_ID,
                 "semester": "Fall 2026",
                 "subject_code": "MATH101",
                 "subject_name": "Calculus",
@@ -56,10 +60,10 @@ class TestAttendanceAPI:
         assert data["data"]["subject_name"] == "Calculus"
 
     def test_update_attendance_record(self, client, auth_headers, mock_supabase):
-        mock_supabase.table.return_value.update.return_value.eq.return_value.execute.return_value.data = [
+        mock_supabase.table.return_value.update.return_value.eq.return_value.eq.return_value.execute.return_value.data = [
             {
-                "id": "rec1",
-                "user_id": "test-user-id",
+                "id": RECORD_ID,
+                "user_id": USER_ID,
                 "semester": "Fall 2026",
                 "subject_code": "CS101",
                 "subject_name": "Intro to CS",
@@ -75,16 +79,16 @@ class TestAttendanceAPI:
             "hours_conducted": 12.0
         }
         
-        response = client.put("/api/v1/attendance/rec1", json=payload, headers=auth_headers)
+        response = client.put(f"/api/v1/attendance/{RECORD_ID}", json=payload, headers=auth_headers)
         assert response.status_code == 200
         data = response.json()
         assert data["success"] is True
         assert data["data"]["hours_conducted"] == 12.0
 
     def test_delete_attendance_record(self, client, auth_headers, mock_supabase):
-        mock_supabase.table.return_value.delete.return_value.eq.return_value.execute.return_value.data = [{"id": "rec1"}]
+        mock_supabase.table.return_value.delete.return_value.eq.return_value.eq.return_value.execute.return_value.data = [{"id": RECORD_ID}]
         
-        response = client.delete("/api/v1/attendance/rec1", headers=auth_headers)
+        response = client.delete(f"/api/v1/attendance/{RECORD_ID}", headers=auth_headers)
         assert response.status_code == 200
         data = response.json()
         assert data["success"] is True

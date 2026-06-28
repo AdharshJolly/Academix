@@ -8,6 +8,7 @@ from datetime import date, datetime
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.core.security import verify_token
+from app.core.utils import handle_db_errors
 from app.core.cache import cache
 import json
 from app.repositories.automation_repository import AutomationRepository
@@ -246,26 +247,23 @@ def _risk_summary(level: str, score: float) -> str:
     return summaries.get(level, f"Academic risk score: {pct}%")
 
 @router.post("/study-sessions", response_model=APIResponse[dict])
+@handle_db_errors("Log study session")
 def create_generic_study_session(
     request: GenericStudySessionCreate,
     user: dict = Depends(verify_token),
 ):
     db = get_supabase()
-    try:
-        session_data = {
-            "user_id": user["id"],
-            "title": request.title or "Uncategorized Session",
-            "duration_minutes": request.duration_minutes
-        }
-        if request.task_id:
-            session_data["task_id"] = request.task_id
-            
-        res = db.table("study_sessions").insert(session_data).execute()
-        
-        hours = request.duration_minutes / 60.0
-        db.rpc("increment_study_hours", {"p_user_id": user["id"], "hours": hours}).execute()
-            
-        return APIResponse(success=True, message="Study session logged", data=res.data[0] if res.data else None)
-    except Exception as e:
-        logger.error(f"Error logging study session: {e}")
-        raise HTTPException(status_code=500, detail="Failed to log session")
+    session_data = {
+        "user_id": user["id"],
+        "title": request.title or "Uncategorized Session",
+        "duration_minutes": request.duration_minutes
+    }
+    if request.task_id:
+        session_data["task_id"] = request.task_id
+
+    res = db.table("study_sessions").insert(session_data).execute()
+
+    hours = request.duration_minutes / 60.0
+    db.rpc("increment_study_hours", {"p_user_id": user["id"], "hours": hours}).execute()
+
+    return APIResponse(success=True, message="Study session logged", data=res.data[0] if res.data else None)

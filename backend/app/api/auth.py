@@ -20,7 +20,7 @@ from app.core.security import (
     verify_token,
 )
 from app.integrations.calendar import GoogleCalendarClient
-from app.repositories.user_repository import UserRepository
+from app.repositories.user_repository import UserRepository, row_to_user_out
 from app.schemas.auth import (
     AuthResponse,
     UserLoginRequest,
@@ -98,7 +98,7 @@ def login(request: UserLoginRequest):
 
         token = create_access_token(user_id=user["id"], email=user["email"])
 
-        user_profile = UserOut.from_row(user)
+        user_profile = row_to_user_out(user)
         return APIResponse(
             success=True,
             message="Login successful",
@@ -124,7 +124,7 @@ def update_profile(
     user: dict = Depends(verify_token),
 ):
     """Update user academic profile fields."""
-    update_data = {k: v for k, v in request.model_dump().items() if v is not None}
+    update_data = request.model_dump(exclude_none=True, exclude_unset=True)
     if not update_data:
         return APIResponse(
             success=True,
