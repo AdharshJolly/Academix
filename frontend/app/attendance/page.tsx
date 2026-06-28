@@ -24,7 +24,7 @@ function AttendanceContent() {
   const [isAdding, setIsAdding] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [newSubject, setNewSubject] = useState({
-    semester: 'Semester 1',
+    semester: '',
     subject_code: '',
     subject_name: '',
     hours_conducted: 0,
