@@ -8,13 +8,16 @@ JWTs are minted by our own security module.
 import logging
 import uuid
 import secrets
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from app.core.cache import cache
+from app.core.rate_limit import limiter
 
 _oauth_nonce_store = {}
 
 from app.core.security import (
     create_access_token,
+    create_refresh_token,
+    verify_refresh_token,
     hash_password,
     verify_password,
     verify_token,
@@ -23,6 +26,7 @@ from app.integrations.calendar import GoogleCalendarClient
 from app.repositories.user_repository import UserRepository, row_to_user_out
 from app.schemas.auth import (
     AuthResponse,
+    RefreshRequest,
     UserLoginRequest,
     UserOut,
     UserRegisterRequest,
@@ -36,7 +40,8 @@ calendar_client = GoogleCalendarClient()
 
 
 @router.post("/register", response_model=APIResponse[AuthResponse])
-def register(request: UserRegisterRequest):
+@limiter.limit("5/minute")
+def register(request: UserRegisterRequest, fastapi_req: Request):
     """
     Register a new student account.
     1. Check email is not already taken
@@ -64,11 +69,12 @@ def register(request: UserRegisterRequest):
         )
 
         token = create_access_token(user_id=user_id, email=request.email)
+        refresh_token = create_refresh_token(user_id=user_id)
 
         return APIResponse(
             success=True,
             message="Registration successful",
-            data=AuthResponse(token=token, user=user_profile),
+            data=AuthResponse(token=token, refresh_token=refresh_token, user=user_profile),
         )
 
     except HTTPException:
@@ -82,7 +88,8 @@ def register(request: UserRegisterRequest):
 
 
 @router.post("/login", response_model=APIResponse[AuthResponse])
-def login(request: UserLoginRequest):
+@limiter.limit("10/minute")
+def login(request: UserLoginRequest, fastapi_req: Request):
     """
     Authenticate a student with email + password.
     Returns our own signed JWT on success.
@@ -97,12 +104,13 @@ def login(request: UserLoginRequest):
             )
 
         token = create_access_token(user_id=user["id"], email=user["email"])
+        refresh_token = create_refresh_token(user_id=user["id"])
 
         user_profile = row_to_user_out(user)
         return APIResponse(
             success=True,
             message="Login successful",
-            data=AuthResponse(token=token, user=user_profile),
+            data=AuthResponse(token=token, refresh_token=refresh_token, user=user_profile),
         )
 
     except HTTPException:
@@ -112,6 +120,39 @@ def login(request: UserLoginRequest):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Login failed: {str(e)}",
+        )
+
+
+@router.post("/refresh", response_model=APIResponse[AuthResponse])
+def refresh_token(request: RefreshRequest):
+    """
+    Refresh the access token using a valid refresh token.
+    """
+    try:
+        user_id = verify_refresh_token(request.refresh_token)
+        user = user_repo.get_by_id(user_id)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="User no longer exists.",
+            )
+
+        new_access_token = create_access_token(user_id=user["id"], email=user["email"])
+        new_refresh_token = create_refresh_token(user_id=user["id"])
+
+        user_profile = row_to_user_out(user)
+        return APIResponse(
+            success=True,
+            message="Token refreshed successfully",
+            data=AuthResponse(token=new_access_token, refresh_token=new_refresh_token, user=user_profile),
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Refresh error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Refresh failed: {str(e)}",
         )
 
 

@@ -51,9 +51,36 @@ def create_access_token(user_id: str, email: str) -> str:
     payload = {
         "sub": user_id,
         "email": email,
+        "type": "access",
         "exp": expire,
     }
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+
+def create_refresh_token(user_id: str) -> str:
+    """Mint a signed JWT refresh token for 30 days."""
+    expire = datetime.now(timezone.utc) + timedelta(days=30)
+    payload = {
+        "sub": user_id,
+        "type": "refresh",
+        "exp": expire,
+    }
+    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+
+def verify_refresh_token(token: str) -> str:
+    """Verify refresh token and return user_id."""
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id = payload.get("sub")
+        token_type = payload.get("type")
+        if not user_id or token_type != "refresh":
+            raise JWTError("Invalid token type or missing subject")
+        return user_id
+    except JWTError as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Invalid or expired refresh token: {str(e)}",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
 
 def verify_token(

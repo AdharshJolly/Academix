@@ -51,6 +51,7 @@ export interface UserOut {
 
 export interface AuthResponse {
     token: string;
+    refresh_token?: string;
     user: UserOut;
 }
 

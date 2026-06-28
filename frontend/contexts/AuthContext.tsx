@@ -42,6 +42,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 if (segments.length !== 3) {
                     // Stale token from old Supabase Auth — clear and force re-login
                     localStorage.removeItem('academix_token');
+                    localStorage.removeItem('academix_refresh_token');
                     localStorage.removeItem('academix_user');
                 } else {
                     const parsedUser = JSON.parse(storedUser);
@@ -55,6 +56,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             }
         } catch (e) {
             localStorage.removeItem('academix_token');
+            localStorage.removeItem('academix_refresh_token');
             localStorage.removeItem('academix_user');
         } finally {
             setIsLoading(false); // Hydration complete
@@ -66,6 +68,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setToken(res.data.token);
             setUser(res.data.user);
             localStorage.setItem('academix_token', res.data.token);
+            if (res.data.refresh_token) {
+                localStorage.setItem('academix_refresh_token', res.data.refresh_token);
+            }
             localStorage.setItem('academix_user', JSON.stringify(res.data.user));
             
             // Fire and forget prefetch for calendar caching
@@ -107,6 +112,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setToken(null);
         setUser(null);
         localStorage.removeItem('academix_token');
+        localStorage.removeItem('academix_refresh_token');
         localStorage.removeItem('academix_user');
     };
 

@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Request, Backgrou
 from slowapi import Limiter
 import uuid
 
+from app.core.rate_limit import limiter
 from app.core.security import verify_token
 from app.repositories.intelligence_repository import IntelligenceRepository
 from app.repositories.user_repository import UserRepository
@@ -30,17 +31,6 @@ import os
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/intelligence", tags=["intelligence"])
-
-def get_auth_token_or_ip(request: Request) -> str:
-    auth = request.headers.get("Authorization")
-    if auth and auth.startswith("Bearer "):
-        return auth.split(" ")[1]
-    from slowapi.util import get_remote_address
-    return get_remote_address(request)
-
-limiter = Limiter(key_func=get_auth_token_or_ip)
-
-
 
 async def run_pipeline(
     report_id: str,

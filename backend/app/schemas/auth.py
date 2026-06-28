@@ -61,5 +61,9 @@ class UserProfileUpdate(BaseModel):
 class AuthResponse(BaseModel):
     """Returned after successful login or registration."""
     token: str
+    refresh_token: str | None = None
     user: UserOut
+
+class RefreshRequest(BaseModel):
+    refresh_token: str
 

@@ -3,7 +3,8 @@ Tasks Router
 CRUD operations for academic tasks.
 All endpoints require authentication.
 """
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
+from app.core.rate_limit import limiter
 
 from app.core.security import verify_token
 from app.core.utils import handle_db_errors
@@ -18,7 +19,9 @@ router = APIRouter(prefix="/tasks", tags=["tasks"])
 
 
 @router.get("", response_model=PaginatedResponse[TaskResponse])
+@limiter.limit("60/minute")
 def get_tasks(
+    request_obj: Request,
     page: int = 1,
     size: int = 20,
     status: str | None = None,
@@ -46,8 +49,10 @@ def get_tasks(
 
 @router.post("", response_model=APIResponse[TaskResponse])
 @handle_db_errors("Create task")
+@limiter.limit("30/minute")
 def create_task(
     request: TaskCreate,
+    request_obj: Request,
     user: dict = Depends(verify_token),
     task_repo: TaskRepository = Depends(get_task_repo),
     automation_service: AutomationService = Depends(get_automation_service),
