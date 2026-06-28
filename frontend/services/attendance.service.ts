@@ -1,5 +1,5 @@
 import { apiClient } from './api';
-import { APIResponse, AttendanceRecord, AttendanceRecordCreate, AttendanceRecordUpdate } from '../types';
+import { APIResponse, AttendanceRecord, AttendanceRecordCreate, AttendanceRecordUpdate, AttendanceAnalyticsResponse } from '../types';
 
 export class AttendanceService {
     static async getRecords(token: string): Promise<APIResponse<AttendanceRecord[]>> {
@@ -16,5 +16,8 @@ export class AttendanceService {
 
     static async deleteRecord(id: string, token: string): Promise<APIResponse<null>> {
         return apiClient.delete<APIResponse<null>>(`/attendance/${id}`, token);
+    }
+    static async getAnalytics(token: string): Promise<APIResponse<AttendanceAnalyticsResponse>> {
+        return apiClient.get<APIResponse<AttendanceAnalyticsResponse>>('/attendance/analytics', token);
     }
 }

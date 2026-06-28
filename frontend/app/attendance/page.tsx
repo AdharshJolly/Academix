@@ -6,7 +6,7 @@ import { ShieldAlert, Target, Calendar, Plus, Save, Activity, Trash2, Zap, Layou
 import { toast } from 'react-hot-toast';
 import { toastError } from '../../lib/toast';
 import { AttendanceService } from '../../services/attendance.service';
-import { AttendanceRecord, AttendanceRecordCreate } from '../../types';
+import { AttendanceRecord, AttendanceRecordCreate, AttendanceAnalyticsResponse } from '../../types';
 import ErrorBoundary from '../../components/shared/ErrorBoundary';
 import SkeletonCard from '../../components/shared/SkeletonCard';
 import { ErrorState, EmptyState } from '../../components/shared/States';
@@ -32,13 +32,21 @@ function AttendanceContent() {
     target_percentage: 75
   });
 
-  const fetchRecords = async () => {
+  const [analytics, setAnalytics] = useState<AttendanceAnalyticsResponse | null>(null);
+
+  const fetchRecordsAndAnalytics = async () => {
     if (!token) return;
     try {
       setIsLoading(true);
-      const res = await AttendanceService.getRecords(token);
-      if (res.success && res.data) {
-        setRecords(res.data);
+      const [recRes, statRes] = await Promise.all([
+        AttendanceService.getRecords(token),
+        AttendanceService.getAnalytics(token)
+      ]);
+      if (recRes.success && recRes.data) {
+        setRecords(recRes.data);
+      }
+      if (statRes.success && statRes.data) {
+        setAnalytics(statRes.data);
       }
     } catch (err: any) {
       setError(err.message || "Failed to load attendance records");
@@ -48,7 +56,7 @@ function AttendanceContent() {
   };
 
   useEffect(() => {
-    fetchRecords();
+    fetchRecordsAndAnalytics();
   }, [token]);
 
   const handleAdd = async (e: React.FormEvent) => {
@@ -60,6 +68,10 @@ function AttendanceContent() {
         setRecords([res.data, ...records]);
         setIsAdding(false);
         setNewSubject(prev => ({ ...prev, subject_name: '', subject_code: '', hours_conducted: 0, hours_attended: 0, target_percentage: 75 }));
+        // Refresh analytics in background
+        AttendanceService.getAnalytics(token).then(res => {
+          if (res.success && res.data) setAnalytics(res.data);
+        });
       }
     } catch (err: any) {
       toastError(err, "Failed to add subject");
@@ -74,9 +86,13 @@ function AttendanceContent() {
     
     try {
       await AttendanceService.updateRecord(id, updates, token);
+      // Refresh analytics in background
+      AttendanceService.getAnalytics(token).then(res => {
+        if (res.success && res.data) setAnalytics(res.data);
+      });
     } catch (err: any) {
       toastError(err, "Failed to update record");
-      fetchRecords(); // rollback on error
+      fetchRecordsAndAnalytics(); // rollback on error
     }
   };
 
@@ -87,9 +103,13 @@ function AttendanceContent() {
     setRecords(prev => prev.filter(r => r.id !== id));
     try {
       await AttendanceService.deleteRecord(id, token);
+      // Refresh analytics in background
+      AttendanceService.getAnalytics(token).then(res => {
+        if (res.success && res.data) setAnalytics(res.data);
+      });
     } catch (err: any) {
       toastError(err, "Failed to delete record");
-      fetchRecords();
+      fetchRecordsAndAnalytics();
     }
   };
 
@@ -102,12 +122,12 @@ function AttendanceContent() {
   }
 
   if (error) {
-    return <ErrorState title="Error Loading Attendance" message={error} onRetry={fetchRecords} />;
+    return <ErrorState title="Error Loading Attendance" message={error} onRetry={fetchRecordsAndAnalytics} />;
   }
 
-  const overallAttended = records.reduce((sum, r) => sum + r.hours_attended, 0);
-  const overallConducted = records.reduce((sum, r) => sum + r.hours_conducted, 0);
-  const overallPercentage = overallConducted === 0 ? 0 : (overallAttended / overallConducted) * 100;
+  const overallAttended = analytics ? analytics.stats.total_hours_attended : records.reduce((sum, r) => sum + r.hours_attended, 0);
+  const overallConducted = analytics ? analytics.stats.total_hours_conducted : records.reduce((sum, r) => sum + r.hours_conducted, 0);
+  const overallPercentage = analytics ? analytics.stats.overall_percentage : (overallConducted === 0 ? 0 : (overallAttended / overallConducted) * 100);
 
   const groupedRecords = records.reduce((acc, record) => {
     const sem = record.semester || 'Current Semester';
@@ -238,6 +258,8 @@ function AttendanceContent() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {semRecords.map(record => {
           const { currentPercent, isDanger, insight } = useAttendanceCalc(record);
+          const subjectAnalytics = analytics?.subjects.find(s => s.record_id === record.id);
+          const streak = subjectAnalytics?.streak || 0;
 
           return (
             <div key={record.id} className="vintage-panel p-6 bg-white relative overflow-hidden group">
@@ -246,7 +268,10 @@ function AttendanceContent() {
               <div className="flex justify-between items-start mb-6 relative z-10">
                 <div>
                   <h2 className="font-display font-black text-2xl text-vintage-ink tracking-tight">{record.subject_name}</h2>
-                  {record.subject_code && <span className="font-mono text-xs font-bold text-vintage-ink/60 bg-vintage-ink/5 px-2 py-0.5 rounded-md inline-block mt-1">{record.subject_code}</span>}
+                  <div className="flex items-center gap-2 mt-1">
+                    {record.subject_code && <span className="font-mono text-xs font-bold text-vintage-ink/60 bg-vintage-ink/5 px-2 py-0.5 rounded-md inline-block">{record.subject_code}</span>}
+                    {streak > 2 && <span className="font-mono text-xs font-bold text-orange-600 bg-orange-100 px-2 py-0.5 rounded-md inline-block flex items-center gap-1">🔥 {streak} Streak</span>}
+                  </div>
                 </div>
                 <button onClick={() => handleDelete(record.id)} className="text-vintage-ink/20 hover:text-vintage-crimson transition-colors">
                   <Trash2 className="w-5 h-5" />
@@ -321,11 +346,16 @@ function AttendanceContent() {
                     const target = record.target_percentage;
                     const isDanger = currentPercent < target;
                     const isSafe = currentPercent >= target + 2;
+                    const subjectAnalytics = analytics?.subjects.find(s => s.record_id === record.id);
+                    const streak = subjectAnalytics?.streak || 0;
                     
                     return (
                       <tr key={record.id} className="hover:bg-vintage-ink/5 transition-colors group">
                         <td className="p-4">
-                          <div className="font-display font-black text-vintage-ink">{record.subject_name}</div>
+                          <div className="flex items-center gap-2">
+                            <div className="font-display font-black text-vintage-ink">{record.subject_name}</div>
+                            {streak > 2 && <span className="font-mono text-[10px] font-bold text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded-md inline-block" title={`${streak} classes attended in a row`}>🔥 {streak}</span>}
+                          </div>
                           {record.subject_code && <div className="font-mono text-xs text-vintage-ink/60 mt-0.5">{record.subject_code}</div>}
                         </td>
                         <td className="p-4">

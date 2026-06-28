@@ -256,3 +256,32 @@ export interface AttendanceRecord {
     created_at: string;
     updated_at: string;
 }
+
+export interface AttendanceStatsOut {
+    total_hours_conducted: number;
+    total_hours_attended: number;
+    overall_percentage: number;
+    total_subjects: number;
+    subjects_at_risk: number;
+}
+
+export interface TrendDataPoint {
+    date: string;
+    attendance_percent: number;
+}
+
+export interface SubjectAnalytics {
+    record_id: string;
+    subject_name: string;
+    current_percentage: number;
+    target_percentage: number;
+    streak: number;
+    classes_to_attend_for_target: number;
+    classes_can_miss_for_target: number;
+    trend_data: TrendDataPoint[];
+}
+
+export interface AttendanceAnalyticsResponse {
+    stats: AttendanceStatsOut;
+    subjects: SubjectAnalytics[];
+}

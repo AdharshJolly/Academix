@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, UUID4
+from pydantic import BaseModel, Field, UUID4, ConfigDict
 from typing import Optional
 from datetime import datetime
 
@@ -27,5 +27,35 @@ class AttendanceRecordOut(AttendanceRecordBase):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
+class AttendanceLogOut(BaseModel):
+    id: UUID4
+    record_id: UUID4
+    date: str
+    status: str
+
+class AttendanceStatsOut(BaseModel):
+    total_hours_conducted: float
+    total_hours_attended: float
+    overall_percentage: float
+    total_subjects: int
+    subjects_at_risk: int
+
+class TrendDataPoint(BaseModel):
+    date: str
+    attendance_percent: float
+
+class SubjectAnalytics(BaseModel):
+    record_id: UUID4
+    subject_name: str
+    current_percentage: float
+    target_percentage: float
+    streak: int
+    classes_to_attend_for_target: int
+    classes_can_miss_for_target: int
+    trend_data: list[TrendDataPoint]
+
+class AttendanceAnalyticsResponse(BaseModel):
+    stats: AttendanceStatsOut
+    subjects: list[SubjectAnalytics]

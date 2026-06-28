@@ -42,3 +42,15 @@ class AttendanceRepository:
         db = ScopedTable(self.table, user_id)
         response = db.delete().eq("id", record_id).execute()
         return len(response.data) > 0
+
+    def get_stats(self, user_id: str) -> Optional[dict]:
+        db = ScopedTable("user_attendance_stats", user_id)
+        response = db.select("*").execute()
+        if not response.data:
+            return None
+        return response.data[0]
+
+    def get_logs(self, record_id: str, user_id: str) -> List[dict]:
+        db = ScopedTable("attendance_logs", user_id)
+        response = db.select("*").eq("record_id", record_id).order("date", desc=False).execute()
+        return response.data

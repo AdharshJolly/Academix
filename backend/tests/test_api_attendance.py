@@ -92,3 +92,20 @@ class TestAttendanceAPI:
         assert response.status_code == 200
         data = response.json()
         assert data["success"] is True
+
+    def test_get_attendance_analytics(self, client, auth_headers, mock_supabase):
+        # mock get_stats
+        mock_supabase.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [
+            {
+                "total_hours_conducted": 20,
+                "total_hours_attended": 15,
+                "overall_percentage": 75.0,
+                "total_subjects": 2,
+                "subjects_at_risk": 0
+            }
+        ]
+        response = client.get("/api/v1/attendance/analytics", headers=auth_headers)
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert "stats" in data["data"]
