@@ -13,9 +13,9 @@
 | Database    | Supabase (PostgreSQL 15)               |
 | AI          | Groq API — moonshotai/kimi-k2-instruct |
 | AI Fallback | llama-3.3-70b-versatile                |
-| Automation  | Make.com Router scenario               |
+| Automation  | Internal Service               |
 | Calendar    | Google Calendar API (direct backend)   |
-| Messaging   | Twilio WhatsApp API (via Make.com)     |
+| Messaging   | Telegram Bot API     |
 
 ---
 
@@ -25,7 +25,7 @@
 Frontend  ──▶  Vercel     (Next.js 15)
 Backend   ──▶  Render     (FastAPI + Uvicorn)
 Database  ──▶  Supabase   (PostgreSQL)
-Automation──▶  Make.com  (WhatsApp webhook)
+Automation──▶  Telegram Bot (Webhook)
 ```
 
 Each application deploys independently with its own environment file.
@@ -53,12 +53,8 @@ No shared environment variables between frontend and backend.
 | GROQ_API_KEY              | Groq API access key              |
 | PRIMARY_MODEL             | moonshotai/kimi-k2-instruct      |
 | FALLBACK_MODEL            | llama-3.3-70b-versatile          |
-| MAKE_WEBHOOK_URL          | Make.com production webhook URL  |
-| AUTOMATION_CALLBACK_SECRET| Shared secret for Make callback  |
+| AUTOMATION_CALLBACK_SECRET| Shared secret for automation callback  |
 | GOOGLE_REDIRECT_URI       | Google OAuth callback URL        |
-| TWILIO_ACCOUNT_SID        | Twilio account ID                |
-| TWILIO_AUTH_TOKEN         | Twilio auth token                |
-| TWILIO_PHONE_NUMBER       | WhatsApp sender number           |
 | GOOGLE_CLIENT_ID          | Google OAuth client ID           |
 | GOOGLE_CLIENT_SECRET      | Google OAuth client secret       |
 
@@ -217,7 +213,7 @@ Risk Engine is deterministic. AI only generates raw event and recommendation dat
 | users                 | Student profiles                     |
 | tasks                 | Academic tasks and deadlines         |
 | intelligence_reports  | AI analysis results                  |
-| automation_logs       | Calendar/Make.com execution history  |
+| automation_logs       | Calendar/Message execution history  |
 
 See [DATABASE.md](DATABASE.md) for full schema.
 

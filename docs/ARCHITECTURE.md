@@ -26,7 +26,7 @@ graph TD
 
     DB["Supabase\nPostgreSQL"]
     GROQ_API["Groq API\nKimi K2 / Llama"]
-    MAKE["Make.com Automation"]
+    MAKE["Automation Service"]
     GCAL["Google Calendar"]
     WA["Telegram"]
     SUPA["Supabase Auth"]
@@ -71,8 +71,8 @@ graph LR
 
     subgraph External
         GROQ["Groq API"]
-        MAKE["Make.com"]
-        TWILIO["Twilio"]
+
+
         GCAL["Google Calendar"]
     end
 
@@ -82,7 +82,7 @@ graph LR
     BE -- "AI inference" --> GROQ
     BE -- "Direct API" --> GCAL
     BE -- "Telegram webhook" --> MAKE
-    MAKE --> TWILIO
+
 ```
 
 ---
@@ -177,7 +177,7 @@ flowchart TD
     H --> I["RecommendationEngine formats actions"]
     I --> J["Save to intelligence_reports table"]
     J --> K["Create Google Calendar events directly"]
-    K --> L["Trigger Make.com Telegram webhook"]
+    K --> L["Trigger Telegram webhook"]
     L --> M["Telegram reminder sent"]
 ```
 
@@ -188,7 +188,7 @@ flowchart TD
 ```mermaid
 flowchart LR
     BE["Backend\nAutomation Service"] --> CAL["Google Calendar API\nCreate Event"]
-    BE --> MAKE["Make.com Webhook\nTelegram only"]
+    BE --> MAKE["Telegram Webhook"]
     MAKE --> WA["Telegram Bot\nSend Message"]
     MAKE --> LOG["POST /automations/log\nRecord outcome"]
 ```

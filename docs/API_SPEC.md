@@ -191,7 +191,7 @@ Automations are triggered internally after task creation and intelligence proces
 Manual frontend trigger endpoints are deprecated.
 
 ### POST /automations/log
-Internal callback called by Make.com after Twilio WhatsApp delivery.
+Internal callback called after WhatsApp delivery.
 
 **Auth:** `Authorization: Bearer <AUTOMATION_CALLBACK_SECRET>`
 
@@ -202,7 +202,7 @@ Internal callback called by Make.com after Twilio WhatsApp delivery.
   "status": "success",
   "user_id": "uuid",
   "log_id": "uuid",
-  "whatsapp_message_id": "twilio_sid",
+  "whatsapp_message_id": "message_sid",
   "error": null
 }
 ```

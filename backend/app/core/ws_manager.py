@@ -6,7 +6,9 @@ from fastapi import WebSocket
 
 logger = logging.getLogger(__name__)
 
-REDIS_URL = os.getenv("REDIS_URL")
+from app.core.settings import settings
+
+REDIS_URL = settings.REDIS_URL
 
 class ConnectionManager:
     def __init__(self):

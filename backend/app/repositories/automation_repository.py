@@ -44,7 +44,7 @@ class AutomationRepository:
         status: str,
         response: dict | None = None,
     ) -> None:
-        """Update log status after Calendar, Make.com, or Twilio callback work."""
+        """Update log status after Calendar or callback work."""
         from typing import Any
         db = get_supabase()
         update_payload: dict[str, Any] = {"status": status}

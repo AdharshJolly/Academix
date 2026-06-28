@@ -24,10 +24,6 @@ class Settings(BaseSettings):
     FALLBACK_MODEL: str = "llama-3.3-70b-versatile"
 
 
-    # Twilio
-    TWILIO_ACCOUNT_SID: str = ""
-    TWILIO_AUTH_TOKEN: str = ""
-    TWILIO_PHONE_NUMBER: str = ""
 
     # Telegram
     TELEGRAM_BOT_TOKEN: str = ""
@@ -40,6 +36,9 @@ class Settings(BaseSettings):
 
     # Webhook Secret (Telegram, etc.)
     WEBHOOK_SECRET: str = ""
+
+    # Redis Cache
+    REDIS_URL: str = ""
 
     # CORS
     CORS_ORIGINS: str = "http://localhost:3000"

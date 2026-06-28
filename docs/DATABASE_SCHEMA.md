@@ -11,7 +11,7 @@
 | users                | Student profiles (extends Supabase Auth) |
 | tasks                | Academic tasks and deadlines           |
 | intelligence_reports | AI analysis outputs                    |
-| automation_logs      | Make.com workflow execution history         |
+| automation_logs      | Automation workflow execution history         |
 | conversation_history | Workspace chat messages                     |
 
 All AI output is stored in `intelligence_reports`.

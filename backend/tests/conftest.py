@@ -8,9 +8,9 @@ os.environ["SUPABASE_URL"] = "https://fake.supabase.co"
 os.environ["SUPABASE_SERVICE_ROLE_KEY"] = "fake-service-role-key"
 os.environ["GROQ_API_KEY"] = "fake-groq-key"
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def mock_supabase():
-    """Session-scoped mock Supabase client."""
+    """Function-scoped mock Supabase client."""
     mock = MagicMock()
     # Default table chain: .table().select().eq().execute() => data=[]
     mock.table.return_value.select.return_value.eq.return_value.execute.return_value.data = []
@@ -19,7 +19,7 @@ def mock_supabase():
     mock.table.return_value.delete.return_value.eq.return_value.execute.return_value.data = []
     return mock
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def client(mock_supabase):
     import app.db.client
     app.db.client._client = mock_supabase

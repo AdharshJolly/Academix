@@ -73,7 +73,7 @@ Academix provides:
 ### F6 — Automation Center
 - View automation logs
 - Monitor WhatsApp notification status
-- Monitor Make.com WhatsApp delivery and backend calendar automation
+- Monitor messaging delivery and backend calendar automation
 
 ### F7 — Profile & Settings
 - User profile management
@@ -121,7 +121,7 @@ The **AcademicIntelligenceEngine** orchestrates internally:
 | Backend   | Render    | `backend/.env.example`   |
 
 Frontend never communicates directly with Groq, Supabase (service role),
-Twilio, Google Calendar, or Make.com.
+Google Calendar.
 
 ---
 
@@ -129,7 +129,7 @@ Twilio, Google Calendar, or Make.com.
 
 - User can submit a notice and receive extracted events and risk scores
 - Events are automatically added to Google Calendar
-- WhatsApp reminders are sent via Make.com and Twilio
+- WhatsApp reminders are sent
 - Dashboard loads in under 2 seconds
 - AI pipeline returns valid structured JSON or falls back gracefully
 

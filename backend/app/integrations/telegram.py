@@ -1,6 +1,6 @@
 """
 Telegram API Client
-Handles sending messages and downloading files directly without Make.com.
+Handles sending messages and downloading files directly.
 """
 import os
 import logging

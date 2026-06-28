@@ -1,6 +1,6 @@
 """
 Automations Router
-Receives Make.com callbacks and exposes automation logs.
+Receives webhook callbacks and exposes automation logs.
 """
 from fastapi import APIRouter, Depends, Header, HTTPException, status, Request
 
@@ -37,7 +37,7 @@ def log_automation_callback(
     authorization: str | None = Header(default=None),
     automation_repo: AutomationRepository = Depends(get_automation_repo),
 ):
-    """Callback endpoint called by Make.com after Twilio WhatsApp delivery."""
+    """Callback endpoint called after WhatsApp delivery."""
     expected = f"Bearer {settings.WEBHOOK_SECRET}"
     if not settings.WEBHOOK_SECRET or authorization != expected:
         raise HTTPException(
@@ -120,8 +120,8 @@ def test_telegram_connection(
 ):
     """
     Called from the frontend to test Telegram connectivity.
-    Normally, the backend doesn't send messages directly (Make.com does).
-    We just verify the username is linked or trigger a Make.com webhook if configured.
+    Normally, the backend doesn't send messages directly (Telegram handles it).
+    We just verify the username is linked or trigger a webhook if configured.
     For now, we return success so the frontend UI can show it works.
     """
     db = get_supabase()
@@ -143,7 +143,7 @@ def handle_incoming_message(
     authorization: str | None = Header(default=None),
 ):
     """
-    Webhook for incoming forwarded messages via Telegram/WhatsApp (via Make.com).
+    Webhook for incoming forwarded messages via Telegram/WhatsApp.
     Extracts events using Groq and creates tasks in the user's workspace.
     """
     expected = f"Bearer {settings.WEBHOOK_SECRET}"
@@ -265,7 +265,7 @@ async def telegram_webhook(
 ):
     """
     Direct Telegram Webhook. 
-    Replaces Make.com entirely. Handles text and images (via Gemini).
+    Handles direct text and images via Telegram (and Gemini).
     """
     if not settings.WEBHOOK_SECRET or x_telegram_bot_api_secret_token != settings.WEBHOOK_SECRET:
         raise HTTPException(

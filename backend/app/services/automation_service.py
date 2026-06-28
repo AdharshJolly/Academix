@@ -1,6 +1,6 @@
 """
 AutomationService
-Coordinates Calendar creation, Make.com WhatsApp delivery, and automation logs.
+Coordinates Calendar creation, WhatsApp/Telegram delivery, and automation logs.
 """
 from __future__ import annotations
 
