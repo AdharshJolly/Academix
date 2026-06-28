@@ -41,7 +41,7 @@ calendar_client = GoogleCalendarClient()
 
 @router.post("/register", response_model=APIResponse[AuthResponse])
 @limiter.limit("5/minute")
-def register(request: UserRegisterRequest, fastapi_req: Request):
+def register(payload: UserRegisterRequest, request: Request):
     """
     Register a new student account.
     1. Check email is not already taken
@@ -50,7 +50,7 @@ def register(request: UserRegisterRequest, fastapi_req: Request):
     """
     try:
         # Check duplicate email
-        existing = user_repo.get_by_email(request.email)
+        existing = user_repo.get_by_email(payload.email)
         if existing:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -58,17 +58,17 @@ def register(request: UserRegisterRequest, fastapi_req: Request):
             )
 
         user_id = str(uuid.uuid4())
-        password_hash = hash_password(request.password)
+        password_hash = hash_password(payload.password)
 
         user_profile = user_repo.create(
             user_id=user_id,
-            email=request.email,
-            full_name=request.full_name,
+            email=payload.email,
+            full_name=payload.full_name,
             password_hash=password_hash,
-            whatsapp_number=request.whatsapp_number,
+            whatsapp_number=payload.whatsapp_number,
         )
 
-        token = create_access_token(user_id=user_id, email=request.email)
+        token = create_access_token(user_id=user_id, email=payload.email)
         refresh_token = create_refresh_token(user_id=user_id)
 
         return APIResponse(
@@ -89,15 +89,15 @@ def register(request: UserRegisterRequest, fastapi_req: Request):
 
 @router.post("/login", response_model=APIResponse[AuthResponse])
 @limiter.limit("10/minute")
-def login(request: UserLoginRequest, fastapi_req: Request):
+def login(payload: UserLoginRequest, request: Request):
     """
     Authenticate a student with email + password.
     Returns our own signed JWT on success.
     """
     try:
-        user = user_repo.get_by_email_with_password(request.email)
+        user = user_repo.get_by_email_with_password(payload.email)
 
-        if not user or not verify_password(request.password, user["password_hash"]):
+        if not user or not verify_password(payload.password, user["password_hash"]):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid email or password.",

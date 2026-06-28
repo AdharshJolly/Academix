@@ -21,7 +21,7 @@ router = APIRouter(prefix="/tasks", tags=["tasks"])
 @router.get("", response_model=PaginatedResponse[TaskResponse])
 @limiter.limit("60/minute")
 def get_tasks(
-    request_obj: Request,
+    request: Request,
     page: int = 1,
     size: int = 20,
     status: str | None = None,
@@ -51,19 +51,19 @@ def get_tasks(
 @handle_db_errors("Create task")
 @limiter.limit("30/minute")
 def create_task(
-    request: TaskCreate,
-    request_obj: Request,
+    payload: TaskCreate,
+    request: Request,
     user: dict = Depends(verify_token),
     task_repo: TaskRepository = Depends(get_task_repo),
     automation_service: AutomationService = Depends(get_automation_service),
 ):
     """Create a new academic task."""
-    task = task_repo.create(user_id=user["id"], data=request)
+    task = task_repo.create(user_id=user["id"], data=payload)
     automation_service.run_for_task(
         user_id=user["id"],
         task=task,
-        add_to_calendar=request.add_to_calendar,
-        reminder_time=request.reminder_time
+        add_to_calendar=payload.add_to_calendar,
+        reminder_time=payload.reminder_time
     )
     return APIResponse(success=True, message="Task created", data=task)
 
