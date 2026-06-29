@@ -77,7 +77,7 @@ def register(payload: UserRegisterRequest, request: Request, response: Response)
             value=refresh_token,
             httponly=True,
             secure=True,
-            samesite="strict",
+            samesite="none",
             max_age=30 * 24 * 60 * 60,
         )
 
@@ -121,7 +121,7 @@ def login(payload: UserLoginRequest, request: Request, response: Response):
             value=refresh_token,
             httponly=True,
             secure=True,
-            samesite="strict",
+            samesite="none",
             max_age=30 * 24 * 60 * 60,
         )
 
@@ -175,7 +175,7 @@ def refresh_token(request: Request, response: Response, payload: RefreshRequest 
             value=new_refresh_token,
             httponly=True,
             secure=True,
-            samesite="strict",
+            samesite="none",
             max_age=30 * 24 * 60 * 60,
         )
 
@@ -220,7 +220,7 @@ def logout(
     if refresh_token:
         revoke_token(refresh_token)
 
-    response.delete_cookie("refresh_token", httponly=True, secure=True, samesite="strict")
+    response.delete_cookie("refresh_token", httponly=True, secure=True, samesite="none")
 
     return APIResponse(success=True, message="Successfully logged out", data=None)
 

@@ -40,3 +40,34 @@ def test_pgvector_search_function_exists():
         # We fail the test if the error is about the function not existing
         if "Could not find the function" in str(e) or "404" in str(e):
             pytest.fail(f"match_documents RPC function is missing: {e}")
+
+def test_task_creation_and_deletion():
+    """Verify task creation and deletion."""
+    supabase = get_supabase_admin()
+    
+    # Insert a dummy user
+    test_user_id = "test-user-" + os.urandom(4).hex()
+    supabase.table("users").insert({
+        "id": test_user_id,
+        "email": f"{test_user_id}@test.com",
+        "full_name": "Integration Test User",
+        "password_hash": "dummyhash"
+    }).execute()
+    
+    # Create task
+    task_res = supabase.table("tasks").insert({
+        "user_id": test_user_id,
+        "title": "Integration Test Task",
+        "priority": "high",
+        "status": "pending"
+    }).execute()
+    
+    assert len(task_res.data) == 1
+    task_id = task_res.data[0]["id"]
+    
+    # Delete task
+    del_res = supabase.table("tasks").delete().eq("id", task_id).execute()
+    assert len(del_res.data) == 1
+    
+    # Cleanup dummy user
+    supabase.table("users").delete().eq("id", test_user_id).execute()
