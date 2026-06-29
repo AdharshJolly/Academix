@@ -7,7 +7,7 @@ const withPWA = require('@ducanh2912/next-pwa').default({
   workboxOptions: {
     runtimeCaching: [
       {
-        urlPattern: /^https?:\/\/.*\/api\/v1\/(dashboard|tasks).*/i,
+        urlPattern: /^https?:\/\/.*\/api\/v1\/(dashboard|tasks|attendance|calendar|intelligence).*/i,
         handler: 'NetworkFirst',
         options: {
           cacheName: 'api-data-cache',
