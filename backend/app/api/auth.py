@@ -8,11 +8,9 @@ JWTs are minted by our own security module.
 import logging
 import uuid
 import secrets
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Response
 from app.core.cache import cache
 from app.core.rate_limit import limiter
-
-_oauth_nonce_store = {}
 
 from app.core.security import (
     create_access_token,
@@ -44,7 +42,7 @@ calendar_client = GoogleCalendarClient()
 
 @router.post("/register", response_model=APIResponse[AuthResponse])
 @limiter.limit("5/minute")
-def register(payload: UserRegisterRequest, request: Request):
+def register(payload: UserRegisterRequest, request: Request, response: Response):
     """
     Register a new student account.
     1. Check email is not already taken
@@ -74,6 +72,15 @@ def register(payload: UserRegisterRequest, request: Request):
         token = create_access_token(user_id=user_id, email=payload.email)
         refresh_token = create_refresh_token(user_id=user_id)
 
+        response.set_cookie(
+            key="refresh_token",
+            value=refresh_token,
+            httponly=True,
+            secure=True,
+            samesite="strict",
+            max_age=30 * 24 * 60 * 60,
+        )
+
         return APIResponse(
             success=True,
             message="Registration successful",
@@ -92,7 +99,7 @@ def register(payload: UserRegisterRequest, request: Request):
 
 @router.post("/login", response_model=APIResponse[AuthResponse])
 @limiter.limit("10/minute")
-def login(payload: UserLoginRequest, request: Request):
+def login(payload: UserLoginRequest, request: Request, response: Response):
     """
     Authenticate a student with email + password.
     Returns our own signed JWT on success.
@@ -108,6 +115,15 @@ def login(payload: UserLoginRequest, request: Request):
 
         token = create_access_token(user_id=user["id"], email=user["email"])
         refresh_token = create_refresh_token(user_id=user["id"])
+
+        response.set_cookie(
+            key="refresh_token",
+            value=refresh_token,
+            httponly=True,
+            secure=True,
+            samesite="strict",
+            max_age=30 * 24 * 60 * 60,
+        )
 
         user_profile = row_to_user_out(user)
         return APIResponse(
@@ -127,12 +143,23 @@ def login(payload: UserLoginRequest, request: Request):
 
 
 @router.post("/refresh", response_model=APIResponse[AuthResponse])
-def refresh_token(request: RefreshRequest):
+def refresh_token(request: Request, response: Response, payload: RefreshRequest | None = None):
     """
-    Refresh the access token using a valid refresh token.
+    Refresh the access token using a valid refresh token from cookie or payload.
     """
     try:
-        user_id = verify_refresh_token(request.refresh_token)
+        # Check cookie first, fallback to payload for backward compatibility
+        token_to_verify = request.cookies.get("refresh_token")
+        if not token_to_verify and payload:
+            token_to_verify = payload.refresh_token
+            
+        if not token_to_verify:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Refresh token missing.",
+            )
+            
+        user_id = verify_refresh_token(token_to_verify)
         user = user_repo.get_by_id(user_id)
         if not user:
             raise HTTPException(
@@ -142,6 +169,15 @@ def refresh_token(request: RefreshRequest):
 
         new_access_token = create_access_token(user_id=user["id"], email=user["email"])
         new_refresh_token = create_refresh_token(user_id=user["id"])
+
+        response.set_cookie(
+            key="refresh_token",
+            value=new_refresh_token,
+            httponly=True,
+            secure=True,
+            samesite="strict",
+            max_age=30 * 24 * 60 * 60,
+        )
 
         user_profile = row_to_user_out(user)
         return APIResponse(
@@ -166,7 +202,9 @@ from fastapi import Security
 from fastapi.security import HTTPAuthorizationCredentials
 @router.post("/logout", response_model=APIResponse[None])
 def logout(
-    payload: LogoutRequest,
+    request: Request,
+    response: Response,
+    payload: LogoutRequest | None = None,
     credentials: HTTPAuthorizationCredentials | None = Security(bearer_scheme)
 ):
     """
@@ -175,8 +213,14 @@ def logout(
     if credentials and credentials.credentials:
         revoke_token(credentials.credentials)
 
-    if payload.refresh_token:
-        revoke_token(payload.refresh_token)
+    refresh_token = request.cookies.get("refresh_token")
+    if not refresh_token and payload:
+        refresh_token = payload.refresh_token
+
+    if refresh_token:
+        revoke_token(refresh_token)
+
+    response.delete_cookie("refresh_token", httponly=True, secure=True, samesite="strict")
 
     return APIResponse(success=True, message="Successfully logged out", data=None)
 
@@ -212,12 +256,14 @@ def update_profile(
 @router.get("/google/connect", response_model=APIResponse[dict])
 def connect_google_calendar(user: dict = Depends(verify_token)):
     """Return the Google OAuth URL for connecting the user's calendar."""
+    if not cache:
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="Redis is required for OAuth flows."
+        )
     try:
         nonce = secrets.token_urlsafe(32)
-        if cache:
-            cache.setex(f"oauth_nonce:{nonce}", 900, user["id"])
-        else:
-            _oauth_nonce_store[nonce] = user["id"]
+        cache.setex(f"oauth_nonce:{nonce}", 900, user["id"])
 
         authorization_url = calendar_client.build_authorization_url(state=nonce)
         return APIResponse(
@@ -241,13 +287,13 @@ def google_calendar_callback(code: str, state: str):
 
     frontend_url = settings.FRONTEND_URL or "http://localhost:3000"
 
-    user_id = None
-    if cache:
-        user_id = cache.get(f"oauth_nonce:{state}")
-        if user_id:
-            cache.delete(f"oauth_nonce:{state}")
-    else:
-        user_id = _oauth_nonce_store.pop(state, None)
+    if not cache:
+        logger.error("Redis is required for OAuth flows.")
+        return RedirectResponse(url=f"{frontend_url}/settings?google_error=Server+Configuration+Error")
+
+    user_id = cache.get(f"oauth_nonce:{state}")
+    if user_id:
+        cache.delete(f"oauth_nonce:{state}")
 
     if not user_id:
         logger.error("Invalid or expired OAuth state parameter.")

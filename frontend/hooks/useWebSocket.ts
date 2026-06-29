@@ -9,7 +9,7 @@ export function useWebSocket(token: string | null) {
         if (!token) return;
 
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-        const wsUrl = apiUrl.replace(/^http/, 'ws') + `/ws`;
+        const wsUrl = apiUrl.replace(/^http/, 'ws') + `/ws?token=${token}`;
 
         let ws: WebSocket;
         try {
@@ -18,7 +18,6 @@ export function useWebSocket(token: string | null) {
 
             ws.onopen = () => {
                 setIsConnected(true);
-                ws.send(JSON.stringify({ token }));
             };
 
             ws.onmessage = (event) => {

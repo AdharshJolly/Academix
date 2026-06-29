@@ -91,33 +91,27 @@ from app.core.security import verify_ws_token
 
 import asyncio
 
-@app.websocket("/ws")
-async def ws_endpoint(websocket: WebSocket):
-    await websocket.accept()
-    try:
-        token_msg = await asyncio.wait_for(websocket.receive_json(), timeout=5.0)
-        token = token_msg.get("token") if isinstance(token_msg, dict) else None
-        
-        user = verify_ws_token(token) if token else None
-        if not user:
-            await websocket.close(code=1008)
-            return
+from fastapi import Query
 
-        user_id = user["id"]
-        # Connect to manager but skip manager's internal accept
-        if user_id not in manager.connections:
-            manager.connections[user_id] = []
-        manager.connections[user_id].append(websocket)
+@app.websocket("/ws")
+async def ws_endpoint(websocket: WebSocket, token: str = Query(None)):
+    user = verify_ws_token(token) if token else None
+    if not user:
+        await websocket.close(code=1008)
+        return
         
+    await websocket.accept()
+    user_id = user["id"]
+    
+    # Track the connection
+    if user_id not in manager.connections:
+        manager.connections[user_id] = []
+    manager.connections[user_id].append(websocket)
+    
+    try:
         while True:
             await websocket.receive_text()
     except Exception as e:
         logger.debug(f"WebSocket connection closed or error: {e}")
-        if 'user_id' in locals():
-            manager.disconnect(user_id, websocket)
-        else:
-            try:
-                await websocket.close(code=1008)
-            except Exception as close_err:
-                logger.debug(f"Failed to close unauthenticated WebSocket: {close_err}")
+        manager.disconnect(user_id, websocket)
 

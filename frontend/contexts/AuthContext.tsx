@@ -9,8 +9,8 @@ interface AuthContextType {
     user: UserOut | null;
     token: string | null;
     isLoading: boolean;
-    login: (data: UserLoginRequest) => Promise<UserOut>;
-    register: (data: UserRegisterRequest) => Promise<UserOut>;
+    login: (data: UserLoginRequest) => Promise<{user: UserOut, token: string}>;
+    register: (data: UserRegisterRequest) => Promise<{user: UserOut, token: string}>;
     logout: () => void;
     updateUser: (user: UserOut) => void;
 }
@@ -19,8 +19,8 @@ const AuthContext = createContext<AuthContextType>({
     user: null,
     token: null,
     isLoading: false,
-    login: async () => ({} as UserOut),
-    register: async () => ({} as UserOut),
+    login: async () => ({} as {user: UserOut, token: string}),
+    register: async () => ({} as {user: UserOut, token: string}),
     logout: () => {},
     updateUser: () => {},
 });
@@ -31,46 +31,61 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [isLoading, setIsLoading] = useState(true); // Start loading for hydration
 
     useEffect(() => {
-        // Hydrate from localStorage on client mount
-        try {
-            const storedToken = localStorage.getItem('academix_token');
-            const storedUser = localStorage.getItem('academix_user');
-            if (storedToken && storedUser) {
-                // Validate it's our own JWT (3 dot-separated segments)
-                // Old Supabase tokens have a different format and will cause 401s
-                const segments = storedToken.split('.');
-                if (segments.length !== 3) {
-                    // Stale token from old Supabase Auth — clear and force re-login
+        // Hydrate from HttpOnly cookie by silently calling refresh
+        let isMounted = true;
+        const hydrate = async () => {
+            try {
+                const refreshRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/auth/refresh`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({})
+                });
+                
+                if (refreshRes.ok) {
+                    const data = await refreshRes.json();
+                    if (data.success && data.data && isMounted) {
+                        setToken(data.data.token);
+                        setUser(data.data.user);
+                        localStorage.setItem('academix_user', JSON.stringify(data.data.user)); // Keep user for fast UI
+                        if (data.data.user?.google_calendar_connected) {
+                            CalendarService.prefetch(data.data.token).catch(e => console.error("Prefetch error:", e));
+                        }
+                    }
+                } else {
+                    // Stale or missing cookie
+                    localStorage.removeItem('academix_user');
+                    // Clean up old stale tokens if they exist
                     localStorage.removeItem('academix_token');
                     localStorage.removeItem('academix_refresh_token');
-                    localStorage.removeItem('academix_user');
-                } else {
-                    const parsedUser = JSON.parse(storedUser);
-                    setToken(storedToken);
-                    setUser(parsedUser);
-                    
-                    if (parsedUser?.google_calendar_connected) {
-                        CalendarService.prefetch(storedToken).catch(e => console.error("Prefetch hydration error:", e));
-                    }
                 }
+            } catch (e) {
+                console.error("Hydration failed", e);
+            } finally {
+                if (isMounted) setIsLoading(false);
             }
-        } catch (e) {
-            localStorage.removeItem('academix_token');
-            localStorage.removeItem('academix_refresh_token');
-            localStorage.removeItem('academix_user');
-        } finally {
-            setIsLoading(false); // Hydration complete
-        }
+        };
+
+        // Listen for silent refreshes from api.ts
+        const handleTokenRefreshed = (e: any) => {
+            if (e.detail?.token) setToken(e.detail.token);
+            if (e.detail?.user) setUser(e.detail.user);
+        };
+        window.addEventListener('academix_token_refreshed', handleTokenRefreshed);
+
+        hydrate();
+
+        return () => {
+            isMounted = false;
+            window.removeEventListener('academix_token_refreshed', handleTokenRefreshed);
+        };
     }, []);
 
     const handleAuthSuccess = (res: any, fallbackErrorMsg: string) => {
         if (res.success && res.data) {
             setToken(res.data.token);
             setUser(res.data.user);
-            localStorage.setItem('academix_token', res.data.token);
-            if (res.data.refresh_token) {
-                localStorage.setItem('academix_refresh_token', res.data.refresh_token);
-            }
+            // DO NOT store token in localStorage to prevent XSS
             localStorage.setItem('academix_user', JSON.stringify(res.data.user));
             
             // Fire and forget prefetch for calendar caching
@@ -78,7 +93,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 CalendarService.prefetch(res.data.token).catch(e => console.error("Prefetch error:", e));
             }
 
-            return res.data.user;
+            return { user: res.data.user, token: res.data.token };
         } else {
             throw new Error(res.message || fallbackErrorMsg);
         }
@@ -109,12 +124,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     const logout = async () => {
-        const currentToken = token || localStorage.getItem('academix_token');
-        const currentRefreshToken = localStorage.getItem('academix_refresh_token');
-        
-        if (currentToken) {
+        if (token) {
             try {
-                await AuthService.logout(currentRefreshToken, currentToken);
+                // We only need to pass null for refresh token now because it's in the HttpOnly cookie
+                await AuthService.logout(null, token);
             } catch (e) {
                 console.error("Failed to call backend logout:", e);
             }

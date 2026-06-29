@@ -73,7 +73,7 @@ function SettingsContent() {
   const handleConnectGoogle = async () => {
     try {
       setGoogleConnecting(true);
-      const t = token || localStorage.getItem('academix_token') || '';
+      const t = token;
       if (!t) { toastError(new Error('Please log in again.'), 'Please log in again.'); return; }
       const res = await AuthService.connectGoogleCalendar(t);
       if (res.data?.authorization_url) {

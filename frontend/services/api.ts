@@ -25,6 +25,7 @@ async function request<T>(
         const response = await fetch(url, {
             method,
             headers,
+            credentials: 'include',
             body: data instanceof FormData ? data : (data ? JSON.stringify(data) : undefined),
         });
 
@@ -32,33 +33,31 @@ async function request<T>(
         if (response.status === 401 && !_isHandling401) {
             _isHandling401 = true;
             if (typeof window !== 'undefined') {
-                const refreshToken = localStorage.getItem('academix_refresh_token');
-                if (refreshToken) {
-                    try {
-                        const refreshRes = await fetch(`${BASE_URL}/auth/refresh`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ refresh_token: refreshToken })
-                        });
+                try {
+                    const refreshRes = await fetch(`${BASE_URL}/auth/refresh`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify({}) // Refresh token is in HttpOnly cookie
+                    });
+                    
+                    const refreshData = await refreshRes.json();
+                    if (refreshRes.ok && refreshData.success) {
+                        // Re-run original request with new token
+                        _isHandling401 = false;
                         
-                        const refreshData = await refreshRes.json();
-                        if (refreshRes.ok && refreshData.success) {
-                            // Save new tokens
-                            localStorage.setItem('academix_token', refreshData.data.token);
-                            localStorage.setItem('academix_refresh_token', refreshData.data.refresh_token);
-                            
-                            // Re-run original request with new token
-                            _isHandling401 = false;
-                            return request<T>(method, endpoint, data, refreshData.data.token);
-                        }
-                    } catch (e) {
-                        console.error('Silent refresh failed:', e);
+                        // Emit an event so AuthContext can update its memory token
+                        window.dispatchEvent(new CustomEvent('academix_token_refreshed', { 
+                            detail: { token: refreshData.data.token, user: refreshData.data.user } 
+                        }));
+                        
+                        return request<T>(method, endpoint, data, refreshData.data.token);
                     }
+                } catch (e) {
+                    console.error('Silent refresh failed:', e);
                 }
 
-                // If we get here, refresh failed or no refresh token exists -> force logout
-                localStorage.removeItem('academix_token');
-                localStorage.removeItem('academix_refresh_token');
+                // If we get here, refresh failed -> force logout
                 localStorage.removeItem('academix_user');
                 // Small delay so any in-flight renders can complete
                 setTimeout(() => {

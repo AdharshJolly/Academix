@@ -46,16 +46,16 @@ function AuthPageContent() {
     setError('');
     
     try {
-      let user;
+      let authResult;
       if (isLogin) {
-        user = await login({ email, password });
+        authResult = await login({ email, password });
         setIsRegisterFlow(false);
       } else {
-        user = await register({ email, password, full_name: fullName, whatsapp_number: whatsappNumber });
+        authResult = await register({ email, password, full_name: fullName, whatsapp_number: whatsappNumber });
         setIsRegisterFlow(true);
       }
       
-      const freshToken = localStorage.getItem('academix_token');
+      const { user, token: freshToken } = authResult;
       setAuthToken(freshToken);
       
       // Step 1: Academic Profile check
@@ -103,7 +103,7 @@ function AuthPageContent() {
     setSyncLoading(true);
     setSyncError(null);
     try {
-      const t = authToken || token || localStorage.getItem('academix_token') || '';
+      const t = authToken || token;
       if (!t) throw new Error('Not authenticated. Please log in again.');
       const res = await AuthService.connectGoogleCalendar(t);
       if (res.data?.authorization_url) {
