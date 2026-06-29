@@ -13,7 +13,7 @@ from app.core.settings import settings
 _client: Client | None = None
 
 
-def get_supabase() -> Client:
+def get_supabase_admin() -> Client:
     """
     Return the shared Supabase client.
     Initializes on first call (lazy singleton).
@@ -36,7 +36,7 @@ class ScopedTable:
     Prevents leaking data across users.
     """
     def __init__(self, table_name: str, user_id: str):
-        self.db = get_supabase()
+        self.db = get_supabase_admin()
         self.table_name = table_name
         self.user_id = user_id
 

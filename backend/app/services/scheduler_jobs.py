@@ -1,6 +1,6 @@
 import logging
 import asyncio
-from app.db.client import get_supabase
+from app.db.client import get_supabase_admin
 from app.integrations.telegram import TelegramClient
 
 logger = logging.getLogger(__name__)
@@ -11,7 +11,7 @@ async def send_weekly_attendance_check():
     Asks users via Telegram to update their attendance percentage.
     """
     logger.info("Running weekly attendance check job...")
-    db = get_supabase()
+    db = get_supabase_admin()
     
     # Fetch users who have Telegram connected and notifications enabled
     res = db.table("users").select("id, full_name, telegram_chat_id").eq("telegram_notifications_enabled", True).execute()

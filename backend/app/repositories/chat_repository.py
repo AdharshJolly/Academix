@@ -1,6 +1,6 @@
 import logging
 from typing import List, Dict
-from app.db.client import get_supabase, ScopedTable
+from app.db.client import get_supabase_admin, ScopedTable
 
 logger = logging.getLogger(__name__)
 

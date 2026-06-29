@@ -4,7 +4,7 @@ Data access layer for the intelligence_reports table.
 All AI pipeline outputs are stored here.
 """
 import logging
-from app.db.client import get_supabase, ScopedTable
+from app.db.client import get_supabase_admin, ScopedTable
 from app.schemas.intelligence import IntelligenceResponse
 
 logger = logging.getLogger(__name__)

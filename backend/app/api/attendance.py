@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from typing import List
+import math
 from app.schemas.attendance import AttendanceRecordOut, AttendanceRecordCreate, AttendanceRecordUpdate, AttendanceAnalyticsResponse
 from app.core.utils import handle_db_errors
 from app.core.security import verify_token
@@ -65,10 +66,10 @@ def get_attendance_analytics(
         
         if current_percent < target and target < 100:
             diff = (r["hours_conducted"] * target - r["hours_attended"] * 100) / (100 - target)
-            classes_needed = int(diff) + (1 if diff > int(diff) else 0)
+            classes_needed = math.ceil(diff)
         elif current_percent >= target and target > 0:
             diff = (r["hours_attended"] * 100 - r["hours_conducted"] * target) / target
-            classes_can_miss = int(diff)
+            classes_can_miss = math.floor(diff)
             
         subjects.append({
             "record_id": r["id"],

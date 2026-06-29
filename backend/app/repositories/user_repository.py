@@ -4,7 +4,7 @@ Data access layer for the public.users table.
 Handles all CRUD operations including password_hash storage.
 """
 import logging
-from app.db.client import get_supabase
+from app.db.client import get_supabase_admin
 from app.schemas.auth import UserOut
 
 logger = logging.getLogger(__name__)
@@ -38,7 +38,7 @@ class UserRepository:
 
     def get_by_id(self, user_id: str) -> UserOut | None:
         """Fetch user profile by UUID."""
-        db = get_supabase()
+        db = get_supabase_admin()
         response = (
             db.table(TABLE)
             .select("id, email, full_name, avatar_url, google_calendar_connected, whatsapp_number, academic_year, major, gpa, study_hours, primary_objective, learning_protocols, telegram_chat_id, telegram_username, whatsapp_notifications_enabled, telegram_notifications_enabled")
@@ -52,7 +52,7 @@ class UserRepository:
 
     def get_by_email(self, email: str) -> UserOut | None:
         """Fetch safe user profile by email (no password_hash)."""
-        db = get_supabase()
+        db = get_supabase_admin()
         response = (
             db.table(TABLE)
             .select("id, email, full_name, avatar_url, google_calendar_connected, whatsapp_number, academic_year, major, gpa, study_hours, primary_objective, learning_protocols, telegram_chat_id, telegram_username, whatsapp_notifications_enabled, telegram_notifications_enabled")
@@ -68,7 +68,7 @@ class UserRepository:
         Fetch full user row including password_hash.
         Only for use during login — never expose password_hash to the client.
         """
-        db = get_supabase()
+        db = get_supabase_admin()
         response = (
             db.table(TABLE)
             .select("*")
@@ -90,7 +90,7 @@ class UserRepository:
         """
         Insert a new user row with a bcrypt-hashed password.
         """
-        db = get_supabase()
+        db = get_supabase_admin()
         payload = {
             "id": user_id,
             "email": email,
@@ -106,7 +106,7 @@ class UserRepository:
 
     def update(self, user_id: str, data: dict) -> UserOut | None:
         """Partial update of user profile fields."""
-        db = get_supabase()
+        db = get_supabase_admin()
         response = (
             db.table(TABLE)
             .update(data)
@@ -120,7 +120,7 @@ class UserRepository:
 
     def get_automation_profile(self, user_id: str) -> dict | None:
         """Fetch only fields needed by automation services."""
-        db = get_supabase()
+        db = get_supabase_admin()
         response = (
             db.table(TABLE)
             .select("id, google_refresh_token, google_calendar_connected, whatsapp_number")
@@ -132,7 +132,7 @@ class UserRepository:
 
     def save_google_refresh_token(self, user_id: str, refresh_token: str) -> None:
         """Persist a user's Google Calendar refresh token."""
-        db = get_supabase()
+        db = get_supabase_admin()
         db.table(TABLE).update({
             "google_refresh_token": refresh_token,
             "google_calendar_connected": True,

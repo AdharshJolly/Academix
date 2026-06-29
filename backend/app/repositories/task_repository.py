@@ -5,7 +5,7 @@ Routers call this — never the database directly.
 """
 import logging
 from datetime import datetime, timezone
-from app.db.client import get_supabase, ScopedTable
+from app.db.client import get_supabase_admin, ScopedTable
 from app.schemas.tasks import TaskCreate, TaskUpdate, TaskResponse
 from app.core.cache import invalidate_dashboard_cache
 

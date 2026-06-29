@@ -5,7 +5,7 @@ Data access layer for the automation_logs table.
 import logging
 from datetime import datetime, timezone
 
-from app.db.client import get_supabase, ScopedTable
+from app.db.client import get_supabase_admin, ScopedTable
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +45,7 @@ class AutomationRepository:
     ) -> None:
         """Update log status after Calendar or callback work."""
         from typing import Any
-        db = get_supabase()
+        db = get_supabase_admin()
         update_payload: dict[str, Any] = {"status": status}
         if status in ("success", "failed"):
             update_payload["completed_at"] = self._now()

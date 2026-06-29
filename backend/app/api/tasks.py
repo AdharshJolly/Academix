@@ -13,7 +13,7 @@ from app.schemas.common import APIResponse, PaginatedResponse
 from app.schemas.tasks import TaskCreate, TaskResponse, TaskUpdate, StudySessionCreate
 from app.services.automation_service import AutomationService
 from app.api.dependencies import get_task_repo, get_automation_service
-from app.db.client import get_supabase
+from app.db.client import get_supabase_admin
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
@@ -121,7 +121,7 @@ def create_study_session(
     if not task:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
 
-    db = get_supabase()
+    db = get_supabase_admin()
     session_data = {
         "user_id": user["id"],
         "task_id": task_id,

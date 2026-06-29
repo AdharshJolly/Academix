@@ -5,7 +5,7 @@ from app.services.ai.document_processor import DocumentProcessor
 class TestDocumentProcessor:
     @pytest.fixture
     def processor(self, mock_supabase):
-        with patch("app.services.ai.document_processor.get_supabase", return_value=mock_supabase):
+        with patch("app.services.ai.document_processor.get_supabase_admin", return_value=mock_supabase):
             proc = DocumentProcessor()
             yield proc, mock_supabase
 

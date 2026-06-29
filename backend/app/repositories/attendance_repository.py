@@ -1,6 +1,6 @@
 from typing import List, Optional
 import uuid
-from app.db.client import get_supabase, ScopedTable
+from app.db.client import get_supabase_admin, ScopedTable
 from app.schemas.attendance import AttendanceRecordCreate, AttendanceRecordUpdate
 
 class AttendanceRepository:

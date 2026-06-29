@@ -257,8 +257,8 @@ function AttendanceContent() {
           {viewMode === 'grid' ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {semRecords.map(record => {
-          const { currentPercent, isDanger, insight } = useAttendanceCalc(record);
           const subjectAnalytics = analytics?.subjects.find(s => s.record_id === record.id);
+          const { currentPercent, isDanger, insight } = useAttendanceCalc(record, subjectAnalytics);
           const streak = subjectAnalytics?.streak || 0;
 
           return (

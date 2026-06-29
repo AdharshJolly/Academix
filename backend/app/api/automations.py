@@ -19,7 +19,7 @@ from app.schemas.intelligence import IntelligenceRequest
 from app.schemas.tasks import TaskCreate
 from app.services.intelligence_engine import AcademicIntelligenceEngine
 from app.repositories.task_repository import TaskRepository
-from app.db.client import get_supabase
+from app.db.client import get_supabase_admin
 from app.integrations.telegram import TelegramClient
 from app.services.ai.vision_extractor import VisionExtractor
 import logging
@@ -97,7 +97,7 @@ def test_telegram_connection(
     We just verify the username is linked or trigger a webhook if configured.
     For now, we return success so the frontend UI can show it works.
     """
-    db = get_supabase()
+    db = get_supabase_admin()
     username = payload.get("telegram_username")
     if not username:
         return APIResponse(success=False, message="No username provided.")
@@ -127,7 +127,7 @@ def handle_incoming_message(
         )
 
     # 1. Look up user by platform sender_id
-    db = get_supabase()
+    db = get_supabase_admin()
     
     user_id = None
     newly_linked = False
@@ -264,7 +264,7 @@ async def telegram_webhook(
     telegram_client = TelegramClient()
     
     # --- 1. Look up user early ---
-    db = get_supabase()
+    db = get_supabase_admin()
     user_id = None
     
     user_res = db.table("users").select("id").eq("telegram_chat_id", chat_id).execute()

@@ -32,7 +32,7 @@ class GenericStudySessionCreate(BaseModel):
     task_id: str | None = None
 
 from app.api.dependencies import get_task_repo, get_intelligence_repo, get_automation_service, get_automation_repo
-from app.db.client import get_supabase
+from app.db.client import get_supabase_admin
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
@@ -252,7 +252,7 @@ def create_generic_study_session(
     request: GenericStudySessionCreate,
     user: dict = Depends(verify_token),
 ):
-    db = get_supabase()
+    db = get_supabase_admin()
     session_data = {
         "user_id": user["id"],
         "title": request.title or "Uncategorized Session",

@@ -1,6 +1,6 @@
-import { AttendanceRecord } from '../types';
+import { AttendanceRecord, SubjectAnalytics } from '../types';
 
-export function useAttendanceCalc(record: AttendanceRecord) {
+export function useAttendanceCalc(record: AttendanceRecord, analytics?: SubjectAnalytics) {
     const currentPercent = record.hours_conducted === 0
         ? 0
         : (record.hours_attended / record.hours_conducted) * 100;
@@ -9,16 +9,20 @@ export function useAttendanceCalc(record: AttendanceRecord) {
     const isDanger = currentPercent < target;
     
     let insight = "";
-    if (isDanger) {
-        const needed = Math.ceil((target * record.hours_conducted - 100 * record.hours_attended) / (100 - target));
-        insight = `You need to attend the next ${needed} class${needed > 1 ? 'es' : ''} to reach your ${target}% target.`;
-    } else {
-        const skippable = Math.floor((100 * record.hours_attended - target * record.hours_conducted) / target);
-        if (skippable > 0) {
-            insight = `You can safely skip the next ${skippable} class${skippable > 1 ? 'es' : ''}.`;
+    if (analytics) {
+        if (isDanger) {
+            const needed = analytics.classes_to_attend_for_target;
+            insight = `You need to attend the next ${needed} class${needed > 1 ? 'es' : ''} to reach your ${target}% target.`;
         } else {
-            insight = `You are exactly on track. Do not skip the next class.`;
+            const skippable = analytics.classes_can_miss_for_target;
+            if (skippable > 0) {
+                insight = `You can safely skip the next ${skippable} class${skippable > 1 ? 'es' : ''}.`;
+            } else {
+                insight = `You are exactly on track. Do not skip the next class.`;
+            }
         }
+    } else {
+        insight = isDanger ? "Loading insights..." : "Loading insights...";
     }
     
     return { currentPercent, isDanger, insight };

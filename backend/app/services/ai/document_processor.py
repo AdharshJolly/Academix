@@ -4,7 +4,7 @@ import logging
 import httpx
 from typing import List, Dict
 import fitz  # PyMuPDF
-from app.db.client import get_supabase
+from app.db.client import get_supabase_admin
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +16,7 @@ class DocumentProcessor:
     the database schema for study_materials.embedding MUST be migrated to match the new dimension.
     """
     def __init__(self):
-        self.db = get_supabase()
+        self.db = get_supabase_admin()
         self.gemini_key = os.getenv("GEMINI_API_KEY")
         self.embedding_url = f"https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key={self.gemini_key}"
         self.chunk_size = 1000  # characters

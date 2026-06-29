@@ -1,7 +1,7 @@
 import pytest
 import os
 import requests
-from app.db.client import get_supabase
+from app.db.client import get_supabase_admin
 
 # Skip integration tests unless explicitly enabled
 pytestmark = pytest.mark.skipif(
@@ -11,7 +11,7 @@ pytestmark = pytest.mark.skipif(
 
 def test_supabase_connection():
     """Verify that we can actually connect to the local Supabase stack."""
-    supabase = get_supabase()
+    supabase = get_supabase_admin()
     
     # Try fetching a row from a core table (e.g., users)
     # This tests that the URL, anon key, and REST API are functioning
@@ -22,7 +22,7 @@ def test_supabase_connection():
 
 def test_pgvector_search_function_exists():
     """Verify that the match_documents function exists for vector search."""
-    supabase = get_supabase()
+    supabase = get_supabase_admin()
     
     # We test calling the RPC function. 
     # If it fails due to invalid signature, we know the migration wasn't applied.
