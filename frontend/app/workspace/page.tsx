@@ -1,132 +1,58 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState } from 'react';
+import { AnimatePresence } from 'framer-motion';
 import { 
-  Search, Plus, Filter, Calendar, Clock, Inbox, 
-  CheckCircle, Archive, ChevronRight, MessageCircle, Heart, Share2, Sparkles, Send, Smile, Paperclip, MoreHorizontal, ArrowRight,
-  Pencil, Trash2, AlertTriangle, X, Target
+  Search, Plus, Filter, Inbox, 
+  CheckCircle, Archive, Sparkles
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
-import { TaskService } from '../../services/task.service';
-import { IntelligenceService } from '../../services/intelligence.service';
-import { IntelligenceResponse, ExtractedEvent, Recommendation, TaskResponse } from '../../types/index';
 import ErrorBoundary from '../../components/shared/ErrorBoundary';
-import SkeletonCard from '../../components/shared/SkeletonCard';
 import { FocusTimerModal } from '../../components/shared/FocusTimerModal';
-import { ModalShell } from '../../components/shared/ModalShell';
-import { FormField } from '../../components/forms/FormField';
-import { ErrorState, EmptyState } from '../../components/shared/States';
-import { SortDesc, Zap, Link2, Check, ExternalLink, AlertCircle, Play, Pause } from 'lucide-react';
-import { useWebSocket } from '../../hooks/useWebSocket';
-import { PriorityBadge, StatusBadge } from '../../components/shared/Badges';
-import { WorkspaceTask } from '../../components/workspace/WorkspaceTask';
 
-interface WorkspaceTask {
-  id: string;
-  title: string;
-  subject: string;
-  type: string;
-  date: string;
-  priority: string;
-  status: string;
-  comments: any[];
-}
+import { useTasks } from '../../hooks/workspace/useTasks';
+import { useNoticeProcessing } from '../../hooks/workspace/useNoticeProcessing';
+import { useCopilotChat } from '../../hooks/workspace/useCopilotChat';
 
-// Fallback empty state
-const INITIAL_TASKS: WorkspaceTask[] = [];
+import { TaskList } from '../../components/workspace/TaskList';
+import { AIInbox } from '../../components/workspace/AIInbox';
+import { CopilotChat } from '../../components/workspace/CopilotChat';
+import { QuickCaptureModal } from '../../components/workspace/QuickCaptureModal';
+import { EditTaskModal } from '../../components/workspace/EditTaskModal';
+import { WorkspaceTaskData } from '../../components/workspace/WorkspaceTask';
 
 function WorkspaceContent() {
   const { user, token } = useAuth();
+  
+  // Navigation State
   const [activeTab, setActiveTab] = useState<'tasks' | 'inbox' | 'extract' | 'completed'>('tasks');
-  const [tasks, setTasks] = useState<WorkspaceTask[]>(INITIAL_TASKS);
-  const [selectedItem, setSelectedItem] = useState<WorkspaceTask | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
   
-  useEffect(() => {
-    if (!token) return;
-    setIsLoading(true);
-    TaskService.getTasks(token).then(res => {
-      if (res.success && res.data) {
-        const fetchedTasks = res.data.map((t: TaskResponse) => ({
-          id: t.id,
-          title: t.title,
-          subject: t.description ? t.description.split(' - ')[0] : 'General',
-          type: 'Task',
-          date: t.due_date ? new Date(t.due_date).toLocaleDateString() : 'No date',
-          priority: t.priority,
-          status: t.status,
-          comments: []
-        }));
-        setTasks(fetchedTasks);
-        if (fetchedTasks.length > 0) {
-          setSelectedItem(fetchedTasks[0]);
-        }
-      }
-      setIsLoading(false);
-    }).catch(err => {
-      console.error(err);
-      setIsLoading(false);
-    });
-  }, [token]);
+  // Hooks
+  const { 
+    tasks, 
+    isLoading, 
+    isDeletingTask, 
+    createTask, 
+    updateTask, 
+    approveTask, 
+    deleteTask 
+  } = useTasks(token);
   
-  // Quick Capture State
+  const noticeProcessing = useNoticeProcessing(token);
+  const copilotChat = useCopilotChat(token);
+
+  // Selection & Modal State
+  const [selectedItem, setSelectedItem] = useState<WorkspaceTaskData | null>(null);
   const [showQuickCapture, setShowQuickCapture] = useState(false);
-  const [newTaskSubject, setNewTaskSubject] = useState('');
-  const [newTaskTitle, setNewTaskTitle] = useState('');
-  const [newTaskType, setNewTaskType] = useState('Assignment');
-  const [newTaskPriority, setNewTaskPriority] = useState('Medium');
-  const [newTaskDate, setNewTaskDate] = useState('');
-  const [newTaskSyncCalendar, setNewTaskSyncCalendar] = useState(true);
-  const [newTaskReminderTime, setNewTaskReminderTime] = useState('24h');
-
-  // AI Inbox State
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [noticeText, setNoticeText] = useState('');
-  const [isProcessingNotice, setIsProcessingNotice] = useState(false);
-  const [noticeResult, setNoticeResult] = useState<IntelligenceResponse | null>(null);
-  const [noticeError, setNoticeError] = useState<string | null>(null);
-
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !token) return;
-    
-    setIsProcessingNotice(true);
-    setNoticeError(null);
-    setNoticeResult(null);
-    setNoticeText(`File uploaded: ${file.name}\nProcessing via Vision/PDF Extractor...`);
-    
-    try {
-      const res = await IntelligenceService.uploadNotice(file, token);
-      if (res.success && res.data?.report_id) {
-        setPendingReportId(res.data.report_id);
-      } else {
-        setIsProcessingNotice(false);
-        setNoticeError(res.message || 'AI processing failed. Please try again.');
-        setNoticeText('');
-      }
-    } catch (err: any) {
-      console.error(err);
-      setIsProcessingNotice(false);
-      setNoticeError(err?.message || 'Failed to process file. Check connection.');
-      setNoticeText('');
-    } finally {
-      // Reset input so the same file can be selected again
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    }
-  };
-
-  // Task Edit/Delete State
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [editingTask, setEditingTask] = useState<WorkspaceTask | null>(null);
-  const [editTitle, setEditTitle] = useState('');
-  const [editSubject, setEditSubject] = useState('');
-  const [editPriority, setEditPriority] = useState('medium');
-  const [editDueDate, setEditDueDate] = useState('');
-  const [isDeletingTask, setIsDeletingTask] = useState<string | null>(null);
   const [showWorkspaceFocusTimer, setShowWorkspaceFocusTimer] = useState(false);
+  
+  // Edit Task State
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingTask, setEditingTask] = useState<WorkspaceTaskData | null>(null);
+
+  // Derivations
   const filteredTasks = tasks.filter(task => {
     const matchesSearch = task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           task.subject.toLowerCase().includes(searchQuery.toLowerCase());
@@ -137,186 +63,45 @@ function WorkspaceContent() {
   });
 
   const inboxCount = tasks.filter(t => t.status === 'pending_review').length;
-  
-  // Copilot Chat History
-  const [newComment, setNewComment] = useState('');
-  const [isLiked, setIsLiked] = useState(false);
-  const [chatHistory, setChatHistory] = useState<Array<{role: string, content: string}>>([]);
-  const [pendingReportId, setPendingReportId] = useState<string | null>(null);
-  
-  const { subscribe } = useWebSocket(token);
+  const existingSubjects = Array.from(new Set(tasks.map(t => t.subject)));
 
-  useEffect(() => {
-    if (!pendingReportId) return;
-
-    const unsubscribe = subscribe((msg: any) => {
-      if (msg.report_id === pendingReportId) {
-        if (msg.type === 'INTELLIGENCE_REPORT_COMPLETE') {
-          setNoticeResult(msg.report);
-          setNoticeText(`Processed successfully.`);
-          setIsProcessingNotice(false);
-          setPendingReportId(null);
-        } else if (msg.type === 'INTELLIGENCE_REPORT_FAILED') {
-          setNoticeError(msg.error || 'AI processing failed.');
-          setIsProcessingNotice(false);
-          setPendingReportId(null);
-        }
-      }
-    });
-
-    return unsubscribe;
-  }, [subscribe, pendingReportId]);
-
-  const [isChatLoading, setIsChatLoading] = useState(false);
-
-  useEffect(() => {
-    if (!token) return;
-    IntelligenceService.getChatHistory(token).then(res => {
-      if (res.success && res.data) {
-        setChatHistory(res.data);
-      }
-    }).catch(console.error);
-  }, [token]);
-
-  const handleAddComment = async () => {
-    if (!newComment.trim() || !token) return;
-    const userMsg = newComment;
-    setNewComment('');
-    setChatHistory(prev => [...prev, { role: 'user', content: userMsg }]);
-    
-    setIsChatLoading(true);
-    try {
-      const res = await IntelligenceService.sendChatMessage(userMsg, token);
-      if (res.success && res.data) {
-        setChatHistory(prev => [...prev, res.data as {role: string, content: string}]);
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsChatLoading(false);
+  // Handlers
+  const handleQuickCaptureSave = async (data: any, subject: string, type: string) => {
+    const newTask = await createTask(data, subject, type);
+    if (newTask) {
+      setSelectedItem(newTask);
+      setShowQuickCapture(false);
     }
   };
 
-  const handleQuickCapture = async () => {
-    if (!newTaskSubject || !newTaskTitle || !token) return;
-    
-    const data = {
-      title: newTaskTitle,
-      description: `${newTaskSubject} - ${newTaskType}`,
-      due_date: newTaskDate || new Date().toISOString(),
-      priority: newTaskPriority.toLowerCase() as any,
-      status: 'pending' as any,
-      add_to_calendar: newTaskSyncCalendar,
-      reminder_time: newTaskReminderTime
-    };
-
-    try {
-      const res = await TaskService.createTask(data, token);
-      if (res.success && res.data) {
-        const newTask = {
-          id: res.data.id,
-          title: res.data.title,
-          subject: newTaskSubject,
-          type: newTaskType,
-          date: res.data.due_date ? new Date(res.data.due_date).toLocaleDateString() : 'No date',
-          priority: res.data.priority,
-          status: res.data.status,
-          comments: []
-        };
-        setTasks([newTask, ...tasks]);
-        setSelectedItem(newTask);
-      }
-    } catch (e) {
-      console.error(e);
-    }
-
-    setShowQuickCapture(false);
-    setNewTaskSubject('');
-    setNewTaskTitle('');
-    setNewTaskDate('');
-    setNewTaskSyncCalendar(true);
-  };
-
-  const handleProcessNotice = async () => {
-    if (!noticeText.trim() || !token) return;
-    setIsProcessingNotice(true);
-    setNoticeError(null);
-    setNoticeResult(null);
-    try {
-      const res = await IntelligenceService.process({
-        input_type: 'notice',
-        data: { text: noticeText }
-      }, token);
-      if (res.success && res.data?.report_id) {
-        setPendingReportId(res.data.report_id);
-      } else {
-        setIsProcessingNotice(false);
-        setNoticeError(res.message || 'AI processing failed. Please try again.');
-      }
-    } catch (e: unknown) {
-      console.error(e);
-      setIsProcessingNotice(false);
-      setNoticeError((e as Error)?.message || 'Failed to reach the AI engine. Check your connection and try again.');
-    }
-  };
-
-  const handleDeleteTask = async (taskId: string) => {
-    if (!token) return;
-    setIsDeletingTask(taskId);
-    try {
-      await TaskService.deleteTask(taskId, token);
-      setTasks(prev => prev.filter(t => t.id !== taskId));
-      if (selectedItem?.id === taskId) setSelectedItem(null);
-    } catch (e) {
-      console.error('Delete failed', e);
-    } finally {
-      setIsDeletingTask(null);
-    }
-  };
-
-  const handleApproveTask = async (task: WorkspaceTask) => {
-    if (!token) return;
-    try {
-      const res = await TaskService.updateTask(task.id, { status: 'pending' }, token);
-      if (res.success) {
-        const updated = { ...task, status: 'pending' };
-        setTasks(prev => prev.map(t => t.id === task.id ? updated : t));
-        if (selectedItem?.id === task.id) setSelectedItem(updated);
-      }
-    } catch (e) {
-      console.error('Approve failed', e);
-    }
-  };
-
-  const openEditModal = (task: WorkspaceTask) => {
-    setEditingTask(task);
-    setEditTitle(task.title);
-    setEditSubject(task.subject);
-    setEditPriority(task.priority?.toLowerCase() || 'medium');
-    setEditDueDate('');
-    setShowEditModal(true);
-  };
-
-  const handleUpdateTask = async () => {
-    if (!token || !editingTask) return;
-    try {
-      const res = await TaskService.updateTask(editingTask.id, {
-        title: editTitle,
-        description: editSubject,
-        priority: editPriority as any,
-        ...(editDueDate ? { due_date: editDueDate } : {}),
-      }, token);
-      if (res.success && res.data) {
-        const updated = { ...editingTask, title: editTitle, subject: editSubject, priority: editPriority };
-        setTasks(prev => prev.map(t => t.id === editingTask.id ? updated : t));
-        if (selectedItem?.id === editingTask.id) setSelectedItem(updated);
-      }
-    } catch (e) {
-      console.error('Update failed', e);
-    } finally {
+  const handleEditTaskSave = async (id: string, title: string, subject: string, priority: string, dueDate: string) => {
+    const updates = { title, description: subject, priority, ...(dueDate ? { due_date: dueDate } : {}) };
+    const displayUpdates = { title, subject, priority };
+    const updated = await updateTask(id, updates, displayUpdates);
+    if (updated) {
+      if (selectedItem?.id === id) setSelectedItem(updated);
       setShowEditModal(false);
       setEditingTask(null);
     }
+  };
+
+  const handleApprove = async (task: WorkspaceTaskData) => {
+    const updated = await approveTask(task);
+    if (updated && selectedItem?.id === task.id) {
+      setSelectedItem(updated);
+    }
+  };
+
+  const handleDelete = async (taskId: string) => {
+    const success = await deleteTask(taskId);
+    if (success && selectedItem?.id === taskId) {
+      setSelectedItem(null);
+    }
+  };
+
+  const openEditModal = (task: WorkspaceTaskData) => {
+    setEditingTask(task);
+    setShowEditModal(true);
   };
 
   return (
@@ -375,422 +160,79 @@ function WorkspaceContent() {
             
             <AnimatePresence mode="wait">
               {(activeTab === 'tasks' || activeTab === 'inbox' || activeTab === 'completed') && (
-                <motion.div key={activeTab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-                  <h2 className="text-2xl font-black font-display text-vintage-ink mb-6">
-                    {activeTab === 'tasks' ? "Today's Focus" : activeTab === 'inbox' ? "Pending Review" : "Completed Tasks"}
-                  </h2>
-                  <div className="space-y-3">
-                    {isLoading ? (
-                      <>
-                        <SkeletonCard />
-                        <SkeletonCard />
-                        <SkeletonCard />
-                      </>
-                    ) : filteredTasks.length === 0 ? (
-                      <EmptyState icon={SortDesc} title="No tasks found" subtitle="No tasks matching your search." />
-                    ) : (
-                      filteredTasks.map(task => (
-                        <WorkspaceTask
-                          key={task.id}
-                          task={task}
-                          isSelected={selectedItem?.id === task.id}
-                          isDeleting={isDeletingTask === task.id}
-                          onSelect={setSelectedItem}
-                          onApprove={(t, e) => { e.stopPropagation(); handleApproveTask(t); }}
-                          onEdit={(t, e) => { e.stopPropagation(); openEditModal(t); }}
-                          onDelete={(id, e) => { e.stopPropagation(); handleDeleteTask(id); }}
-                        />
-                      ))
-                    )}
-                  </div>
-                </motion.div>
+                <TaskList
+                  activeTab={activeTab}
+                  tasks={filteredTasks}
+                  isLoading={isLoading}
+                  selectedItem={selectedItem}
+                  isDeletingTask={isDeletingTask}
+                  onSelect={setSelectedItem}
+                  onApprove={handleApprove}
+                  onEdit={openEditModal}
+                  onDelete={handleDelete}
+                />
               )}
 
               {activeTab === 'extract' && (
-                <motion.div key="extract" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-                  <h2 className="text-2xl font-black font-display text-vintage-ink mb-6">AI Notice Scanner</h2>
-                  <div className="bg-white rounded-xl border border-vintage-ink/10 p-4 shadow-sm">
-                    <textarea 
-                      placeholder="Paste your syllabus, notice, or email here..."
-                      value={noticeText}
-                      onChange={(e) => setNoticeText(e.target.value)}
-                      className="w-full h-40 bg-transparent border-none resize-none focus:outline-none font-mono text-sm text-vintage-ink placeholder:text-vintage-ink/30"
-                    ></textarea>
-                    
-                    {/* Error Banner */}
-                    {noticeError && (
-                      <div className="mt-3 p-3 bg-vintage-crimson/10 border border-vintage-crimson/30 rounded-lg flex items-start gap-3">
-                        <AlertTriangle className="w-4 h-4 text-vintage-crimson shrink-0 mt-0.5" />
-                        <p className="text-xs font-mono text-vintage-crimson flex-1">{noticeError}</p>
-                        <button onClick={() => setNoticeError(null)} className="text-vintage-crimson/60 hover:text-vintage-crimson">
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                    )}
-
-                    {/* Results Panel */}
-                    {noticeResult && (
-                      <div className="mt-4 p-4 bg-vintage-paper rounded border border-vintage-ink/10">
-                        <div className="flex items-center justify-between mb-3">
-                          <h4 className="font-bold text-sm font-mono">Extracted Details</h4>
-                          <button onClick={() => setNoticeResult(null)} className="text-vintage-ink/30 hover:text-vintage-ink text-xs font-mono">Clear</button>
-                        </div>
-                        {noticeResult.extracted_events?.length > 0 ? (
-                           <ul className="text-xs font-mono text-vintage-ink/80 space-y-1 mb-3">
-                             {noticeResult.extracted_events.map((ev: ExtractedEvent, idx: number) => (
-                                <li key={idx} className="flex gap-2"><span className="text-vintage-crimson">◆</span> <span><strong>{ev.title}</strong> — {ev.date} ({ev.subject})</span></li>
-                             ))}
-                           </ul>
-                        ) : (
-                          <p className="text-xs font-mono text-vintage-ink/50 mb-3">No specific dates extracted.</p>
-                        )}
-                        {noticeResult.recommendations?.length > 0 && (
-                          <>
-                            <h4 className="font-bold text-xs font-mono text-vintage-ink/60 uppercase tracking-widest mb-2">Recommendations</h4>
-                            <ul className="text-xs font-mono text-vintage-ink/80 space-y-1">
-                              {noticeResult.recommendations.map((r: Recommendation, idx: number) => (
-                                 <li key={idx} className="flex gap-2"><span className="text-vintage-crimson">→</span> {r.action}</li>
-                              ))}
-                            </ul>
-                          </>
-                        )}
-                        {noticeResult.risk_assessment && (
-                          <div className="mt-3 pt-3 border-t border-vintage-ink/10 flex items-center gap-2">
-                            <span className="text-xs font-mono text-vintage-ink/50">Risk Level:</span>
-                            <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded ${
-                              noticeResult.risk_assessment.risk_level === 'high' ? 'bg-vintage-crimson/10 text-vintage-crimson' :
-                              noticeResult.risk_assessment.risk_level === 'medium' ? 'bg-yellow-100 text-yellow-700' :
-                              'bg-green-100 text-green-700'
-                            }`}>{noticeResult.risk_assessment.risk_level?.toUpperCase()}</span>
-                            <span className="text-xs font-mono text-vintage-ink/40">({Math.round((noticeResult.risk_assessment.risk_score || 0) * 100)}% risk score)</span>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    <div className="flex justify-between items-center mt-4 pt-4 border-t border-vintage-ink/10">
-                      <div className="text-xs font-mono text-vintage-ink/40 flex items-center gap-2">
-                        <Sparkles className="w-3 h-3" /> {isProcessingNotice ? 'AI is processing...' : 'AI is ready to extract tasks'}
-                      </div>
-                      <div className="flex gap-2">
-                        <input
-                          type="file"
-                          accept="image/*,.pdf"
-                          onChange={handleFileUpload}
-                          className="hidden"
-                          ref={fileInputRef}
-                        />
-                        <button 
-                          onClick={() => fileInputRef.current?.click()}
-                          disabled={isProcessingNotice}
-                          className="bg-white text-vintage-ink border border-vintage-ink/20 px-4 py-2 rounded-md text-sm font-bold font-mono hover:bg-vintage-ink/5 flex items-center gap-2 disabled:opacity-50"
-                        >
-                          <Paperclip className="w-4 h-4" /> Upload
-                        </button>
-                        <button 
-                          onClick={handleProcessNotice}
-                          disabled={isProcessingNotice || (!noticeText || noticeText.includes('File uploaded:'))}
-                          className="bg-vintage-crimson text-white px-4 py-2 rounded-md text-sm font-bold font-mono hover:bg-vintage-crimsonDark flex items-center gap-2 disabled:opacity-50"
-                        >
-                          {isProcessingNotice ? 'Processing...' : 'Process'} <ArrowRight className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
+                <AIInbox
+                  noticeText={noticeProcessing.noticeText}
+                  setNoticeText={noticeProcessing.setNoticeText}
+                  isProcessingNotice={noticeProcessing.isProcessingNotice}
+                  noticeResult={noticeProcessing.noticeResult}
+                  noticeError={noticeProcessing.noticeError}
+                  fileInputRef={noticeProcessing.fileInputRef}
+                  onFileUpload={noticeProcessing.handleFileUpload}
+                  onProcessNotice={noticeProcessing.handleProcessNotice}
+                  onClearResult={noticeProcessing.clearResult}
+                  onClearError={noticeProcessing.clearError}
+                />
               )}
             </AnimatePresence>
             
           </div>
         </div>
 
-        {/* Right Panel: Context Panel (AI Assistant & Instagram-style social interaction) */}
-        <div className="w-80 border-l border-vintage-ink/10 bg-white flex flex-col shrink-0">
-          {selectedItem ? (
-            <>
-              {/* Header */}
-              <div className="p-4 border-b border-vintage-ink/10 flex justify-between items-center bg-vintage-paper/50">
-                <h3 className="font-bold font-mono text-sm text-vintage-ink">Context Panel</h3>
-                <MoreHorizontal className="w-4 h-4 text-vintage-ink/40 cursor-pointer hover:text-vintage-ink" />
-              </div>
-
-              <div className="flex-1 overflow-y-auto">
-                {/* Image/Preview (Instagram-style header for the task) */}
-                <div className="w-full aspect-video bg-vintage-ink/5 border-b border-vintage-ink/10 flex flex-col items-center justify-center p-6 text-center relative overflow-hidden">
-                  <div className="absolute -inset-4 striped-bg opacity-30 z-0"></div>
-                  <div className="z-10 bg-white p-4 rounded-lg shadow-sm border border-vintage-ink/5 transform rotate-1">
-                    <h2 className="font-black font-display text-xl text-vintage-ink mb-1">{selectedItem.title}</h2>
-                    <p className="font-mono text-sm text-vintage-crimson">{selectedItem.date}</p>
-                  </div>
-                </div>
-
-                {/* Instagram Style Action Bar */}
-                <div className="p-3 flex items-center justify-between border-b border-vintage-ink/5">
-                  <div className="flex items-center gap-4">
-                    <button onClick={() => setIsLiked(!isLiked)} className="hover:scale-110 transition-transform">
-                      <Heart className={`w-6 h-6 ${isLiked ? 'fill-vintage-crimson text-vintage-crimson' : 'text-vintage-ink'}`} />
-                    </button>
-                    <button className="hover:scale-110 transition-transform">
-                      <MessageCircle className="w-6 h-6 text-vintage-ink" />
-                    </button>
-                    <button className="hover:scale-110 transition-transform">
-                      <Share2 className="w-6 h-6 text-vintage-ink" />
-                    </button>
-                    <button 
-                      onClick={() => setShowWorkspaceFocusTimer(true)}
-                      className="ml-2 px-3 py-1 bg-vintage-crimson text-white text-xs font-bold font-mono rounded-full hover:bg-vintage-crimsonDark flex items-center gap-1"
-                    >
-                      <Target className="w-3 h-3" /> Focus
-                    </button>
-                  </div>
-                  <BookmarkIcon />
-                </div>
-
-                {/* Details Section */}
-                <div className="p-4 border-b border-vintage-ink/5">
-                  <p className="text-sm font-mono text-vintage-ink">
-                    <span className="font-bold">{user?.full_name || 'Demo User'}</span> Need to finish this before the weekend. Priority is set to <PriorityBadge priority={selectedItem.priority} />.
-                  </p>
-                </div>
-
-                {/* AI Insights & Comments */}
-                <div className="p-4 flex flex-col gap-4">
-                  {chatHistory.map((c, i) => (
-                    <div key={i} className="flex items-start gap-3">
-                      <div className="w-6 h-6 rounded-full bg-vintage-ink/10 flex items-center justify-center overflow-hidden shrink-0">
-                         {c.role === 'assistant' ? (
-                           <Sparkles className="w-3 h-3 text-neonBlue" />
-                         ) : (
-                           <img src={user?.avatar_url || '/avatars/doodle_dog.png'} alt="avatar" className="w-full h-full object-cover" />
-                         )}
-                      </div>
-                      <p className="text-sm font-mono text-vintage-ink/80 leading-tight">
-                        <span className="font-bold text-vintage-ink mr-2">{c.role === 'assistant' ? 'ai_copilot' : (user?.full_name || 'You')}</span>
-                        {c.content}
-                      </p>
-                    </div>
-                  ))}
-                  {isChatLoading && (
-                    <div className="flex items-start gap-3">
-                      <div className="w-6 h-6 rounded-full bg-vintage-ink/10 flex items-center justify-center overflow-hidden shrink-0">
-                         <Sparkles className="w-3 h-3 text-neonBlue animate-pulse" />
-                      </div>
-                      <p className="text-sm font-mono text-vintage-ink/80 leading-tight animate-pulse">
-                        Thinking...
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Add Comment Input (Instagram Style) */}
-              <div className="p-3 border-t border-vintage-ink/10 bg-white flex items-center gap-3">
-                <div className="w-7 h-7 rounded-full overflow-hidden shrink-0 border border-vintage-ink/10">
-                  <img src={user?.avatar_url || '/avatars/doodle_dog.png'} alt="avatar" className="w-full h-full object-cover" />
-                </div>
-                <input 
-                  type="text" 
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleAddComment()}
-                  placeholder="Add a comment..." 
-                  className="flex-1 bg-transparent border-none text-sm font-mono focus:outline-none placeholder:text-vintage-ink/40"
-                />
-                <button className="text-vintage-ink/40 hover:text-vintage-ink">
-                  <Smile className="w-5 h-5" />
-                </button>
-                <button 
-                  onClick={handleAddComment}
-                  disabled={!newComment.trim() || isChatLoading}
-                  className={`text-sm font-bold font-mono transition-colors ${newComment.trim() && !isChatLoading ? 'text-neonBlue' : 'text-neonBlue/40'}`}
-                >
-                  Post
-                </button>
-              </div>
-            </>
-          ) : (
-            <div className="flex-1 flex flex-col items-center justify-center text-center p-8 opacity-50">
-              <Sparkles className="w-8 h-8 mb-4 text-vintage-ink" />
-              <p className="font-mono text-sm">Select an item to view AI context, insights, and discussion.</p>
-            </div>
-          )}
-        </div>
+        {/* Right Panel: Context Panel */}
+        <CopilotChat
+          selectedItem={selectedItem}
+          user={user}
+          chatHistory={copilotChat.chatHistory}
+          isChatLoading={copilotChat.isChatLoading}
+          newComment={copilotChat.newComment}
+          isLiked={copilotChat.isLiked}
+          setNewComment={copilotChat.setNewComment}
+          setIsLiked={copilotChat.setIsLiked}
+          onAddComment={copilotChat.addComment}
+          onFocus={() => setShowWorkspaceFocusTimer(true)}
+        />
         
       </div>
 
-      {/* Quick Capture Modal */}
+      {/* Modals */}
       <AnimatePresence>
         {showQuickCapture && (
-          <ModalShell onClose={() => setShowQuickCapture(false)}>
-              <h3 className="font-display font-black text-xl text-vintage-ink mb-4">Quick Capture</h3>
-              
-              <div className="space-y-4">
-                <div>
-                  <FormField 
-                    label="Subject *"
-                    type="text" 
-                    list="workspace-subjects"
-                    placeholder="e.g. CS 301"
-                    value={newTaskSubject}
-                    onChange={(e) => setNewTaskSubject(e.target.value)}
-                    className="w-full bg-vintage-paper border border-vintage-ink/10 rounded p-2 text-sm font-mono focus:border-vintage-crimson outline-none"
-                  />
-                  <datalist id="workspace-subjects">
-                    {Array.from(new Set(INITIAL_TASKS.map(t => t.subject))).map(sub => (
-                      <option key={sub} value={sub} />
-                    ))}
-                  </datalist>
-                </div>
-                <FormField 
-                  label="Title *"
-                  type="text" 
-                  placeholder="Task name"
-                  value={newTaskTitle}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewTaskTitle(e.target.value)}
-                />
-                <div className="flex gap-4">
-                  <div className="flex-1">
-                    <label className="block text-xs font-bold font-mono text-vintage-ink/60 mb-1">Type</label>
-                    <select 
-                      value={newTaskType}
-                      onChange={(e) => setNewTaskType(e.target.value)}
-                      className="w-full bg-vintage-paper border border-vintage-ink/10 rounded p-2 text-sm font-mono outline-none"
-                    >
-                      <option>Assignment</option>
-                      <option>Exam</option>
-                      <option>Reading</option>
-                      <option>Project</option>
-                    </select>
-                  </div>
-                  <div className="flex-1">
-                    <label className="block text-xs font-bold font-mono text-vintage-ink/60 mb-1">Priority</label>
-                    <select 
-                      value={newTaskPriority}
-                      onChange={(e) => setNewTaskPriority(e.target.value)}
-                      className="w-full bg-vintage-paper border border-vintage-ink/10 rounded p-2 text-sm font-mono outline-none"
-                    >
-                      <option>High</option>
-                      <option>Medium</option>
-                      <option>Low</option>
-                    </select>
-                  </div>
-                </div>
-                
-                <div className="flex items-center justify-between pt-2">
-                  <label className="flex items-center gap-2 text-sm font-mono text-vintage-ink">
-                    <input 
-                      type="checkbox" 
-                      checked={newTaskSyncCalendar}
-                      onChange={(e) => setNewTaskSyncCalendar(e.target.checked)}
-                      className="rounded border-vintage-ink/20 text-vintage-crimson focus:ring-vintage-crimson"
-                    />
-                    Sync to Google Calendar
-                  </label>
-                  
-                  <div className="flex items-center gap-2">
-                    <label className="text-xs font-bold font-mono text-vintage-ink/60">WhatsApp Reminder</label>
-                    <select 
-                      value={newTaskReminderTime}
-                      onChange={(e) => setNewTaskReminderTime(e.target.value)}
-                      className="bg-vintage-paper border border-vintage-ink/10 rounded p-1 text-xs font-mono outline-none"
-                    >
-                      <option value="none">None</option>
-                      <option value="1h">1 hour before</option>
-                      <option value="24h">24 hours before</option>
-                      <option value="48h">48 hours before</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-vintage-ink/10">
-                <button 
-                  onClick={() => setShowQuickCapture(false)}
-                  className="px-4 py-2 text-sm font-bold font-mono text-vintage-ink/60 hover:text-vintage-ink transition-colors"
-                >
-                  Cancel
-                </button>
-                <button 
-                  onClick={handleQuickCapture}
-                  disabled={!newTaskSubject || !newTaskTitle}
-                  className="bg-vintage-crimson text-white px-4 py-2 rounded-md text-sm font-bold font-mono hover:bg-vintage-crimsonDark disabled:opacity-50 transition-colors"
-                >
-                  Save Task
-                </button>
-              </div>
-          </ModalShell>
+          <QuickCaptureModal 
+            onClose={() => setShowQuickCapture(false)}
+            onSave={handleQuickCaptureSave}
+            existingSubjects={existingSubjects}
+          />
         )}
       </AnimatePresence>
 
-      {/* Edit Task Modal */}
       <AnimatePresence>
         {showEditModal && editingTask && (
-          <ModalShell onClose={() => setShowEditModal(false)}>
-              <div className="flex items-center justify-between mb-5">
-                <h3 className="font-display font-black text-xl text-vintage-ink">Edit Task</h3>
-                <button onClick={() => setShowEditModal(false)} className="text-vintage-ink/40 hover:text-vintage-ink">
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              <div className="space-y-4">
-                <FormField
-                  label="Title *"
-                  type="text"
-                    value={editTitle}
-                    onChange={(e) => setEditTitle(e.target.value)}
-                    className="w-full bg-vintage-paper border border-vintage-ink/10 rounded p-2 text-sm font-mono focus:border-vintage-crimson outline-none"
-                  autoFocus
-                />
-                <FormField
-                  label="Subject"
-                  type="text"
-                  value={editSubject}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditSubject(e.target.value)}
-                />
-                <div className="flex gap-4">
-                  <div className="flex-1">
-                    <label className="block text-xs font-bold font-mono text-vintage-ink/60 mb-1">Priority</label>
-                    <select
-                      value={editPriority}
-                      onChange={(e) => setEditPriority(e.target.value)}
-                      className="w-full bg-vintage-paper border border-vintage-ink/10 rounded p-2 text-sm font-mono outline-none"
-                    >
-                      <option value="high">High</option>
-                      <option value="medium">Medium</option>
-                      <option value="low">Low</option>
-                    </select>
-                  </div>
-                  <div className="flex-1">
-                    <label className="block text-xs font-bold font-mono text-vintage-ink/60 mb-1">New Due Date</label>
-                    <input
-                      type="date"
-                      value={editDueDate}
-                      onChange={(e) => setEditDueDate(e.target.value)}
-                      className="w-full bg-vintage-paper border border-vintage-ink/10 rounded p-2 text-sm font-mono outline-none"
-                    />
-                  </div>
-                </div>
-              </div>
-              <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-vintage-ink/10">
-                <button
-                  onClick={() => setShowEditModal(false)}
-                  className="px-4 py-2 text-sm font-bold font-mono text-vintage-ink/60 hover:text-vintage-ink transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleUpdateTask}
-                  disabled={!editTitle.trim()}
-                  className="bg-vintage-crimson text-white px-4 py-2 rounded-md text-sm font-bold font-mono hover:bg-vintage-crimsonDark disabled:opacity-50 transition-colors"
-                >
-                  Save Changes
-                </button>
-              </div>
-          </ModalShell>
+          <EditTaskModal
+            task={editingTask}
+            onClose={() => {
+              setShowEditModal(false);
+              setEditingTask(null);
+            }}
+            onSave={handleEditTaskSave}
+          />
         )}
       </AnimatePresence>
 
-      {/* Focus Timer for Workspace Task */}
+      {/* Focus Timer */}
       {selectedItem && (
         <FocusTimerModal 
           isOpen={showWorkspaceFocusTimer} 
@@ -825,10 +267,4 @@ const NavItem = ({ icon, label, active, badge, onClick }: { icon: React.ReactNod
     </div>
     {badge && <span className="bg-vintage-crimson text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">{badge}</span>}
   </button>
-);
-
-const BookmarkIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-vintage-ink hover:scale-110 transition-transform cursor-pointer">
-    <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>
-  </svg>
 );
