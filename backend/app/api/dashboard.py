@@ -9,8 +9,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.core.security import verify_token
 from app.core.utils import handle_db_errors
-from app.core.cache import cache
+from app.core.cache import cache, dashboard_key
 import json
+from app.services.risk_engine import RiskEngine
 from app.repositories.automation_repository import AutomationRepository
 from app.repositories.intelligence_repository import IntelligenceRepository
 from app.repositories.task_repository import TaskRepository
@@ -37,6 +38,8 @@ from app.db.client import get_supabase_admin
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
+risk_engine = RiskEngine()
+
 
 @router.get("", response_model=APIResponse[DashboardResponse])
 def get_dashboard(
@@ -54,7 +57,7 @@ def get_dashboard(
         
         # ── 0. Check cache ──────────────────────────────────────────────────
         if cache:
-            key = f"dashboard:{user_id}"
+            key = dashboard_key(user_id)
             try:
                 cached = cache.get(key)
                 if cached:
@@ -84,10 +87,6 @@ def get_dashboard(
                     days_remaining=max(0, days_remaining),
                 ))
 
-        # ── 2. Academic health from current tasks (DYNAMIC) ────────────
-        from app.services.risk_engine import RiskEngine
-        risk_engine = RiskEngine()
-        
         pending_task_count = len(upcoming_tasks)
         high_priority_count = sum(1 for t in upcoming_tasks if t.priority == 'high')
         event_count = sum(1 for t in upcoming_tasks if t.priority in ['high', 'critical'])
@@ -215,7 +214,7 @@ def get_dashboard(
         )
 
         if cache:
-            key = f"dashboard:{user_id}"
+            key = dashboard_key(user_id)
             try:
                 cache.setex(key, 60, dashboard.model_dump_json())
             except Exception as e:

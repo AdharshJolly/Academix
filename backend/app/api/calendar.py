@@ -14,7 +14,7 @@ from app.core.security import verify_token
 from app.integrations.calendar import GoogleCalendarClient
 from app.repositories.user_repository import UserRepository
 from app.schemas.common import APIResponse
-from app.core.cache import cache
+from app.core.cache import cache, calendar_key
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/calendar", tags=["calendar"])
@@ -56,7 +56,7 @@ def _get_month_bounds(y: int, m: int):
 
 
 def _fetch_and_cache_month(client: GoogleCalendarClient, refresh_token: str, user_id: str, y: int, m: int):
-    cache_key = f"cal:{user_id}:{y}-{m}"
+    cache_key = calendar_key(user_id, y, m)
     if cache and cache.get(cache_key):
         return
 
@@ -113,7 +113,7 @@ def get_calendar_events(
     y = year or now.year
     m = month or now.month
     
-    cache_key = f"cal:{user['id']}:{y}-{m}"
+    cache_key = calendar_key(user["id"], y, m)
     
     events = None
     if cache:
